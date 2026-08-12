@@ -1,6 +1,8 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
+import { stuckDecisions } from '../lib/stuck-decisions.js';
+import { sanitizeLine } from '../v2/sanitize.js';
 import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises.js';
 import { readReceipt, SKIPPED } from '../lib/receipt.js';
 import { SURFACES, resolveResponseLocale, surfaceLocale } from '../lib/surfaces.js';
@@ -244,6 +246,20 @@ export const checkIn: ToolModule = {
         ? S.upcoming(upcoming.length, upDays)
         : '';
 
+      // STUCK RECORDS (journey D1, measured). 침묵 계약은 **봉인된** 결정이
+      // 아직 확인일 전일 때의 것이다 — 그건 건강하게 기다리는 상태이고, 세는
+      // 것을 읊는 것은 과발화다 (그 시도는 되돌렸다). 전제만 있고 예측이 없는
+      // 결정은 다르다: 기다리는 게 아니라 **멈춰 있다.** 확인일이 없으니 영영
+      // due가 되지 않고, 어떤 표면에도 뜨지 않으며, 사용자가 자기 손으로 쓴
+      // 하중 가정이 현실과 대조될 기회를 잃는다. "마감이 없다"와 "그 기록은
+      // 죽었다"는 다른 사실이고, 후자를 침묵으로 덮는 것은 정직한 공백이 아니다.
+      // 사실만 말하고 재촉하지 않는다 — 손잡이(id)는 data에 있고, 필요 없으면
+      // argus_capture action="close"로 닫으면 된다.
+      const stuck = stuckDecisions(ledger);
+      // 사용자 텍스트는 표면에 그대로 넣지 않는다 (집안 규칙, 규칙 19) — 길이도
+      // 제어문자도 여기서 막는다. 안 하면 500자짜리 결정 문장이 화면을 삼킨다.
+      const stuckLine = stuck.length > 0 ? S.stuck(stuck.length, sanitizeLine(stuck[0]!.decision, 60)) : '';
+
       // Fleet view (M2, §9.4): due counts across the OTHER projects the global
       // registry knows. Counts + paths only — each project settles in its own
       // dir; this is a lighthouse sweep, not a merged ledger.
@@ -312,9 +328,9 @@ export const checkIn: ToolModule = {
         }
         return envelope({
           ok: true, tool: 'argus_check_in',
-          surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
+          surface: mirrorLine + S.nothing_due + stuckLine + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...wireFacts(), ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(upDays > 0 ? { upcoming } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...wireFacts(), ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(stuck.length ? { stuck_decisions: stuck } : {}), ...(upDays > 0 ? { upcoming } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -364,6 +380,8 @@ export const checkIn: ToolModule = {
           ...(upDays > 0 ? { upcoming } : {}),
           ...watchData,
           ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}),
+          // 표면은 사실만 말한다. 그것을 고칠 손잡이(id)는 여기에 둔다.
+          ...(stuck.length ? { stuck_decisions: stuck } : {}),
           today, integrity: ledger.integrity,
           // v2 병기/진단은 ARGUS_V2_DEBUG=1 뒤로. 공개 payload에 싣던 v2_brief가
           // 머신-전역 durable-home 저장소를 읽어 다른 프로젝트의 결정 원문을

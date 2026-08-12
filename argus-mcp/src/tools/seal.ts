@@ -3,6 +3,8 @@ import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, logicalNow, resolveHorizon } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
+import { replayLedger } from '../lib/ledger-replay.js';
+import { stuckDecisions } from '../lib/stuck-decisions.js';
 import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
@@ -95,6 +97,9 @@ export const seal: ToolModule = {
       const today = resolveToday({ override: a['today_override'] as string | undefined });
 
       const current = resolveContract(dir, id, today);
+      // 이 봉인이 기존 결정에 '붙은' 것인지 새 기록을 '만든' 것인지는 여기서만
+      // 알 수 있다 — 봉인 뒤에는 둘 다 sealed로 보인다.
+      const startedNewRecord = current.state === 'absent';
       const blind = refuseIfLedgerUnreadable('argus_seal', current);
       if (blind) return blind;
       guardTransition(current.state, 'seal'); // throws DECISION_CLOSED / ILLEGAL_TRANSITION
@@ -430,6 +435,9 @@ export const seal: ToolModule = {
       // ".ics" is a file extension, not a word. To the non-developer this
       // product is for it reads as noise in the middle of a friendly line
       // (2026-07-28 surface sweep). Say what it is; the file is still an .ics.
+      // 방금 쓴 봉인이 원장에 반영된 뒤에 읽는다 — 이 봉인 자신은 sealed라
+      // 목록에 들어오지 않는다.
+      const stuck = startedNewRecord ? stuckDecisions(replayLedger(dir, today)) : [];
       const calNote = locale === 'ko' ? ' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.' : ' A calendar reminder file is saved alongside it.';
       // The other half of the confirm_draft budget move (see the field above).
       // A confirmation was WANTED and this host cannot draw one, so the seal
@@ -450,6 +458,23 @@ export const seal: ToolModule = {
           seal_text,
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
           ...(confirmNote ? { confirm_note: confirmNote } : {}),
+          // HAND BACK THE HANDLE (journey D1, measured). Sealing a NEW id while
+          // the user's own framed decision sits unsealed is how one migration
+          // became six ledger records with five orphans — the assistant
+          // reconstructs an id from the topic instead of reusing the one it was
+          // given a conversation ago, and it renames the scheme every time.
+          //
+          // Nothing is missing from the wiring: sealing onto that id works,
+          // keeps the premises alive, and comes due on the check date (all
+          // measured). Only the handle is missing. So this names it instead of
+          // inventing a relation field — same repair as the check_by clock and
+          // settle's saved_ids: the server knew, and did not say.
+          //
+          // Informational, never a refusal: the next claim may genuinely be its
+          // own decision, and deciding that for the user is not ours to do.
+          ...(startedNewRecord && stuck.length
+            ? { unsealed_decisions: stuck, unsealed_note: 'These decisions carry the user\'s own premises but no prediction, so nothing will ever check them. If a claim belongs to one, call argus_predict again with THAT id instead of a new one — the premises stay attached and it comes due on its own date.' }
+            : {}),
           v2_write: v2Write,
           skipped: receipt.skipped,
           account_synced: sync.synced,

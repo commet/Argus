@@ -120,6 +120,8 @@ export interface SurfaceStrings {
   };
   checkin: {
     nothing_due: string;
+    /** 전제는 있는데 예측이 없어 현실에 닿을 수 없는 결정. 사실만, 재촉 없이. */
+    stuck: (n: number, first: string) => string;
     /** first-run on-ramp: shown when the ledger is EMPTY (never recorded), so a
      *  brand-new user isn't stranded on the same "nothing due" a veteran sees. */
     first_run: string;
@@ -349,6 +351,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: 'Nothing is due right now.',
+      stuck: (n, first) => n === 1
+        ? ` One decision has your premises but no prediction, so nothing will check it: "${first}".`
+        : ` ${n} decisions have your premises but no prediction, so nothing will check them (e.g. "${first}").`,
       // Three sentences, three lines. As one run-on it was 144 characters of
       // chrome — the Korean equivalent is three short lines, and this is the
       // FIRST thing an English user ever reads (2026-07-28 surface sweep).
@@ -506,6 +511,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: '지금 확인할 차례가 된 것은 없습니다.',
+      stuck: (n, first) => n === 1
+        ? ` 전제만 있고 예측이 없어 확인될 수 없는 결정이 하나 있습니다: "${first}".`
+        : ` 전제만 있고 예측이 없어 확인될 수 없는 결정이 ${n}건 있습니다 (예: "${first}").`,
       first_run: '결정 고민은 그대로 말씀하시면 됩니다. 함께 보다가 나중에 확인할 만한 것이 있으면 적어 둡니다. 아직 기록된 것은 없습니다.',
       account_hint: ' 이 화면은 로컬 판단 기록만 읽습니다. 계정에 저장한 예측은 argus_settings action=sync로 가져올 수 있습니다.',
       upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 예측이 ${n}건 있습니다. 아직 결과를 기록할 때는 아닙니다.`,

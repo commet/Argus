@@ -247,6 +247,12 @@ async function assistantExchange(n, userTurn) {
 
     if (errText) {
       say(`  ⚠ 서버 거부: ${String(errText).slice(0, 220)}`);
+      // 거절된 호출은 인자를 통째로 남긴다. 위의 요약 줄은 260자에서 잘리는데,
+      // 사후에 원인을 재현하려면 잘린 그 뒤가 필요하다 — O1의 "the request
+      // needs checking" 5연속 거절은 원인을 끝내 못 찾았고, 이유는 제품이
+      // 아니라 **여기서 증거를 버렸기 때문**이었다. 성공한 호출은 그대로 요약만
+      // 남긴다 (전문을 다 남기면 트랜스크립트가 읽을 수 없게 된다).
+      say(`     거절된 인자 전문: ${JSON.stringify(callArgs)}`);
       journey.rejections.push({ n, tool: act.tool, error: String(errText).slice(0, 300) });
       journey.toolCalls.push({ n, tool: act.tool, ok: false });
       lastErr = errText;
