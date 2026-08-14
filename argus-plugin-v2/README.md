@@ -200,6 +200,7 @@ Nothing is sent before browser approval. Auto-sync can be disabled with
 
 | Command | Use it when |
 |---|---|
+| `/argus:loop` | You are starting a decision and want the whole loop driven from one place (the quickstart's first command). |
 | `/argus:review` | You want a decision or artifact pressure-tested by the full reviewer pipeline. |
 | `/argus:check` | A return is due, you want to append an answer, save a candidate (`<id>`), or re-check premises. |
 | `/argus:history` | You want the decision chronology, a version tree (`versions`), a principle you author (`principles`), or `scan`. |

@@ -57,6 +57,38 @@ export interface ContractEntry {
    *  user's note on why reality had not answered yet. defer_history[0].from is
    *  the ORIGINAL check-by — what the receipt reports as "originally due". */
   defer_history?: Array<{ from?: string; to?: string; note?: string; ts?: string }>;
+  /** Execution plan (PRODUCT-PLAN §3) — process attached to the decision, never
+   *  scored, never in track_record. Dated steps marked scheduled surface in
+   *  check_in when due; at most PLAN_MAX_SCHEDULED are scheduled (earliest
+   *  first) so a 12-step plan cannot become 12 future nags. */
+  plan?: PlanState;
+}
+
+export const PLAN_MAX_SCHEDULED = 3;
+
+export interface PlanStepState {
+  /** 1-based, stable — plan_check refers to steps by this ordinal. */
+  ordinal: number;
+  what: string;
+  /** YYYY-MM-DD; only dated steps can be scheduled. */
+  due?: string;
+  /** true = this step surfaces in check_in when its date arrives. */
+  scheduled?: boolean;
+  /** date the user recorded what happened at this step (absent = unchecked). */
+  checked_on?: string;
+  /** what the user said happened, verbatim. */
+  note?: string;
+}
+
+export interface PlanState {
+  adopted_on?: string;
+  /** who authored the adopted step list. Chat adoption is the gate (the model
+   *  may only call after the user said yes); this records where the WORDS came
+   *  from — same honest-provenance rule as predicate_owner. */
+  owner?: 'user' | 'ai_surfaced';
+  steps: PlanStepState[];
+  /** named unknowns ("확인 필요: X") — honest gaps, never invented steps. */
+  open_questions: string[];
 }
 
 /** 당직 루프 (BLUEPRINT §9) — the daily watch fold. Anchors and captures live
@@ -402,6 +434,48 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         if (!p) break;
         p.status = 'resolved';
         if (typeof ev['decision'] === 'string') p.resolved_decision = ev['decision'];
+        break;
+      }
+
+      // ── execution plan (PRODUCT-PLAN §3). The fold is not a validator — the
+      //    write-time guard is; replay stays defensive and never throws. ──
+      case 'plan_adopt': {
+        if (!cur) { cur = freshEntry(id); map.set(id, cur); } // defensive; write guard refuses absent
+        if (cur.plan) break; // first plan wins — the tool refuses a second one honestly
+        const rawSteps = Array.isArray(ev['steps']) ? (ev['steps'] as unknown[]) : [];
+        const steps: PlanStepState[] = [];
+        for (const [i, s] of rawSteps.entries()) {
+          const rec = s as Record<string, unknown>;
+          if (typeof rec?.['what'] !== 'string' || !rec['what'].trim()) continue;
+          steps.push({
+            ordinal: i + 1,
+            what: rec['what'],
+            ...(typeof rec['due'] === 'string' ? { due: rec['due'] } : {}),
+          });
+        }
+        // Schedule the EARLIEST dated steps only, capped — a detailed plan is
+        // fine, frequent future nags are not (over-fire guard, same reasoning
+        // as the harness's returns-per-plan cap).
+        [...steps].filter((s) => s.due).sort((a, b) => (a.due! < b.due! ? -1 : 1))
+          .slice(0, PLAN_MAX_SCHEDULED).forEach((s) => { s.scheduled = true; });
+        if (!steps.length) { dropped++; break; }
+        cur.plan = {
+          steps,
+          open_questions: Array.isArray(ev['open_questions'])
+            ? (ev['open_questions'] as unknown[]).filter((q): q is string => typeof q === 'string')
+            : [],
+          ...(typeof ev['ts'] === 'string' ? { adopted_on: ev['ts'].slice(0, 10) } : {}),
+          ...(ev['plan_owner'] === 'user' || ev['plan_owner'] === 'ai_surfaced' ? { owner: ev['plan_owner'] } : {}),
+        };
+        break;
+      }
+
+      case 'plan_check': {
+        const step = cur?.plan?.steps.find((s) => s.ordinal === ev['ordinal']);
+        if (!step) { dropped++; break; }
+        if (step.checked_on) break; // first record wins — a re-check cannot silently overwrite
+        step.checked_on = typeof ev['ts'] === 'string' ? ev['ts'].slice(0, 10) : '';
+        if (typeof ev['note'] === 'string') step.note = ev['note'];
         break;
       }
 

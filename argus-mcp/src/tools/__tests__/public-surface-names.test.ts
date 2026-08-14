@@ -52,7 +52,11 @@ describe('호스트-대면 표면에 내부 이름 누수 없음', () => {
   });
 
   it('keeps the full MCP harness within a deterministic context budget', () => {
-    expect(Buffer.byteLength(JSON.stringify(servedPublicTools()), 'utf8')).toBeLessThanOrEqual(16_000);
+    // 17,000 = 2026-08-14 실행 계획(action=plan/plan_check) 표면 비용을 지불하며
+    // 상향(구 16,000). 성장분은 구조(새 action 2개 + steps 배열 스키마) ~489B와
+    // 하중 설명 2건(동의 후 호출 · 공백은 지어내지 않음)이다. 계획은 STABLE
+    // 제품 기획안(ARGUS-PRODUCT-PLAN §3·§6 1주차)의 핵심 미끼라 표면 값을 한다.
+    expect(Buffer.byteLength(JSON.stringify(servedPublicTools()), 'utf8')).toBeLessThanOrEqual(17_000);
     expect(Buffer.byteLength(SERVER_INSTRUCTIONS, 'utf8')).toBeLessThanOrEqual(2_000);
   });
 

@@ -101,9 +101,10 @@ backslashes (`"C:\\Users\\you\\decisions\\.argus"`).
 <details>
 <summary>Windows: server does not appear</summary>
 
-- Run the command by hand first. `npx -y argus-decision-mcp` prints one
-  privacy notice and then waits for a client — that is success, not a hang
-  (Ctrl-C to stop it). Any other output is the real error.
+- Run the command by hand first. `npx -y argus-decision-mcp` in a normal
+  terminal prints a short help card and exits — that means the binary works
+  (assistants launch it over a pipe, where it stays running as a server).
+  A crash or error text instead of the card is the real problem.
 - `npx` failing while it works in your terminal usually means npm is not
   installed globally. Check that `%APPDATA%\npm` exists; if not, run
   `npm install -g npm`.
