@@ -42,6 +42,18 @@ const argOf = (flag, dflt) => (process.argv.includes(flag) ? process.argv[proces
 const VERSION = argOf('--version', '2.0.22');
 const OUT = argOf('--out', path.join(os.tmpdir(), `journey-${VERSION}`));
 const SUBJECT = argOf('--model', 'claude-sonnet-5');
+/**
+ * --host-model: 어시스턴트(호스트) 역만 다른 모델로 바꾼다. 페르소나(사용자
+ * 역·확인창 답·왕복)는 SUBJECT가 계속 연기한다.
+ *
+ * WHY 분리인가 — 지금까지는 SUBJECT 하나가 양쪽을 다 연기했다. 그 상태로
+ * 모델을 바꾸면 "호스트가 달라졌다"와 "사용자가 다르게 말했다"가 한 번에
+ * 움직여서, MatrAIx Table 13이 보여준 배우 지배(같은 코호트 전환율 23.2%↔
+ * 93.9%)를 우리 실험 안에서 재생산하게 된다. 대조쌍 규율과 같은 원칙:
+ * 한 번에 한 요인만. 이 플래그가 있어야 "T08 계열 정산 놓침이 Sonnet의
+ * 라우팅 성향인가, 호스트 일반 성향인가"를 물을 수 있다.
+ */
+const HOST = argOf('--host-model', SUBJECT);
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ANTHROPIC_API_KEY 가 필요합니다 — 이 하네스는 모델 없이는 사용자를 흉내내지 않습니다.');
@@ -190,6 +202,7 @@ async function makeClient(label) {
 }
 
 rule('3단계 · 첫 기동 — 사용자의 AI 어시스턴트가 서버에 붙어 도구 목록을 본다');
+say(`  배역: 어시스턴트(호스트) = ${HOST} · 사용자(페르소나) = ${SUBJECT}${HOST === SUBJECT ? '  (동일 모델 — 호스트 매트릭스 실행이 아님)' : ''}`);
 let client = await makeClient('세션1');
 const toolList = (await client.listTools()).tools;
 say(`  서버가 노출한 도구 ${toolList.length}종: ${toolList.map((t) => t.name).join(' · ')}`);
@@ -222,7 +235,7 @@ say(`  모델에게 넘기는 도구 표면: ${Buffer.byteLength(JSON.stringify(
 /** 어시스턴트 역: 진짜 도구 스키마를 주고, 부를지 말지도 스스로 정하게 한다. */
 async function assistantTurn(history, userTurn, priorError = null) {
   const res = await completeJson({
-    model: SUBJECT,
+    model: HOST,
     user: [
       'You are an AI coding assistant in a terminal session. An MCP server named "argus" is connected.',
       'Its tools, verbatim from the server:',
@@ -581,6 +594,9 @@ fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({
   // 변이 실행은 샘플러에 없으므로 분석기가 역참조로 traits를 복원할 수 없다.
   // 실물을 기록한다 — 기록이 정본이고 역참조는 구세대 실행의 fallback이다.
   traits: persona.traits, language: persona.language,
+  // 배우가 1차 변수다 (MatrAIx Table 13) — 어느 모델이 어느 역을 연기했는지
+  // 없는 결과는 다른 실행과 비교 불가다.
+  persona_model: SUBJECT, host_model: HOST,
   gates: gates.map(([l, ok]) => ({ gate: l, ok })), passed,
   toolCalls: journey.toolCalls, failedCalls,
   rejections: journey.rejections, errors: journey.errors,
