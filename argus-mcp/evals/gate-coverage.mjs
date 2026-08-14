@@ -73,6 +73,10 @@ const WAIVED = new Map([
     'persona-sampling',
     'pure deterministic sampler over MIT-licensed MatrAIx schema axes, not a gate; its two load-bearing properties (level coverage, no axis confounding) are vitest-guarded by persona-sampling-guard.test.ts',
   ],
+  [
+    'axis-effects',
+    'deterministic analysis instrument over recorded first-user-journey outputs (no API, no LLM, no product contract): reports per-axis behavioral effects, confound warnings, and individuation features for receipts; intentionally not merge-blocking',
+  ],
   ['codex-elicit-wire-probe', 'wire investigation tool that reports observations and asserts no product contract'],
   ['discover', 'raw host-payload investigation tool, superseded as a gate by host-matrix and picker-surfaces'],
   ['live-roundtrip', 'real-network investigation kept outside deterministic pre-merge verification'],
