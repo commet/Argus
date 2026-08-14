@@ -150,7 +150,10 @@ for (const [id, rs] of byPersona) {
 
 // 3) 축 귀속 — 표본이 허락할 때만. 교락 검사가 먼저 돈다.
 console.log('\n■ 축 → 행동 귀속');
-const personasInData = [...byPersona.keys()].map((id) => personasById.get(id));
+// 실행에 실린 persona 객체를 그대로 쓴다. id로 샘플러를 재조회하면 대조쌍
+// 변이(P08~…)가 undefined로 터진다 — readRun이 이미 "기록이 정본" 규칙으로
+// 복원해 놓은 것을 버리고 fallback을 다시 부르는 셈이었다.
+const personasInData = [...byPersona.values()].map((rs) => rs[0].persona);
 let attributable = 0;
 for (const axis of AXES) {
   const levels = new Map();
