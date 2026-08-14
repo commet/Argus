@@ -8,7 +8,7 @@ import { resolveToday } from '../lib/resolve-today.js';
 import { tunedStandingSense } from '../lib/ambient-prefs.js';
 import { configPath } from '../lib/layout.js';
 import type { McpToolResult } from '../lib/envelope.js';
-import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, zId, type ToolInputSchema, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, zId, zWhen, type ToolInputSchema, type ToolModule } from './tool-types.js';
 import { openDecision } from './open-decision.js';
 import { premises } from './premises.js';
 import { recheck } from './recheck.js';
@@ -145,10 +145,11 @@ const decideSchema = z.discriminatedUnion('action', [
     id: zId.describe('대상 결정 id입니다.'),
     steps: z.array(z.strictObject({
       what: z.string().min(1).max(200),
-      due: zDate.optional(),
+      due: zWhen.optional(),
     })).min(1).max(8),
     open_questions: z.array(z.string().min(1).max(200)).max(5).optional(),
     plan_owner: z.enum(['user', 'ai_surfaced']).default('ai_surfaced'),
+    adopted_quote: z.string().min(3).max(400).optional(),
   }),
   z.strictObject({
     ...common,
@@ -202,10 +203,11 @@ const decidePublicSchema = z.strictObject({
   note: z.string().max(500).describe('선택적인 사용자 메모입니다. plan_check에서는 필수: 그 단계에서 실제 있었던 일을 사용자의 말 그대로.').optional(),
   steps: z.array(z.strictObject({
     what: z.string().min(1).max(200).describe('할 일 한 줄입니다.\n\nOne line of work.'),
-    due: zDate.optional().describe('확인 날짜(YYYY-MM-DD 또는 +7d/+2w/+3m). 날짜 있는 단계만 그날 check_in이 다시 꺼냅니다.\n\nCheck date; dated steps return via check_in.'),
-  })).min(1).max(8).describe('action=plan: 사용자가 대화에서 동의한 실행 단계입니다. 모르는 것은 지어내지 말고 open_questions로 남깁니다.\n\naction=plan: steps the user agreed to; keep unknowns in open_questions.').optional(),
+    due: zWhen.optional().describe('확인 날짜(YYYY-MM-DD 또는 +7d/+2w/+3m). 날짜 있는 단계만 그날 check_in이 다시 꺼냅니다.\n\nCheck date; dated steps return via check_in.'),
+  })).min(1).max(8).describe('action=plan: 사용자가 동의한 실행 단계입니다. 시점이 중요한 단계에 due(YYYY-MM-DD/+7d)를 붙이면 그 날짜에 check_in이 도로 꺼냅니다. 모르는 것은 지어내지 말고 open_questions로.\n\naction=plan: adopted steps. due (YYYY-MM-DD/+7d) makes check_in return that step that day. Unknowns go to open_questions.').optional(),
   open_questions: z.array(z.string().min(1).max(200)).max(5).describe('아직 몰라 단계로 못 만든 것입니다 ("확인 필요: X").\n\nUnknowns named, never invented into steps.').optional(),
-  plan_owner: z.enum(['user', 'ai_surfaced']).describe('채택된 계획 문안의 출처입니다.\n\nWho authored the adopted wording.').optional(),
+  plan_owner: z.enum(['user', 'ai_surfaced']).describe('채택 문안의 출처입니다(user는 adopted_quote 필요).\n\nAuthorship; user needs adopted_quote.').optional(),
+  adopted_quote: z.string().min(3).max(400).describe('사용자가 동의한 말 그대로. 없으면 채택이 아닙니다.\n\nUser\'s adopting words verbatim; without them it is not adopted.').optional(),
   step: z.number().int().min(1).max(8).describe('plan_check: 단계 번호(1부터)입니다.\n\n1-based step for plan_check.').optional(),
 }).superRefine((value, ctx) => {
   const parsed = decideSchema.safeParse(value);
@@ -371,7 +373,7 @@ function attachOpenPredictions(result: McpToolResult, args: Record<string, unkno
     const sc = result.structuredContent as Record<string, unknown> | undefined;
     if (!sc || result.isError || sc['ok'] === false) return result;
     const data = sc['data'] as Record<string, unknown> | undefined;
-    if (!data || data['open_predictions']) return result; // check_in 등 이미 동봉이면 그대로
+    if (!data) return result;
     const dir = resolveToolArgusDir(args['argus_dir']);
     const ledger = replayLedger(dir, resolveToday({ override: typeof args['today_override'] === 'string' ? args['today_override'] : null }));
     const open = [...ledger.contracts.values()]
@@ -379,11 +381,21 @@ function attachOpenPredictions(result: McpToolResult, args: Record<string, unkno
       .sort((x, y) => ((x.check_by || '') < (y.check_by || '') ? -1 : 1))
       .slice(0, 10)
       .map((c) => ({ id: c.id, predicate: String(c.predicate).slice(0, 140), check_by: c.check_by }));
-    if (!open.length) return result;
+    // 미확인 계획 단계도 같은 상설 손잡이다. 연기 실행 1호(P03) 실측: 사용자가
+    // 첫 단계의 결과를 말하자 모델은 새 결정만 열고 계획에는 아무것도 남기지
+    // 않았다 — 그 순간 모델의 손에 계획 단계 목록이 없었기 때문이다. 정산
+    // 건너뜀을 고친 saved_ids와 같은 문법: 서버가 이미 아는 것을 이름 붙여 준다.
+    const planSteps = [...ledger.contracts.values()]
+      .filter((c) => c.plan && c.status !== 'dismissed' && c.status !== 'settled')
+      .flatMap((c) => (c.plan?.steps ?? []).filter((s) => !s.checked_on)
+        .map((s) => ({ id: c.id, step: s.ordinal, what: s.what.slice(0, 140), ...(s.due ? { due: s.due } : {}) })))
+      .slice(0, 10);
+    if (!open.length && !planSteps.length) return result;
     // 신뢰 경계: 이 라이더는 envelope()의 sanitizeOutput 깔때기 '이후'에 실행되므로
     // 원장 predicate(사용자 저작 텍스트)를 직접 세탁해야 한다 — 안 하면 ANSI/bidi/
     // zero-width 벡터가 세탁 안 된 채 모델에 직행하는 새 경로가 된다.
-    data['open_predictions'] = sanitizeOutput(open);
+    if (open.length && !data['open_predictions']) data['open_predictions'] = sanitizeOutput(open);
+    if (planSteps.length && !data['open_plan_steps']) data['open_plan_steps'] = sanitizeOutput(planSteps);
     data['standing_sense'] = tunedStandingSense();
     result.content = [{ type: 'text', text: JSON.stringify(sc, null, 2) }];
   } catch { /* 라이더 실패는 침묵 — 본 결과를 해치지 않는다 */ }
