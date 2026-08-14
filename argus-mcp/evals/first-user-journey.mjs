@@ -86,10 +86,43 @@ say(`  설치 완료 · 실행 파일 ${entry.replace(os.tmpdir(), '$TMP')}`);
 say(`  package.json 버전: ${declared}${USE_LOCAL ? '  (미발행 로컬 빌드 — 발행본 결과가 아니다)' : declared === VERSION ? '' : `  ⚠ 요청 ${VERSION}과 불일치`}`);
 
 // ── 2. 이 사람이 누구인가 ────────────────────────────────────────────────────
-const persona = samplePersonas()[Number(argOf('--persona', '3')) - 1];
+const basePersona = samplePersonas()[Number(argOf('--persona', '3')) - 1];
+/**
+ * --traits "cog_verbosity=Rambling,decision_style=Consensus-driven"
+ *
+ * 대조쌍 실행용 변이. axis-effects의 귀속 규칙은 "한 축만 다른 페르소나 쌍"을
+ * 요구하는데, 시드 표본 10명 안에는 그런 쌍이 없다 (라틴 하이퍼큐브는 커버리지
+ * 최적이지 대조쌍 최적이 아니다). 그래서 기준 페르소나에서 축 하나만 바꾼
+ * 변이를 명시적으로 만든다. 규율 셋:
+ *   1. 축 id·값을 스키마에 대조해 검증한다 — 오타는 조용한 무효화가 아니라
+ *      즉사여야 한다 (조용히 기본값으로 돌면 "대조쌍을 쟀다"가 거짓이 된다).
+ *   2. id에 변이를 표기한다 (P08~cog_verbosity=Rambling) — 분석기가 변이 실행을
+ *      기준 페르소나 집계에 섞으면 기준 데이터가 오염된다.
+ *   3. summary.json에 traits 전문을 기록한다 — 분석기가 샘플러 역참조가 아니라
+ *      기록된 실물을 읽게 (변이는 샘플러에 없으므로 역참조는 애초에 틀린다).
+ */
+const traitOverrides = {};
+const traitsArg = argOf('--traits', '');
+if (traitsArg) {
+  for (const pair of traitsArg.split(',')) {
+    const [id, value] = pair.split('=').map((s) => s.trim());
+    const axis = AXES.find((a) => a.id === id);
+    if (!axis) { console.error(`--traits: 축 "${id}"는 스키마에 없다. 유효: ${AXES.map((a) => a.id).join(', ')}`); process.exit(2); }
+    if (!axis.values.includes(value)) { console.error(`--traits: ${id}에 "${value}" 수준은 없다. 유효: ${axis.values.join(', ')}`); process.exit(2); }
+    traitOverrides[id] = value;
+  }
+}
+const persona = Object.keys(traitOverrides).length
+  ? { ...basePersona,
+      id: `${basePersona.id}~${Object.entries(traitOverrides).map(([k, v]) => `${k}=${v}`).join('+')}`,
+      traits: { ...basePersona.traits, ...traitOverrides } }
+  : basePersona;
 const traits = AXES.map((a) => `${a.label}: ${persona.traits[a.id]}`).join(' · ');
 rule('2단계 · 사용자 — MatrAIx 스키마에서 뽑은 한 사람이 처음 이 도구를 켠다');
 say(`  ${persona.id} [${persona.language}]  ${traits}`);
+for (const [id, v] of Object.entries(traitOverrides)) {
+  say(`  대조쌍 변이: ${id} ${basePersona.traits[id]} → ${v}  (기준 ${basePersona.id})`);
+}
 
 const PERSONA_SYS = [
   `You are a real software professional using an AI coding assistant for the first time today.`,
@@ -545,6 +578,9 @@ fs.writeFileSync(path.join(OUT, 'TRANSCRIPT.txt'), log.join('\n'));
 // 실으면 요약이 "실패 0"이라 말하고 트랜스크립트는 거부를 보여주는 모순이 된다.
 fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({
   version: declared, persona: persona.id,
+  // 변이 실행은 샘플러에 없으므로 분석기가 역참조로 traits를 복원할 수 없다.
+  // 실물을 기록한다 — 기록이 정본이고 역참조는 구세대 실행의 fallback이다.
+  traits: persona.traits, language: persona.language,
   gates: gates.map(([l, ok]) => ({ gate: l, ok })), passed,
   toolCalls: journey.toolCalls, failedCalls,
   rejections: journey.rejections, errors: journey.errors,

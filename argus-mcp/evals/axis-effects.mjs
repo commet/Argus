@@ -90,8 +90,12 @@ function turnFeatures(turns) {
 function readRun(dir) {
   const summary = JSON.parse(fs.readFileSync(path.join(dir, 'summary.json'), 'utf8'));
   const personaId = typeof summary.persona === 'string' ? summary.persona : summary.persona?.id;
-  const persona = personasById.get(personaId);
-  if (!persona) throw new Error(`${dir}: summary.json의 persona("${personaId}")를 샘플러에서 복원할 수 없다`);
+  // 기록된 traits가 정본이다 — 대조쌍 변이(P08~…)는 샘플러에 존재하지 않으므로
+  // 역참조가 애초에 불가능하고, 역참조는 traits 미기록 구세대 실행의 fallback이다.
+  const persona = summary.traits
+    ? { id: personaId, language: summary.language ?? '?', traits: summary.traits }
+    : personasById.get(personaId);
+  if (!persona) throw new Error(`${dir}: summary.json의 persona("${personaId}")를 샘플러에서 복원할 수 없다 (traits 기록도 없음)`);
   const rejections = (summary.rejections ?? []).map((r) => (String(r.error).match(/"error_code":\s*"([A-Z_]+)"/) ?? [])[1] ?? 'UNKNOWN');
   const ledger = ledgerCounts(dir);
   const transcript = fs.readFileSync(path.join(dir, 'TRANSCRIPT.txt'), 'utf8');
