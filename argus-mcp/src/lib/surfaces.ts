@@ -357,7 +357,12 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       // Three sentences, three lines. As one run-on it was 144 characters of
       // chrome — the Korean equivalent is three short lines, and this is the
       // FIRST thing an English user ever reads (2026-07-28 surface sweep).
-      first_run: 'Just talk through a decision you\'re weighing.\nI\'ll follow along, and if something is worth checking later I\'ll note it.\nNothing is tracked yet.',
+      // 2026-08-14: this moment is ALSO the only success signal an installer
+      // ever gets (nothing else renders on first connect — install audit), so
+      // it must say the wire works, what Argus does, and what to say — with a
+      // concrete example utterance, because "talk through a decision" alone
+      // taught nothing in 16 journey runs.
+      first_run: 'Argus is connected. A decision you record here gets checked against reality on the date you set.\nJust talk through a decision as usual ("we ship option A by Friday") and I\'ll offer to save it with a check-by date.\nNothing is tracked yet.',
       account_hint: ' This screen reads the local decision record only. Predictions saved in your account show up with argus_settings action=sync.',
       upcoming: (n, days) => ` ${n} coming due within ${days} day(s). Informational; no result is due yet.`,
       due_contracts: (n) => `${n} saved prediction(s) past check-by. Tell me how each turned out and I'll record it.`,
@@ -514,7 +519,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       stuck: (n, first) => n === 1
         ? ` 전제만 있고 예측이 없어 확인될 수 없는 결정이 하나 있습니다: "${first}".`
         : ` 전제만 있고 예측이 없어 확인될 수 없는 결정이 ${n}건 있습니다 (예: "${first}").`,
-      first_run: '결정 고민은 그대로 말씀하시면 됩니다. 함께 보다가 나중에 확인할 만한 것이 있으면 적어 둡니다. 아직 기록된 것은 없습니다.',
+      first_run: 'Argus가 연결됐습니다. 여기 기록한 결정은 정한 날짜에 실제로 어땠는지 다시 확인합니다.\n평소처럼 결정을 말씀하시면 됩니다. (예: "이번 주까지 A안으로 배포하기로 했어") 기록해 둘지 물어봅니다.\n아직 기록된 것은 없습니다.',
       account_hint: ' 이 화면은 로컬 판단 기록만 읽습니다. 계정에 저장한 예측은 argus_settings action=sync로 가져올 수 있습니다.',
       upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 예측이 ${n}건 있습니다. 아직 결과를 기록할 때는 아닙니다.`,
       due_contracts: (n) => `저장한 예측 ${n}건이 확인일을 지났습니다. 실제로 어떻게 됐는지 알려주시면 그대로 기록합니다.`,

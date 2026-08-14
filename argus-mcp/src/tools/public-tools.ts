@@ -185,7 +185,14 @@ const decidePublicSchema = z.strictObject({
   const parsed = decideSchema.safeParse(value);
   if (parsed.success) return;
   for (const issue of parsed.error.issues) {
-    ctx.addIssue({ code: 'custom', path: issue.path, message: issue.message });
+    // Re-add the inner issue AS-IS. The old `code:'custom'` wrapper laundered
+    // every inner code away, so server.ts forwarded code:'custom' and the
+    // localizer's per-code switch fell through to its reasonless default —
+    // "status_quo: 값을 확인해 주세요" / "needs checking", the §8 dead end one
+    // journey run hit five times in a row (re-captured with full args in the
+    // 7차 receipt: action=open without status_quo). Preserving code/expected/
+    // minimum/origin lets the copy that already exists finally speak.
+    ctx.addIssue(issue as Parameters<typeof ctx.addIssue>[0]);
   }
 });
 
@@ -233,7 +240,8 @@ const settingsPublicSchema = z.strictObject({
   const parsed = settingsSchema.safeParse(value);
   if (parsed.success) return;
   for (const issue of parsed.error.issues) {
-    ctx.addIssue({ code: 'custom', path: issue.path, message: issue.message });
+    // AS-IS re-add — same dead-end repair as decidePublicSchema above.
+    ctx.addIssue(issue as Parameters<typeof ctx.addIssue>[0]);
   }
 });
 

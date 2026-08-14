@@ -226,3 +226,69 @@ describe('purpose-led public MCP surface', () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe('INVALID_INPUT names a reason, not a dead end (§8 미제 — U8-3 payload)', () => {
+  // The exact shape a journey run failed on five times in a row: action=open
+  // with status_quo missing. The public schema's superRefine used to re-add
+  // every inner issue as code:'custom', which the localizer's per-code switch
+  // does not know — so the user got "status_quo: 값을 확인해 주세요" with no
+  // reason. The repair forwards the inner issue AS-IS.
+  const u83 = {
+    argus_dir: '/tmp/x', action: 'open', id: 'vendor-choice',
+    decision: '공급사를 A로 바꾼다', stakes: 'moderate', reversibility: 'costly_to_reverse',
+  };
+
+  it('preserves the inner issue code through the public superRefine', () => {
+    const parsed = decide.inputSchema.safeParse(u83);
+    expect(parsed.success).toBe(false);
+    if (parsed.success) return;
+    const statusQuo = parsed.error.issues.find((i) => i.path.join('.') === 'status_quo');
+    expect(statusQuo).toBeDefined();
+    // The laundering bug turned every inner code into 'custom'; the whole point
+    // of the repair is that the real code survives so per-code copy can speak.
+    expect(statusQuo?.code).not.toBe('custom');
+    expect(statusQuo?.code).toBe('invalid_type');
+  });
+
+  it('yields an actionable localized reason in both locales, with no raw Zod prose', async () => {
+    const { localizeToolResult } = await import('../../lib/localize-result.js');
+    const parsed = decide.inputSchema.safeParse(u83);
+    expect(parsed.success).toBe(false);
+    if (parsed.success) return;
+    // Mirror server.ts's structural mapping (the contract this test guards).
+    const invalidFields = parsed.error.issues.map((i) => {
+      const raw = i as unknown as Record<string, unknown>;
+      return {
+        field: i.path.join('.') || '(root)',
+        code: i.code,
+        message: i.message,
+        ...(typeof raw['minimum'] === 'number' ? { minimum: raw['minimum'] } : {}),
+        ...(raw['expected'] !== undefined ? { expected: String(raw['expected']) } : {}),
+        ...(raw['origin'] !== undefined ? { origin: String(raw['origin']) } : {}),
+      };
+    });
+    // Locale resolves from the CALL ARGS (server.ts hands the original args in)
+    // — Korean text in the payload → Korean surface; English text → English.
+    const envelope = (callArgs: Record<string, unknown>) => localizeToolResult(callArgs, {
+      content: [{ type: 'text' as const, text: '' }],
+      structuredContent: {
+        ok: false, tool: 'argus_capture', error_code: 'INVALID_INPUT',
+        message: 'Invalid arguments.', invalid_fields: invalidFields,
+        recovery: 'Fix the named argument(s) and call the same tool again.',
+      },
+      isError: true,
+    });
+    const ko = String((envelope(u83).structuredContent as Record<string, unknown>)['message']);
+    const en = String((envelope({ ...u83, decision: 'switch our supplier to A' }).structuredContent as Record<string, unknown>)['message']);
+    // Named field + a real reason (required/type), in place of the dead end.
+    expect(ko).toContain('status_quo');
+    expect(ko).not.toContain('값을 확인해 주세요');
+    expect(ko).toMatch(/필수|형식/);
+    expect(en).toContain('status_quo');
+    expect(en).not.toContain('needs checking');
+    expect(en).toMatch(/required/);
+    // The previous repair attempt leaked raw Zod internals — never again.
+    expect(ko).not.toMatch(/received undefined|expected string,/);
+    expect(en).not.toMatch(/received undefined|expected string,/);
+  });
+});
