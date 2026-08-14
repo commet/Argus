@@ -504,4 +504,7 @@ export const publicSeal = publicWrapper(seal, 'argus_predict', 'Record one falsi
 // NOT "Read-only.": readOnlyHint is honestly false — the first call on an
 // un-initialized dir creates the .argus ledger folder (see check-in.ts note).
 export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only open records that need attention now. Reads open records; the first call may initialize the ledger folder.');
-export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record an outcome the user explicitly stated for a tracked prediction. Reality answers; Argus never grades.');
+// "states the result and jumps…" 절: 8차 리시트의 대조쌍 귀속 수리. 규칙은
+// 봉투(STANDING_SENSE_REFRESH)에도 있지만, 도구 설명은 매 턴 컨텍스트에 있는
+// 유일한 상시 통로라 여기도 한 줄 심는다. 경계 유지: 사용자가 미루면 침묵.
+export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record an outcome the user explicitly stated for a tracked prediction. Reality answers; Argus never grades. If one message states the result and jumps to a next task, record first, then help; if they defer recording, wait.');
