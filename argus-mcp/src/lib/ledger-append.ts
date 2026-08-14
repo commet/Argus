@@ -56,6 +56,11 @@ export interface LedgerEventInput {
    *  clock event `ts` so the reconsider timeline is deterministic (honors
    *  today_override) instead of drifting with real time. */
   anchor_date?: string;
+  // ── execution plan (plan_adopt / plan_check) ──
+  // plan_check reuses `ordinal` (1-based step) and `note` (the user's words).
+  steps?: Array<{ what: string; due?: string }>;
+  open_questions?: string[];
+  plan_owner?: 'user' | 'ai_surfaced';
   action?: string;
   from?: string;
   to?: string;

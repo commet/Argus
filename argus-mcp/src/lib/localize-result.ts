@@ -71,6 +71,15 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   NO_SUCH_PREMISE: { message: '해당 번호의 전제를 찾지 못했습니다 (이 결정에 아직 전제가 없을 수 있습니다).', recovery: 'argus_patterns view="decision_context"로 목록과 번호를 확인하고, 전제가 없으면 argus_capture action="add_context"로 먼저 추가하세요.' },
   WHAT_HAPPENED_REQUIRED: { message: '실제로 일어난 일을 기록해야 합니다.', recovery: '사용자에게 실제 결과를 물어 what_happened에 그대로 전달하세요.' },
   DEFER_DATE_REQUIRED: { message: '다시 확인할 날짜가 필요합니다.', recovery: '사용자에게 언제 다시 볼지 물어 defer_to에 전달하세요 (+2w / +3m 또는 YYYY-MM-DD). 더는 중요하지 않다면 argus_capture action="close"를 사용하세요.' },
+  // ── 실행 계획 (plan.ts). 핸들러가 이미 상황별 한국어를 쓰므로 이 항목들은
+  //    영어로 남은 경로의 그물이다 (authoredKo 우선 규칙, 위 350행). ──
+  NO_DECISION: { message: '그 id의 결정이 아직 없습니다. 계획은 열린 결정에만 붙습니다.', recovery: 'argus_capture action="open"으로 결정을 먼저 연 뒤 같은 id로 다시 호출하세요.' },
+  PLAN_ALREADY_ADOPTED: { message: '이 결정에는 이미 실행 계획이 있습니다.', recovery: '남은 단계는 그대로 두고, 새로 확인할 것은 새 결정으로 여세요. 단계 결과는 action="plan_check"로 기록합니다.' },
+  EMPTY_PLAN: { message: '계획에 단계가 하나도 없습니다.', recovery: '할 일을 steps로 보내세요. 아직 계획을 낼 수 없으면 그 이유를 open_questions로 남기고 단계를 지어내지 마세요.' },
+  BAD_STEP_DATE: { message: '단계의 확인 날짜를 쓸 수 없습니다 (형식 오류이거나 이미 지난 날짜).', recovery: 'YYYY-MM-DD 또는 +7d/+2w/+3m 형태의 앞으로 올 날짜로 보내세요. 오늘 날짜는 응답의 data.today 또는 recovery에 있습니다.' },
+  NO_PLAN: { message: '이 결정에는 아직 실행 계획이 없습니다.', recovery: '사용자가 계획에 동의했다면 action="plan"과 steps로 먼저 붙이세요.' },
+  NO_SUCH_STEP: { message: '그 번호의 단계가 계획에 없습니다.', recovery: 'step에 1부터 시작하는 단계 번호를, note에 실제로 있었던 일을 사용자의 말로 보내세요.' },
+  EMPTY_NOTE: { message: '무슨 일이 있었는지가 비어 있습니다.', recovery: '사용자가 말한 그대로를 note로 보내세요. 짐작으로 채우지 마세요.' },
   NOT_CONNECTED: { message: '이 터미널은 Argus 계정과 연결돼 있지 않습니다.', recovery: '터미널에서 `npx argus-decision-mcp connect`를 실행하면 브라우저에서 한 번 승인하고 끝납니다 (플러그인은 /argus:connect). CI 등에서는 웹 설정의 동기화 토큰을 ARGUS_TOKEN에 넣어도 됩니다.' },
   SYNC_FAILED: { message: 'Argus 계정과 동기화하지 못했습니다.', recovery: '네트워크와 ARGUS_API_URL을 확인한 뒤 다시 시도하세요. 로컬 기록은 영향을 받지 않습니다.' },
   TEXT_REQUIRED: { message: '기록할 문장이 필요합니다.', recovery: '사용자의 문장을 고치거나 요약하지 말고 그대로 text에 전달하세요.' },

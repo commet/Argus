@@ -19,7 +19,13 @@ export type LedgerEventType =
   | 'defer'
   // living premises (plan v5): the facts/open questions a decision rests on
   // premise_reconsider (M3) = the user chose `still_open`: defer, not resolve.
-  | 'premise_add' | 'premise_amend' | 'premise_recheck' | 'premise_resolve' | 'premise_reconsider';
+  | 'premise_add' | 'premise_amend' | 'premise_recheck' | 'premise_resolve' | 'premise_reconsider'
+  // execution plan (PRODUCT-PLAN §3: 계획은 미끼, 정산은 해자). plan_adopt
+  // records the user-adopted step list; dated steps become check-in returns.
+  // plan_check records what the user says happened at one step. Neither event
+  // moves contract STATUS: a plan is process, not a bet — it never feeds
+  // track_record (same discipline as watch anchors, §9.2-3).
+  | 'plan_adopt' | 'plan_check';
 
 export function deriveState(entry: ContractEntry | undefined, today: string): DecisionState {
   if (!entry) return 'absent';
@@ -40,8 +46,8 @@ const ALLOWED: Record<DecisionState, Set<LedgerEventType>> = {
   // premise_* NEVER self-creates (unlike seal's B1) — a premise belongs to a
   // decision's narrative, so absent refuses it (plan v5 §6.2).
   absent: new Set<LedgerEventType>(['harvest', 'seal', 'settle']), // seal/settle self-create (B1); settle then still needs a seal (see guard)
-  opened: new Set<LedgerEventType>(['seal', 'amend', 'dismiss', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve', 'premise_reconsider']),
-  sealed: new Set<LedgerEventType>(['amend', 'dismiss', 'settle', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve', 'premise_reconsider']),
+  opened: new Set<LedgerEventType>(['seal', 'amend', 'dismiss', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve', 'premise_reconsider', 'plan_adopt', 'plan_check']),
+  sealed: new Set<LedgerEventType>(['amend', 'dismiss', 'settle', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve', 'premise_reconsider', 'plan_adopt', 'plan_check']),
   // due: no premise_add (retroactive premise-planting rigs calibration) and no
   // premise_amend (retiring the premise that's about to be proven wrong is the
   // goalpost guard one level down) — recheck/resolve/reconsider stay open
@@ -50,7 +56,10 @@ const ALLOWED: Record<DecisionState, Set<LedgerEventType>> = {
   // PREMATURE, so a deferral can only originate once due. It re-arms check_by
   // forward — legitimate because the outcome is genuinely unknown, which is the
   // one thing the goalpost guard on `amend` is NOT protecting against.
-  due: new Set<LedgerEventType>(['dismiss', 'settle', 'defer', 'premise_recheck', 'premise_resolve', 'premise_reconsider']), // no amend once due — goalpost guard (m4)
+  // plan events stay allowed while due: a plan is never scored, so touching it
+  // cannot move a goalpost — and the natural moment to record "what happened at
+  // step 2" is often exactly when the decision itself has come due.
+  due: new Set<LedgerEventType>(['dismiss', 'settle', 'defer', 'premise_recheck', 'premise_resolve', 'premise_reconsider', 'plan_adopt', 'plan_check']), // no amend once due — goalpost guard (m4)
   settled: new Set<LedgerEventType>([]), // terminal — no reopen (mirror clause)
   dismissed: new Set<LedgerEventType>([]), // terminal
 };

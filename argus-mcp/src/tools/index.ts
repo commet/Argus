@@ -48,6 +48,10 @@ const ESSENTIAL_FIELD_DESCRIPTIONS = new Set([
   'action', 'id', 'view', 'premises', 'text', 'source', 'ai_original',
   'amendment', 'outcome', 'what_happened', 'outcome_source',
   'predicate', 'check_by', 'predicate_owner', 'confirm_draft',
+  // 실행 계획의 두 하중 설명 — "사용자가 동의한 뒤에만"(저자성 게이트)과
+  // "모르는 것은 지어내지 말고 open_questions로"(정직한 공백). 이 둘이 없으면
+  // 모델이 계획을 대신 확정하거나 빈칸을 그럴듯한 단계로 메운다.
+  'steps', 'open_questions',
 ]);
 
 function compactSchemaDescriptions(value: unknown, field?: string): unknown {

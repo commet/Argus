@@ -19,6 +19,7 @@ import { sync } from './sync.js';
 import { seal } from './seal.js';
 import { checkIn } from './check-in.js';
 import { settle } from './settle.js';
+import { plan } from './plan.js';
 import { detectLocaleFromText } from '../lib/locale.js';
 import { gitCommonDirOf } from '../v2/git-discovery.js';
 import { handleToolException } from './errors.js';
@@ -140,6 +141,24 @@ const decideSchema = z.discriminatedUnion('action', [
   }),
   z.strictObject({
     ...common,
+    action: z.literal('plan').describe('사용자가 동의한 실행 계획을 결정에 붙입니다.'),
+    id: zId.describe('대상 결정 id입니다.'),
+    steps: z.array(z.strictObject({
+      what: z.string().min(1).max(200),
+      due: zDate.optional(),
+    })).min(1).max(8),
+    open_questions: z.array(z.string().min(1).max(200)).max(5).optional(),
+    plan_owner: z.enum(['user', 'ai_surfaced']).default('ai_surfaced'),
+  }),
+  z.strictObject({
+    ...common,
+    action: z.literal('plan_check').describe('계획의 한 단계에서 실제로 있었던 일을 기록합니다.'),
+    id: zId.describe('대상 결정 id입니다.'),
+    step: z.number().int().min(1).max(8),
+    note: z.string().min(1).max(400),
+  }),
+  z.strictObject({
+    ...common,
     action: z.literal('close').describe('더는 답이 필요 없는 결정을 평결 없이 닫습니다.'),
     id: zId.describe('대상 결정 id입니다.'),
     dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'superseded', 'user_declined', 'changed_mind', 'other']).describe('결정을 더는 추적하지 않는 이유입니다.'),
@@ -153,7 +172,7 @@ const decideSchema = z.discriminatedUnion('action', [
 // top-level oneOf without weakening runtime validation.
 const decidePublicSchema = z.strictObject({
   argus_dir: zArgusDir,
-  action: z.enum(['open', 'add_context', 'amend_context', 'answer_question', 'keep_question_open', 'update_fact', 'change_prediction', 'close']).describe('수행할 결정 작업입니다. 선택한 작업에 필요한 필드만 전달합니다.'),
+  action: z.enum(['open', 'add_context', 'amend_context', 'answer_question', 'keep_question_open', 'update_fact', 'change_prediction', 'plan', 'plan_check', 'close']).describe('수행할 결정 작업입니다. 선택한 작업에 필요한 필드만 전달합니다.'),
   id: zId.min(1).max(128).describe('대상 결정의 짧고 고유한 식별자입니다.').optional(),
   decision: z.string().min(1).max(600).describe('새 결정 또는 미결 질문에 대한 사용자의 판단입니다.').optional(),
   stakes: z.enum(['trivial', 'low', 'moderate', 'high']).describe('틀렸을 때의 비용입니다. 새 결정을 열 때 사용합니다.').optional(),
@@ -180,7 +199,14 @@ const decidePublicSchema = z.strictObject({
   predicate: z.string().min(8).max(500).describe('수정할 예측 문장입니다.').optional(),
   check_by: zDate.describe('수정할 미래 확인일입니다.').optional(),
   dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'superseded', 'user_declined', 'changed_mind', 'other']).describe('결정을 더는 추적하지 않는 이유입니다.').optional(),
-  note: z.string().max(500).describe('선택적인 사용자 메모입니다.').optional(),
+  note: z.string().max(500).describe('선택적인 사용자 메모입니다. plan_check에서는 필수: 그 단계에서 실제 있었던 일을 사용자의 말 그대로.').optional(),
+  steps: z.array(z.strictObject({
+    what: z.string().min(1).max(200).describe('할 일 한 줄입니다.\n\nOne line of work.'),
+    due: zDate.optional().describe('확인 날짜(YYYY-MM-DD 또는 +7d/+2w/+3m). 날짜 있는 단계만 그날 check_in이 다시 꺼냅니다.\n\nCheck date; dated steps return via check_in.'),
+  })).min(1).max(8).describe('action=plan: 사용자가 대화에서 동의한 실행 단계입니다. 모르는 것은 지어내지 말고 open_questions로 남깁니다.\n\naction=plan: steps the user agreed to; keep unknowns in open_questions.').optional(),
+  open_questions: z.array(z.string().min(1).max(200)).max(5).describe('아직 몰라 단계로 못 만든 것입니다 ("확인 필요: X").\n\nUnknowns named, never invented into steps.').optional(),
+  plan_owner: z.enum(['user', 'ai_surfaced']).describe('채택된 계획 문안의 출처입니다.\n\nWho authored the adopted wording.').optional(),
+  step: z.number().int().min(1).max(8).describe('plan_check: 단계 번호(1부터)입니다.\n\n1-based step for plan_check.').optional(),
 }).superRefine((value, ctx) => {
   const parsed = decideSchema.safeParse(value);
   if (parsed.success) return;
@@ -441,6 +467,10 @@ export const decide: ToolModule = {
     // 주세요". Default to user_stated — the user telling us what they verified.
     if (action === 'update_fact') return runPublic('argus_capture', { ...a, source: a['source'] ?? 'user_stated' }, recheck.handler);
     if (action === 'change_prediction') return runPublic('argus_capture', a, amend.handler);
+    // 계획: 미끼가 해자로 이어지는 연결 (PRODUCT-PLAN §3). 날짜 붙은 단계는
+    // check_in의 귀환이 된다 — 돌아보기를 따로 약속받을 필요가 없어진다.
+    if (action === 'plan') return runPublic('argus_capture', { ...a, op: 'adopt' }, plan.handler);
+    if (action === 'plan_check') return runPublic('argus_capture', { ...a, op: 'check' }, plan.handler);
     return runPublic('argus_capture', a, dismiss.handler);
   },
 };

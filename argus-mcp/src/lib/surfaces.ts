@@ -130,6 +130,8 @@ export interface SurfaceStrings {
     upcoming: (n: number, days: number) => string;
     /** count-only due line (fallback when no seal-time words exist). */
     due_contracts: (n: number) => string;
+    /** Execution-plan steps whose check date has arrived (PRODUCT-PLAN §3). */
+    plan_due: (n: number, first: string) => string;
     /** the anchor mirror (P1-E3): date arithmetic + the user's OWN words back.
      *  Recognition is day-math only — no welcome greetings, no verdict. */
     anchor_mirror: (daysSinceSeal: number, dueCount: number, words: string) => string;
@@ -366,6 +368,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       account_hint: ' This screen reads the local decision record only. Predictions saved in your account show up with argus_settings action=sync.',
       upcoming: (n, days) => ` ${n} coming due within ${days} day(s). Informational; no result is due yet.`,
       due_contracts: (n) => `${n} saved prediction(s) past check-by. Tell me how each turned out and I'll record it.`,
+      plan_due: (n, first) => ` ${n} plan step(s) reached their check date, starting with "${first}". Tell me what happened and it goes down in your words (argus_capture action=plan_check).`,
       anchor_mirror: (days, n, words) =>
         `${days} day(s) since you saved this, and ${n} prediction(s) are past check-by. Back then you wrote: '${words}' All that's left is to record what actually happened (argus_resolve).`,
       due_premises: (n, staleDays, sinceAdd) =>
@@ -523,6 +526,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       account_hint: ' 이 화면은 로컬 판단 기록만 읽습니다. 계정에 저장한 예측은 argus_settings action=sync로 가져올 수 있습니다.',
       upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 예측이 ${n}건 있습니다. 아직 결과를 기록할 때는 아닙니다.`,
       due_contracts: (n) => `저장한 예측 ${n}건이 확인일을 지났습니다. 실제로 어떻게 됐는지 알려주시면 그대로 기록합니다.`,
+      plan_due: (n, first) => ` 계획 단계 ${n}개가 확인 날짜에 닿았습니다. 첫 번째는 "${first}"입니다. 어떻게 됐는지 말씀해 주시면 그대로 기록합니다 (argus_capture action=plan_check).`,
       anchor_mirror: (days, n, words) =>
         `예측을 저장한 지 ${days}일이 지났고, ${n}건이 확인일을 넘겼습니다. 그때 이렇게 적으셨습니다: '${words}' 실제로 어떻게 됐는지만 기록하면 됩니다 (argus_resolve).`,
       due_premises: (n, staleDays, sinceAdd) =>

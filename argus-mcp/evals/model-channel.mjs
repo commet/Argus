@@ -58,7 +58,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
  * tools/list를 모델 컨텍스트로 옮기는 변환. 실제 호스트는 페이로드를 통째로
- * 넣는다 — 도구 표면에 16,000B 예산 테스트가 있는 이유가 그것이다. 예산 안에서
+ * 넣는다 — 도구 표면에 17,000B 예산 테스트가 있는 이유가 그것이다. 예산 안에서
  * 고른 문장을 계측기가 다시 자르면, 무엇을 고르든 의미가 없어진다.
  */
 export function toolsForModel(toolList) {

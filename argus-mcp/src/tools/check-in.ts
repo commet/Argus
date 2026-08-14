@@ -294,7 +294,22 @@ export const checkIn: ToolModule = {
         days_open: q.days_open,
       }));
 
-      if (due.length === 0 && premiseGroups.length === 0 && openQs.length === 0) {
+      // 계획 확인 도래 (PRODUCT-PLAN §3): 날짜가 붙어 예약된 단계가 오늘에
+      // 닿았고 아직 결과가 없는 것. 결정이 정산/기각으로 닫혔으면 그 계획의
+      // 단계를 더 묻지 않는다 — 닫힌 결정을 다시 여는 과발화이기 때문이다.
+      const planDueAll: Array<{ id: string; step: number; what: string; due: string; days_overdue: number }> = [];
+      for (const c of ledger.contracts.values()) {
+        if (!c.plan || c.status === 'dismissed' || c.status === 'settled') continue;
+        for (const s of c.plan.steps) {
+          if (s.scheduled && s.due && s.due <= today && !s.checked_on) {
+            planDueAll.push({ id: c.id, step: s.ordinal, what: s.what, due: s.due, days_overdue: daysBetween(s.due, today) });
+          }
+        }
+      }
+      const planDue = planDueAll.sort((x, y) => (x.due < y.due ? -1 : 1)).slice(0, TOP);
+      const planLine = planDueAll.length > 0 ? S.plan_due(planDueAll.length, sanitizeLine(planDueAll[0]!.what, 80)) : '';
+
+      if (due.length === 0 && premiseGroups.length === 0 && openQs.length === 0 && planDueAll.length === 0) {
         // Static hint, no network (P1-E4 ③ / master §5-18): check_in stays a
         // local, deterministic read — but a token means the user ALSO seals in
         // their account (web), and "nothing" here must not read as "nothing
@@ -356,12 +371,13 @@ export const checkIn: ToolModule = {
             : S.reconsider_more(openQs.length),
         );
       }
+      if (planLine) parts.push(planLine);
 
       // Route to the tool that acts on whatever is due: settle a contract first,
       // else reconsider/recall. argus_premises closes or defers an open question.
       const next: NextAction[] = due.length > 0
         ? ['argus_resolve']
-        : openQs.length > 0
+        : openQs.length > 0 || planDueAll.length > 0
           ? ['argus_capture', 'argus_patterns']
           : ['argus_patterns'];
 
@@ -377,6 +393,10 @@ export const checkIn: ToolModule = {
           ...(premiseGroups.length > TOP ? { due_premises_truncated: `${premiseGroups.length} groups, showing ${TOP}` } : {}),
           due_open_questions: dueOpenQ, due_open_question_count: openQs.length,
           ...(openQs.length > TOP ? { due_open_questions_truncated: `${openQs.length} questions, showing ${TOP}` } : {}),
+          ...(planDueAll.length > 0 ? {
+            plan_due: planDue, plan_due_count: planDueAll.length,
+            ...(planDueAll.length > TOP ? { plan_due_truncated: `${planDueAll.length} steps, showing ${TOP}` } : {}),
+          } : {}),
           ...(upDays > 0 ? { upcoming } : {}),
           ...watchData,
           ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}),
