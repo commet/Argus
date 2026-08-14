@@ -2,7 +2,7 @@ import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, logicalNow, isHorizon, resolveHorizon, isRealDate, isFutureDate } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
-import { guardTransition } from '../lib/state-machine.js';
+import { guardTransition, GuardError } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
 import { PLAN_MAX_SCHEDULED } from '../lib/ledger-replay.js';
 import { resolveResponseLocale } from '../lib/surfaces.js';
@@ -140,7 +140,11 @@ export const plan: ToolModule = {
       const mirror = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'plan_adopt');
-        if (fresh.entry?.plan) throw Object.assign(new Error('plan raced'), { code: 'PLAN_ALREADY_ADOPTED' });
+        // 자물쇠 안 재확인이 걸리면 밖의 정직한 거절과 같은 코드로 말한다 —
+        // 맨 Error는 INTERNAL_ERROR로 위장되어 사용자가 원인을 잃는다.
+        if (fresh.entry?.plan) {
+          throw new GuardError('PLAN_ALREADY_ADOPTED', 'This decision already has an execution plan.', 'Leave the remaining steps as they are; record step results with op=check.');
+        }
         return (await appendLedger(dir, [{
           id, event: 'plan_adopt', steps, open_questions: openQuestions, plan_owner: planOwner,
         }], now)).v2_mirror;
