@@ -58,14 +58,8 @@ export const SERVER_INSTRUCTIONS = [
   'Restraint is the default. Never act on trivial, reversible, logistical, already-closed, or stale signals. Offer once, accept a skip, do nothing when unsure. Ids and errors are plumbing; recover quietly.',
 ].join('\n');
 
-// "even when the same message…" 절: 대조쌍 실측(8차 리시트)의 수리. Directive
-// 화자는 결과 보고와 다음 지시를 한 발화에 붙이고, 호스트 모델은 그것을 "기록할
-// 결정 없음"으로 판정해 정산을 건너뛴다 (P08 4회 중 3회, 대조군 0/7). 규칙을
-// 유혹의 지점(정산이 일어나는 세션이 반드시 받는 check_in/seal 봉투)에 놓는다 —
-// M1 위치 수리와 같은 문법. "an explicit 'record later'" 절이 경계다: 사용자가
-// 직접 미룬 기록을 강제하면 침묵 계약 위반 (D8-2 실측 — 그 침묵은 정답이었다).
 export const STANDING_SENSE_REFRESH =
-  'Keep open predictions in mind. A consequential plan inside a task is still a plan: offer at most one load-bearing premise from the current turn. Record an outcome only when the user states it — and when one message states the result AND moves on to a new task, record first, then help; it is one call. If they say to record later, honor that and stay silent. Never infer, grade, or give a verdict.';
+  'Keep open predictions in mind. A consequential plan inside a task is still a plan: offer at most one load-bearing premise from the current turn. Record an outcome only when the user states it; otherwise stay silent. Never infer, grade, or give a verdict.';
 
 export const SCHEMA_VERSION = 1;
 
