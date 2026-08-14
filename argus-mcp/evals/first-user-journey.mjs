@@ -295,7 +295,13 @@ async function assistantExchange(n, userTurn) {
     } else {
       say(`  📦 서버 응답:\n     ${okSurface.split('\n').join('\n     ')}`);
       journey.toolCalls.push({ n, tool: act.tool, ok: true });
-      if (afterRestart) postRestartOutputs.push(okSurface);
+      // 관문의 증거도 모델이 실제로 받은 봉투 전문으로 모은다 — 5호. 채널을
+      // 복원한 뒤에도 여기만 surface를 모으고 있어서, T10 실측에서 제품이
+      // check_in의 data로 재시작 전 기록(readonly-first-scoping)을 건네고
+      // 모델이 그것을 정확히 복기했는데도 관문은 ❌를 찍었다. surface("Nothing
+      // is due right now.")는 침묵 계약대로 옳게 조용했던 것이고, 증거는
+      // data에 있었다. 서버가 돌려준 것 전체가 서버가 돌려준 것이다.
+      if (afterRestart) postRestartOutputs.push(okForModel);
       called.push(act.tool);
       lastErr = null;
     }
