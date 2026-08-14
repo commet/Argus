@@ -7,7 +7,7 @@
 
 오늘은 없습니다.
 
-## 진행 중인 예측: 1건
+## 진행 중인 예측: 0건
 
 ---
-<!-- argus:last_event_id=01KZZZE5FFQ1JES5RAXP24R22Z -->
+<!-- argus:last_event_id=01KZZZMN9WA5RJP5PA9M88GHD9 -->
