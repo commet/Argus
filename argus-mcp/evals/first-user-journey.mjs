@@ -415,6 +415,17 @@ await client.close();
 })(ledgerDir);
 preRestartIds = [...new Set(preRestartIds)];
 say(`  세션1 종료. 재시작 전 원장의 식별자 ${preRestartIds.length}개: ${preRestartIds.join(', ') || '(없음)'}`);
+// 실제 재시작은 어시스턴트의 대화 기억도 지운다. 서버 프로세스만 갈아끼우고
+// history를 유지하면 세션2의 모델이 원장을 읽지 않고도 어제를 "기억"으로
+// 복기한다 — S1~S3 실측: check_in은 침묵 계약대로 조용했고(마감 전이라 옳음),
+// 모델은 지워지지 않은 history로 recap을 지어냈으며, 재시작 관문 ❌는 제품이
+// 아니라 이 기억 누출을 잰 것이었다. 계측기 결함 4호 — 잘린 발화·버려진 봉투·
+// 잘린 도구 표면과 같은 계열이며, 이번에는 숨긴 것이 아니라 남겨서 거짓을
+// 만들었다. 사용자(페르소나)의 기억은 현실에서도 남는 것이 맞지만 이 하네스는
+// history 하나를 공유한다 — 8·9단계 사용자 발화는 자기완결 프롬프트로 생성되고
+// 정산 대상은 원장에서 읽어 넣으므로, 공유 삭제로 잃는 것은 페르소나의 잡담
+// 연속성뿐이다. 조용한 왜곡 대신 기록된 절충을 택한다.
+history.length = 0;
 afterRestart = true;
 client = await makeClient('세션2');
 const tools2 = (await client.listTools()).tools;
