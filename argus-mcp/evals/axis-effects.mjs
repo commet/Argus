@@ -90,8 +90,12 @@ function turnFeatures(turns) {
 function readRun(dir) {
   const summary = JSON.parse(fs.readFileSync(path.join(dir, 'summary.json'), 'utf8'));
   const personaId = typeof summary.persona === 'string' ? summary.persona : summary.persona?.id;
-  const persona = personasById.get(personaId);
-  if (!persona) throw new Error(`${dir}: summary.json의 persona("${personaId}")를 샘플러에서 복원할 수 없다`);
+  // 기록된 traits가 정본이다 — 대조쌍 변이(P08~…)는 샘플러에 존재하지 않으므로
+  // 역참조가 애초에 불가능하고, 역참조는 traits 미기록 구세대 실행의 fallback이다.
+  const persona = summary.traits
+    ? { id: personaId, language: summary.language ?? '?', traits: summary.traits }
+    : personasById.get(personaId);
+  if (!persona) throw new Error(`${dir}: summary.json의 persona("${personaId}")를 샘플러에서 복원할 수 없다 (traits 기록도 없음)`);
   const rejections = (summary.rejections ?? []).map((r) => (String(r.error).match(/"error_code":\s*"([A-Z_]+)"/) ?? [])[1] ?? 'UNKNOWN');
   const ledger = ledgerCounts(dir);
   const transcript = fs.readFileSync(path.join(dir, 'TRANSCRIPT.txt'), 'utf8');
@@ -146,7 +150,10 @@ for (const [id, rs] of byPersona) {
 
 // 3) 축 귀속 — 표본이 허락할 때만. 교락 검사가 먼저 돈다.
 console.log('\n■ 축 → 행동 귀속');
-const personasInData = [...byPersona.keys()].map((id) => personasById.get(id));
+// 실행에 실린 persona 객체를 그대로 쓴다. id로 샘플러를 재조회하면 대조쌍
+// 변이(P08~…)가 undefined로 터진다 — readRun이 이미 "기록이 정본" 규칙으로
+// 복원해 놓은 것을 버리고 fallback을 다시 부르는 셈이었다.
+const personasInData = [...byPersona.values()].map((rs) => rs[0].persona);
 let attributable = 0;
 for (const axis of AXES) {
   const levels = new Map();
