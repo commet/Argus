@@ -16,9 +16,19 @@
  * fix. Hand-written scenarios cannot find that; a population is needed.
  *
  * WHY THIS DESIGN SURVIVES MatrAIx'S OWN DOCUMENTED WEAKNESS. The MatrAIx paper
- * reports paid-conversion swinging 23.2%↔93.9% across judge models with κ≈0 —
- * persona-simulated *outcome magnitudes* are not trustworthy, and we said so
- * (D13). This harness therefore never asks a model to judge anything:
+ * reports the same ~1,000-persona cohort answering a paid-conversion question at
+ * 23.2% vs 75.8% vs 93.9% depending on which model PLAYS the personas (Claude
+ * Opus 4.8 / GPT 5.5 / Claude Haiku 4.5 — Table 13, Appendix H.1), with
+ * persona-level agreement between those actor models at κ≈0 (median pairwise
+ * Cohen's κ across 88 joinable fields ≤ 0.001 — Table 15, H.3; discussion in
+ * Appendix M). CORRECTION 2026-08-14: an earlier version of this header
+ * attributed the swing to "judge models" — wrong. The instability is the ACTOR,
+ * not the judge: the model lending the persona its voice is a first-order
+ * factor. The design consequence is the same but stronger — persona-simulated
+ * *outcome magnitudes* are not trustworthy, and paired differences must hold
+ * the actor model constant across both arms (this harness pins one re-voicer
+ * and one subject per run). This harness therefore never asks a model to judge
+ * anything:
  *
  *   1. personas are INPUT GENERATORS only — they re-voice a user turn whose
  *      load-bearing content (the decision is closed) is fixed by us;
