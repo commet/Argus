@@ -61,6 +61,9 @@ export interface ContractEntry {
    *  귀환 때 선택을 가린 채 먼저 보여줄 재료), 사용자가 말한 가치 기준,
    *  버린 대안과 이유, 하중 가정. 전부 harvest 이벤트에서 온다. */
   question?: string;
+  /** 봉인된 예측에 대해 사용자가 표현한 확신도 (사이클 2) — 전제의 confidence와
+   *  같은 어휘 한 벌, 다른 대상(전제 vs 예측). 정산 대조의 재료. */
+  predicate_confidence?: 'confident' | 'uncertain' | 'contested';
   values?: string[];
   rejected_alternative?: { alternative: string; reason: string };
   load_bearing_assumption?: string;
@@ -287,6 +290,12 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         if (typeof ev['basis'] === 'string') cur.basis = ev['basis'];
         if (ev['predicate_owner'] === 'user' || ev['predicate_owner'] === 'ai_surfaced') {
           cur.predicate_owner = ev['predicate_owner'];
+        }
+        // 인지 수집 사이클 2: 봉인이 나른 질문·확신도. 질문은 열기 것이 이긴다
+        // (첫 기록 우선); 확신도는 이 봉인의 것이므로 갱신이 맞다.
+        if (typeof ev['question'] === 'string' && ev['question'] && !cur.question) cur.question = ev['question'];
+        if (ev['confidence'] === 'confident' || ev['confidence'] === 'uncertain' || ev['confidence'] === 'contested') {
+          cur.predicate_confidence = ev['confidence'];
         }
         cur.status = 'sealed';
         everSealed.add(id);

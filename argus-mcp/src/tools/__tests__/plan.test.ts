@@ -280,3 +280,22 @@ describe('인지 수집 — 질문·가치·버린 대안·확신도가 원장�
     expect(prems.find((p) => p.text.includes('품질'))?.confidence).toBeUndefined();
   });
 });
+
+describe('인지 수집 사이클 2 — 봉인이 질문·확신도를 나른다', () => {
+  it('예측 봉인의 question·confidence가 원장을 거쳐 fold에 남는다', async () => {
+    const dir = tmpArgusDir();
+    const { seal } = await import('../seal.js');
+    const r = await seal.handler({
+      argus_dir: dir, id: 'launch-date',
+      predicate: '9월 15일 출시일을 지킨다',
+      check_by: '2026-09-16', predicate_owner: 'user',
+      question: '품질과 일정 중 지금 무엇을 지키는 게 맞나',
+      confidence: 'uncertain',
+      today_override: T0, chat_confirmed: true,
+    });
+    expect(isError(r)).toBe(false);
+    const e = replayLedger(dir, T0).contracts.get('launch-date');
+    expect(e?.question).toBe('품질과 일정 중 지금 무엇을 지키는 게 맞나');
+    expect(e?.predicate_confidence).toBe('uncertain');
+  });
+});

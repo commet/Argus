@@ -52,12 +52,12 @@ describe('호스트-대면 표면에 내부 이름 누수 없음', () => {
   });
 
   it('keeps the full MCP harness within a deterministic context budget', () => {
-    // 18,100 = 2026-08-15 인지 수집(질문·가치·믿음 확신도·버린 대안) 표면
+    // 18,700 = 2026-08-15 인지 수집 사이클 1+2(열기: 질문·가치·버린 대안·전제 확신도 / 봉인: 질문·확신도) 표면
     // 비용을 지불하며 상향(구 17,000 ← 16,000; 실측 18,023 + CI 직렬화 편차 ~22B + 여유). 창업자 지시("입력 깊이
     // 10/100 — 체계적 의사결정·인지작용의 구조적 수집")의 시공분으로, 성장은
     // 구조 + 저자성 규율 설명("사용자가 말한 것만·추측 금지") 4건이다.
     // CI가 로컬보다 ~22B 크게 직렬화하므로 여유를 남긴다.
-    expect(Buffer.byteLength(JSON.stringify(servedPublicTools()), 'utf8')).toBeLessThanOrEqual(18_100);
+    expect(Buffer.byteLength(JSON.stringify(servedPublicTools()), 'utf8')).toBeLessThanOrEqual(18_700);
     expect(Buffer.byteLength(SERVER_INSTRUCTIONS, 'utf8')).toBeLessThanOrEqual(2_000);
   });
 
