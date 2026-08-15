@@ -1135,3 +1135,34 @@ seal: 'confident'." — 사이클 2가 봉인에서 모은 확신도가 사이�
 
 소비처 테스트 5/5 (질문 선행 순서까지 검증). 이로써 로컬 이식 기준으로
 원격 인지 스키마의 수집·소비 대조표는 위임 하나(§8 등록)만 남기고 닫혔다.
+
+# 15차 (2026-08-15) — 입력 깊이 사이클 5: 유실 없는 거울
+
+창업자 지시("v2 거울 인지 필드 매핑 사이클 진행해")로 착수. 결함의 정확한
+이름은 **"계수되며 유실하는 거울"**: harvest·seal·premise_add는 이미 v2로
+미러되어 mirrored로 계수되지만, 사이클 1~3이 모은 인지 필드(질문·가치·
+버린 대안·하중 가정·확신도)와 채널 표식(elicited)을 말없이 떨궜다 —
+겉보기엔 성공한 거울, 내용은 결손 (LLM-glue 불변식의 거울판).
+
+## 시공 (전부 additive, 이벤트 이름 무변경 — II-A 드리프트 가드 무풍)
+
+- **events.ts**(payload 단일 소스): harvest += 질문·가치·버린 대안·하중 가정,
+  seal += question+confidence — 기존 real_question(봉인 인자의 별도 필드)과
+  **슬롯을 합치지 않았다**(두 v1 출처를 한 자리에 우겨넣으면 발산),
+  premise_add += confidence. seal의 plain-optional 선례(real_question 등)를
+  따랐고, 채널 provenance는 전제 text가 나른다.
+- **bridge.ts / mirror.ts**: 세 케이스 필드 전달 + **elicited → elicited_user
+  승격**: v2 provenance 사다리에 애초에 준비돼 있던 최상위 등급인데, 확인창
+  직접 입력(사이클 3)이 host_reported로 격하되고 있었다. 모델 전달
+  user_stated는 종전대로 host_reported (자동 승격 금지 규칙 유지).
+- **reducer.ts / v1-reader.ts**: 두 읽기 경로(미러 fold·v1 직접 fold)에 같은
+  의미론 — 질문은 열기 것이 이기고, 확신도는 봉인마다 갱신.
+
+plan_adopt/plan_check의 v2 매핑은 이 지시의 범위(인지 필드) 밖 — §8 유지.
+
+## 검증
+
+왕복 테스트 4/4 (열기 콰르텟+봉인 질문·확신도 fold, 열기 없는 봉인의 질문
+채움, user_stated 전제 host_reported 유지, **창 경유 전제 elicited_user 등급
+실증**) · MCP 전체 1,255 초록(pipefail) · 크로스존 가드 초록. 전수 배터리와
+P03 실측은 추기로.

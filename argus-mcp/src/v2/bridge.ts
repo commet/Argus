@@ -147,8 +147,19 @@ function append(ctx: V2Context, event: Record<string, unknown>): IdempotentAppen
 
 export function harvestV2(ctx: V2Context, a: {
   decisionId: string; text: Provenanced; idempotencyKey?: string;
+  // 인지 수집 (입력 깊이) — v1 harvest가 나른 것을 유실 없이 전달한다.
+  question?: string;
+  values?: string[];
+  rejectedAlternative?: { alternative: string; reason: string };
+  loadBearingAssumption?: string;
 }): IdempotentAppendResult {
-  return append(ctx, { ...envelope(ctx, 'harvest', a.idempotencyKey), event: 'harvest', decision_id: a.decisionId, text: a.text });
+  return append(ctx, {
+    ...envelope(ctx, 'harvest', a.idempotencyKey), event: 'harvest', decision_id: a.decisionId, text: a.text,
+    ...(a.question ? { question: a.question } : {}),
+    ...(a.values && a.values.length ? { values: a.values } : {}),
+    ...(a.rejectedAlternative ? { rejected_alternative: a.rejectedAlternative } : {}),
+    ...(a.loadBearingAssumption ? { load_bearing_assumption: a.loadBearingAssumption } : {}),
+  });
 }
 
 export function sealV2(ctx: V2Context, a: {
@@ -157,6 +168,9 @@ export function sealV2(ctx: V2Context, a: {
   checkBy: Provenanced;
   basis?: 'judgment' | 'luck' | 'mixed' | 'unsure';
   realQuestion?: string;
+  /** 결정의 질문 (v1 seal.question — realQuestion과 다른 출처, 슬롯 분리). */
+  question?: string;
+  confidence?: 'confident' | 'uncertain' | 'contested';
   unverifiedAssumption?: string;
   humanOnly?: string;
   humanJudgment?: Provenanced;
@@ -168,6 +182,8 @@ export function sealV2(ctx: V2Context, a: {
     predicate: a.predicate, check_by: a.checkBy,
     ...(a.basis ? { basis: a.basis } : {}),
     ...(a.realQuestion ? { real_question: a.realQuestion } : {}),
+    ...(a.question ? { question: a.question } : {}),
+    ...(a.confidence ? { confidence: a.confidence } : {}),
     ...(a.unverifiedAssumption ? { unverified_assumption: a.unverifiedAssumption } : {}),
     ...(a.humanOnly ? { human_only: a.humanOnly } : {}),
     ...(a.humanJudgment ? { human_judgment: a.humanJudgment } : {}),
@@ -214,6 +230,7 @@ export function snoozeV2(ctx: V2Context, a: {
 export function premiseAddV2(ctx: V2Context, a: {
   premiseId: string; decisionId?: string; kind: 'premise' | 'fact' | 'question';
   text: Provenanced; loadBearing?: boolean; recheckCadenceDays?: number;
+  confidence?: 'confident' | 'uncertain' | 'contested';
   fromCandidate?: string; idempotencyKey?: string;
 }): IdempotentAppendResult {
   return append(ctx, {
@@ -221,6 +238,7 @@ export function premiseAddV2(ctx: V2Context, a: {
     premise_id: a.premiseId, kind: a.kind, text: a.text,
     ...(a.decisionId ? { decision_id: a.decisionId } : {}),
     ...(a.loadBearing !== undefined ? { load_bearing: a.loadBearing } : {}),
+    ...(a.confidence ? { confidence: a.confidence } : {}),
     ...(a.recheckCadenceDays !== undefined ? { recheck_cadence_days: a.recheckCadenceDays } : {}),
     ...(a.fromCandidate ? { from_candidate: a.fromCandidate } : {}),
   });

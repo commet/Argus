@@ -132,6 +132,17 @@ export function foldV1(state: LedgerState, events: V1Event[], exclude: V1FoldExc
           // the plugin's dates (the plugin's own check-contracts reads `at`).
           harvested_on: (str(ev.ts) ?? str(ev['decided_at']) ?? str(ev['at']) ?? '').slice(0, 10) || undefined,
           text: { value: str(ev['decision']) ?? str(ev['quote']) ?? '', provenance: HOST },
+          // 인지 수집(입력 깊이) — 미러 경로와 같은 사상. 여기서 떨구면 두
+          // 읽기 경로(미러 fold vs v1 직접 fold)가 조용히 발산한다.
+          ...(str(ev['question']) ? { question: str(ev['question']) } : {}),
+          ...(Array.isArray(ev['values']) && (ev['values'] as unknown[]).length
+            ? { values: (ev['values'] as unknown[]).filter((v): v is string => typeof v === 'string' && v.length > 0).slice(0, 3) } : {}),
+          ...((() => {
+            const ra = ev['rejected_alternative'] as Record<string, unknown> | undefined;
+            return ra && typeof ra['alternative'] === 'string' && typeof ra['reason'] === 'string'
+              ? { rejected_alternative: { alternative: ra['alternative'], reason: ra['reason'] } } : {};
+          })()),
+          ...(str(ev['load_bearing_assumption']) ? { load_bearing_assumption: str(ev['load_bearing_assumption']) } : {}),
         });
         break;
       }
@@ -143,6 +154,10 @@ export function foldV1(state: LedgerState, events: V1Event[], exclude: V1FoldExc
           // v1 predicate_owner('user'|'ai_surfaced')는 입증 불가 → 하향 (헤더 결정 2).
           predicate: { value: str(ev['predicate']) ?? '', provenance: ev['predicate_owner'] === 'ai_surfaced' ? 'ai_surfaced' : HOST },
           check_by: { value: str(ev['check_by']) ?? '', provenance: HOST },
+          // v1 fold와 같은 의미론: 질문은 열기 것이 이기고, 확신도는 봉인마다 갱신.
+          ...(str(ev['question']) && !d.question ? { question: str(ev['question']) } : {}),
+          ...(ev['confidence'] === 'confident' || ev['confidence'] === 'uncertain' || ev['confidence'] === 'contested'
+            ? { confidence: ev['confidence'] } : {}),
         });
         break;
       }
@@ -190,8 +205,17 @@ export function foldV1(state: LedgerState, events: V1Event[], exclude: V1FoldExc
         state.premises.set(pid, {
           id: pid, decision_id: id || undefined,
           kind: kind === 'fact' || kind === 'question' ? kind : 'premise',
-          text: { value: text, provenance: ev['source'] === 'user' || ev['source'] === 'user_stated' ? HOST : 'ai_surfaced' },
+          // elicited:true(확인창 직접 입력)는 모델 미경유 채널 — 사다리의 제
+          // 등급 elicited_user (미러 경로와 같은 승격 규칙).
+          text: {
+            value: text,
+            provenance: ev['elicited'] === true
+              ? 'elicited_user'
+              : ev['source'] === 'user' || ev['source'] === 'user_stated' ? HOST : 'ai_surfaced',
+          },
           load_bearing: ev['load_bearing'] === true,
+          ...(ev['confidence'] === 'confident' || ev['confidence'] === 'uncertain' || ev['confidence'] === 'contested'
+            ? { confidence: ev['confidence'] } : {}),
           ...(cadence !== undefined ? { recheck_cadence_days: cadence } : {}),
           added_on: str(ev['anchor_date']) ?? ((str(ev.ts) ?? str(ev['at']) ?? '').slice(0, 10) || undefined),
           resolved: false,
