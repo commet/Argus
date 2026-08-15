@@ -195,6 +195,19 @@ export const openDecision: ToolModule = {
           // never a verdict, never appended to the surface as a directive.
           lean_disclosure: T.lean_disclosure,
           load_bearing_assumption: a['load_bearing_assumption'] ?? null,
+          // 정직한 공백 (LLM-glue 불변식): 안 담긴 인지 슬롯을 이름 붙여
+          // 드러낸다. 조용한 공백은 모델이 그럴듯하게 채우거나 영영 잊는다.
+          // data 전용 — 기록의 사실이지 사용자에게 낼 숙제가 아니다. 실측:
+          // 필드가 표면에 있어도 사용률은 페르소나에 따라 0이었다(깊이 측정 1).
+          ...((() => {
+            const missing = [
+              ...(typeof a['question'] === 'string' && a['question'] ? [] : ['question']),
+              ...(Array.isArray(a['values']) && (a['values'] as unknown[]).length ? [] : ['values']),
+              ...(a['rejected_alternative'] ? [] : ['rejected_alternative']),
+              ...(typeof a['load_bearing_assumption'] === 'string' && a['load_bearing_assumption'] ? [] : ['load_bearing_assumption']),
+            ];
+            return missing.length ? { uncaptured_context: missing } : {};
+          })()),
           restraint_option: a['status_quo'],
           fork_emitted: false,
           harvest_written: true,
