@@ -324,6 +324,24 @@ export const recall: ToolModule = {
       const trackLocale = readVoice(dir, ledger);
       const freq = frequencyStatement(s, trackLocale);
 
+      // ── 보정 기록 (입력 깊이 사이클 4) ── 봉인 때 사전등록된 확신도와 현실의
+      // 답을 버킷별 **개수 + 근거 케이스 id**로만 집계한다. TWIN 수정조항의
+      // 허용 대상 (b): 채점 대상은 사용자가 스스로 사전등록한 예측이지 사용자가
+      // 아니다. 규율 셋을 데이터가 스스로 지킨다 — 비율·등급·백분율 없음(비율
+      // 부터가 성적이 된다), 표본 임계(5) 미달이면 경향 판단 유보를 명시,
+      // 채점 대상을 scored_object로 밝힌다. surface는 건드리지 않는다(집계는
+      // 재료지 코칭이 아니다).
+      const confSettled = [...ledger.contracts.values()].filter((c) =>
+        c.status === 'settled' && c.predicate_confidence
+        && c.outcome && c.outcome !== 'still_pending');
+      const byConfidence: Record<string, { n: number; outcomes: Record<string, number>; ids: string[] }> = {};
+      for (const c of confSettled) {
+        const b = (byConfidence[c.predicate_confidence as string] ??= { n: 0, outcomes: {}, ids: [] });
+        b.n += 1;
+        b.outcomes[c.outcome as string] = (b.outcomes[c.outcome as string] ?? 0) + 1;
+        b.ids.push(c.id);
+      }
+
       return envelope({
         ok: true, tool: 'argus_recall',
         surface: freq,
@@ -332,6 +350,16 @@ export const recall: ToolModule = {
           revisit_statement: freq,
           revisit_count: n,
           open_count: s.total_sealed,
+          ...(confSettled.length > 0 ? {
+            confidence_record: {
+              scored_object: 'counts pair the user\'s own pre-registered confidence with recorded outcomes; the subject is each prediction, never the person',
+              n: confSettled.length,
+              by_confidence: byConfidence,
+              ...(confSettled.length < 5 ? {
+                sample_note: 'Fewer than 5 settled predictions carry a recorded confidence. Counts and case ids only; no tendency claim yet.',
+              } : {}),
+            },
+          } : {}),
         },
       });
     } catch (e) {

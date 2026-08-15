@@ -420,13 +420,26 @@ export const settle: ToolModule = {
       // held" the user can't catch (LLM-glue: keep the semantic pick visible).
       const echoPred = firstReceipt ? '' : sanitizeLine(fresh.predicate ?? '', 90);
 
+      // ── 정산 대조 (입력 깊이 사이클 4) ── 봉인 때 사용자가 표현한 확신도를
+      // 현실의 답 옆에 사실로 병치한다. 결과 단어는 같은 화면의 정산 줄이 이미
+      // 말하므로 재진술하지 않고, 평가 어휘는 0이다(과신·적중 같은 단어 금지).
+      // 판정은 사용자 몫: 수집(사이클 1·2)이 정산 순간에 소비되는 전선이다.
+      const sealedConfidence = fresh.entry?.predicate_confidence;
+      const confidenceLine = sealedConfidence
+        ? (locale === 'ko'
+          ? `\n봉인 때 남긴 확신도: '${{ confident: '확신함', uncertain: '불확실함', contested: '이견 있음' }[sealedConfidence]}'.`
+          : `\nConfidence recorded at seal: '${sealedConfidence}'.`)
+        : '';
+
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed', echoPred) + syncLine + connectionLine
+        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed', echoPred) + confidenceLine + syncLine + connectionLine
           + (firstReceipt ? `\n\n${receiptText}` : ''),
         next_actions: ['argus_patterns', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
+          // 봉인 때의 확신도 병치 사실 (사이클 4) — 없으면 키 자체가 없다.
+          ...(sealedConfidence ? { sealed_confidence: sealedConfidence } : {}),
           // For the MCP Apps settle card's done-view (echoes the user's OWN
           // words back; never model content) + its locale.
           what_happened_echo: a['what_happened'], locale,
