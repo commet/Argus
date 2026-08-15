@@ -240,3 +240,43 @@ describe('지평 문법 — 광고한 형태 전체를 받는다 (+N일/주/월)
     expect(replayLedger(dir, T0).contracts.get('vendor')?.plan?.steps[0]?.due).toBe('2026-07-03');
   });
 });
+
+describe('인지 수집 — 질문·가치·버린 대안·확신도가 원장을 거쳐 fold에 남는다', () => {
+  it('open의 인지 트리오와 하중 가정이 원장 이벤트로 저장되고 fold에 복원된다', async () => {
+    const dir = tmpArgusDir();
+    const r = await decide.handler({
+      argus_dir: dir, action: 'open', id: 'hire',
+      decision: '시니어 대신 주니어 둘을 뽑는다', stakes: 'high', reversibility: 'costly_to_reverse',
+      status_quo: '채용 없이 현 인원으로 간다',
+      question: '지금 팀에 필요한 것이 속도인가 성장 여력인가',
+      values: ['팀 성장', '6개월 내 출시'],
+      rejected_alternative: { alternative: '시니어 1명 채용', reason: '예산 초과와 온보딩 기간' },
+      load_bearing_assumption: '주니어 둘의 온보딩을 리드가 감당할 수 있다',
+      today_override: T0,
+    });
+    expect(isError(r)).toBe(false);
+    const e = replayLedger(dir, T0).contracts.get('hire');
+    expect(e?.question).toBe('지금 팀에 필요한 것이 속도인가 성장 여력인가');
+    expect(e?.values).toEqual(['팀 성장', '6개월 내 출시']);
+    expect(e?.rejected_alternative?.alternative).toBe('시니어 1명 채용');
+    expect(e?.load_bearing_assumption).toContain('온보딩');
+  });
+
+  it('전제의 확신도는 사용자가 표현했을 때만 이벤트·fold에 실린다', async () => {
+    const dir = tmpArgusDir();
+    await openDecision(dir);
+    const r = await decide.handler({
+      argus_dir: dir, action: 'add_context', id: 'vendor',
+      premises: [
+        { text: '신규 공급사의 리드타임이 2주 이내다', source: 'user_stated',
+          anchor_quote: '리드타임 2주라고 들었는데 확실친 않아', confidence: 'uncertain', external: true, load_bearing: true },
+        { text: '품질 기준은 동일 스펙이다', source: 'ai_surfaced', ai_original: '품질 기준은 동일 스펙이다' },
+      ],
+      today_override: T0,
+    });
+    expect(isError(r)).toBe(false);
+    const prems = replayLedger(dir, T0).contracts.get('vendor')?.premises ?? [];
+    expect(prems.find((p) => p.text.includes('리드타임'))?.confidence).toBe('uncertain');
+    expect(prems.find((p) => p.text.includes('품질'))?.confidence).toBeUndefined();
+  });
+});
