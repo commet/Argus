@@ -118,7 +118,8 @@ export const recall: ToolModule = {
           return toolError({ ok: false, tool: 'argus_recall', error_code: 'RECEIPT_NOT_FOUND', message: `No decision found for "${id}".`, recovery: 'Check the id with argus_patterns view="all", or save a prediction first.' });
         }
         // The premise set is canonical — the receipt renders its summary from the fold (plan v5 §3.3).
-        const pInfo = receiptPremisesInfo(replayLedger(dir, today).contracts.get(id));
+        const cogEntry = replayLedger(dir, today).contracts.get(id);
+        const pInfo = receiptPremisesInfo(cogEntry);
         // Receipt voice follows the user's own predicate (FC-2): the keepsake
         // artifact must speak the language it was sealed in.
         const receiptLocale = resolveResponseLocale(dir, r.predicate);
@@ -144,7 +145,15 @@ export const recall: ToolModule = {
               : `You predicted: "${clip(r.predicate, 200)}". The receipt completes when reality answers on ${r.check_by}.`);
         return envelope({
           ok: true, tool: 'argus_recall', surface: receiptSurface,
-          next_actions: ['stop'], data: { receipt: r, receipt_text: renderReceipt(r, pInfo, receiptLocale) },
+          next_actions: ['stop'],
+          data: {
+            receipt: r, receipt_text: renderReceipt(r, pInfo, receiptLocale),
+            // 열 때 수집된 인지 문맥(입력 깊이) — 영수증을 다시 볼 때 함께
+            // 도달 가능해야 수집이 장식이 아니다. data 전용, 없으면 키도 없다.
+            ...(cogEntry?.question ? { question: cogEntry.question } : {}),
+            ...(cogEntry?.values?.length ? { values: cogEntry.values } : {}),
+            ...(cogEntry?.rejected_alternative ? { rejected_alternative: cogEntry.rejected_alternative } : {}),
+          },
         });
       }
 
