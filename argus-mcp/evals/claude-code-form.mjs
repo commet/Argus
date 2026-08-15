@@ -67,7 +67,10 @@ if (process.env.CC_FORM_SKIP_BUILD !== '1' && !process.env.CC_FORM_TARGET) {
 }
 
 /** Fields whose VALUE is the answer — an Accept alone cannot supply them. */
-const COLLECT_FIELDS = ['outcome', 'what_happened', 'when', 'decision'];
+// belief: 봉인 직후 믿음 직접 입력 (사이클 3) — decision(미결질문 resolve)과
+// 같은 범주다: 답이 곧 타이핑 내용이라 추가 키입력이 본질이고, 요구는
+// "제출 방법을 화면이 말한다"이다 (§7.1 두 번째 유형).
+const COLLECT_FIELDS = ['outcome', 'what_happened', 'when', 'decision', 'belief'];
 
 /** schema -> the message shown with it, so F5 can read the instructions. */
 const messages = new Map();
