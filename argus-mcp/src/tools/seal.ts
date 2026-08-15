@@ -12,6 +12,7 @@ import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledg
 import { asV2WriteField, mapSealProvenance } from '../v2/mirror.js';
 import { writeSealReceipt } from '../lib/receipt.js';
 import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premises.js';
+import { normalizePremiseText } from '../lib/premises-core.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { renderSeal } from '../lib/render-receipt.js';
@@ -34,8 +35,13 @@ import { handleToolException } from './errors.js';
 // read as nagging (experience loop, raj). Show it at most once per session per
 // ledger; the count is unaffected, only the repeated prose is suppressed.
 const assumptionNudgeShownFor = new Set<string>();
+// 믿음 확인창의 세션당 1회 규율 (넛지와 같은 교훈, 같은 장치): "전부 봉인해"
+// 한 마디가 봉인 셋을 연달아 부르면, 창 셋이 연달아 뜨는 것은 수집이 아니라
+// 잔소리다. 첫 창이 세션의 몫이고, 나머지는 대화가 받는다.
+const beliefWindowShownFor = new Set<string>();
 export function resetSealSession(): void {
   assumptionNudgeShownFor.clear();
+  beliefWindowShownFor.clear();
 }
 
 const inputSchema = z.strictObject({
@@ -457,9 +463,119 @@ export const seal: ToolModule = {
       const confirmNote = wantedConfirm && !elicitedKeep && !canElicit()
         ? 'This host has no confirm dialog, so the prediction was saved as an unconfirmed AI draft (predicate_owner stays "ai_surfaced"). Confirm it in your own message; if the user gives you different words or a different date, call again with theirs.'
         : null;
+
+      // ── 믿음 확인창 (입력 깊이 사이클 3) ─────────────────────────────────
+      // 봉인 직후, 이 결정에 하중 믿음이 하나도 없을 때만 사용자에게 직접
+      // 묻는다. §7.1의 두 번째 유형(답을 수집하는 픽커)이라 자유 텍스트 칸을
+      // 두되, 스키마에는 어떤 제약도 선언하지 않는다(picker-no-required-field;
+      // 길이는 서버가 검사하고 원문을 되돌려준다). 칸에 적힌 문장은 모델을
+      // 거치지 않고 elicit 채널로 도착하므로 저자성이 구조로 확보된다
+      // (user_stated + 원문이 곧 인용 + elicited 표식).
+      //
+      // 발화 규율(과발화 금지): 이 호출에서 이미 창이 떴으면(예측 확인,
+      // elicitedKeep) 두 번째 창을 열지 않는다. 하중 가정이 이 호출로 승격
+      // 됐거나(unverified_assumption) 이미 살아 있으면 묻지 않는다. 봉인은
+      // 이미 원장에 있으므로 이 창의 어떤 결과도 봉인을 해치지 못한다.
+      const hasLoadBearing = Boolean(promotedRef)
+        || Boolean(ua && ua.trim())
+        || Boolean(current.entry?.load_bearing_assumption)
+        || (current.entry?.premises ?? []).some((p) => p.status === 'active' && p.load_bearing);
+      let beliefWindow: Record<string, unknown> | null = null;
+      let beliefLine = '';
+      if (!elicitedKeep && !hasLoadBearing && !beliefWindowShownFor.has(dir) && canElicit()) {
+        const asked = await elicitDetailed(
+          locale === 'ko'
+            ? `봉인됐습니다: "${sanitizeLine(predicate, 96)}"\n이 예측이 가장 크게 딛고 선 믿음 하나를 당신의 말로 남겨주세요. 아래 칸에 적은 뒤 Accept까지 진행하세요. (지금 없으면 비워두고 Accept. 건너뛰어도 봉인은 그대로입니다.)`
+            : `Sealed: "${sanitizeLine(predicate, 96)}"\nWhat is the one belief this bet rests on, in your words? Type it below, then continue to Accept. (Leave it blank and Accept to skip. The seal stays either way.)`,
+          {
+            type: 'object',
+            properties: {
+              belief: {
+                type: 'string',
+                title: locale === 'ko' ? '딛고 선 믿음' : 'The belief underneath',
+                description: locale === 'ko'
+                  ? '이 예측이 기대는 가정 하나, 당신의 표현으로.'
+                  : 'One assumption this bet rests on, your words.',
+              },
+            },
+          },
+        );
+        // 세션 몫 소진: unsupported만 예외다 — 창이 아무에게도 닿지 않았다.
+        // (거절·무응답·수락 전부, 사람이 창을 한 번 겪은 사실은 같다.)
+        if (asked.kind !== 'unsupported') beliefWindowShownFor.add(dir);
+        if (asked.kind === 'accepted') {
+          const typed = typeof asked.content['belief'] === 'string' ? (asked.content['belief'] as string).trim() : '';
+          if (typed && typed.length <= 400) {
+            // 답한 시각으로 도장 (위 예측 확인창의 재도장과 같은 규칙) — 창이
+            // 열려 있던 시간이 전제의 기록 시각을 거짓말하게 두지 않는다.
+            const beliefNow = a['today_override'] ? now : logicalNow(now.slice(0, 10), false);
+            // fail-soft: 봉인은 이미 원장에 있다. 여기서 어떤 예외가 나도
+            // (잠금 경합·디스크) 성공한 봉인을 에러로 둔갑시키지 않는다 —
+            // 타이핑한 문장은 되돌려주고 기록만 미룬다.
+            let recorded: { ordinal: number } | null = null;
+            let writeFailed = false;
+            try {
+              recorded = await withLedgerLock(dir, async () => {
+                // 창이 열린 사이 다른 프로세스가 전제를 썼을 수 있다 — 잠금 안에서
+                // 새로 fold해 중복·상한을 승격 기계와 같은 규칙으로 다시 지킨다.
+                const fresh = resolveContract(dir, id, today);
+                const prems = fresh.entry?.premises ?? [];
+                const pid = premiseId(id, 'premise', typed);
+                // 중복은 kind와 무관하게 문장으로 본다 — 분류기가 같은 문장을
+                // claim으로 저장했어도 두 번 담지 않는다 (groupDuePremises와
+                // 같은 정규화 규칙).
+                if (prems.some((p) => normalizePremiseText(p.text) === normalizePremiseText(typed))) return null;
+                if (prems.filter((p) => p.status === 'active').length >= MAX_ACTIVE_PREMISES) return null;
+                const ordinal = prems.reduce((m, p) => Math.max(m, p.ordinal), 0) + 1;
+                await appendLedger(dir, [{
+                  id, event: 'premise_add', premise_id: pid, ordinal,
+                  kind: 'premise', text: typed,
+                  external: false,
+                  load_bearing: prems.filter((p) => p.status === 'active' && p.load_bearing).length < MAX_LOAD_BEARING,
+                  source: 'user_stated', anchor_quote: typed, elicited: true,
+                }], beliefNow);
+                return { ordinal };
+              });
+            } catch {
+              writeFailed = true;
+            }
+            if (recorded) {
+              beliefWindow = { recorded: true, ref: `P${recorded.ordinal}`, belief: typed };
+              beliefLine = locale === 'ko'
+                ? ` 딛고 선 믿음도 당신의 말 그대로 남았습니다 (P${recorded.ordinal}).`
+                : ` The belief underneath is recorded in your words (P${recorded.ordinal}).`;
+              // 방금 창으로 가정이 이름을 얻었다 — "가정을 이름 붙여라" 넛지는
+              // 이 순간 목적을 다했으므로 겹쳐 내보내지 않는다.
+              nudge = '';
+            } else if (writeFailed) {
+              beliefWindow = {
+                recorded: false, reason: 'write_failed',
+                user_input: { belief: typed },
+                retry_hint: 'the seal itself is saved; record the belief via argus_capture action="add_context" with premises=[{text, source:"user_stated", anchor_quote: their exact words}]',
+              };
+            } else {
+              beliefWindow = { recorded: false, reason: 'duplicate_or_cap', belief: typed };
+            }
+          } else if (typed) {
+            // 사용자가 타이핑한 문장은 절대 잃지 않는다 (resolve·reword와 같은 규칙).
+            beliefWindow = {
+              recorded: false, reason: 'too_long',
+              user_input: { belief: typed },
+              retry_hint: 'trim data.belief_window.user_input.belief to <=400 chars with the user, then record it via argus_capture action="add_context" with premises=[{text, source:"user_stated", anchor_quote: their exact words}]',
+            };
+          } else {
+            beliefWindow = { recorded: false, reason: 'left_blank' };
+          }
+        } else if (asked.kind === 'declined' || asked.kind === 'no_answer') {
+          // 거절은 답이다: 조용히 존중하고 다시 묻지 않는다. 무응답도 봉인은
+          // 그대로라 잃는 것이 없다 — 사실만 data에 남긴다.
+          beliefWindow = { recorded: false, reason: asked.kind === 'declined' ? 'declined' : 'no_answer' };
+        }
+        // unsupported: 창이 아무에게도 닿지 않았다. 흔적도 남기지 않는다.
+      }
       return envelope({
         ok: true, tool: 'argus_seal',
-        surface: `${(a['predicate_owner'] === 'ai_surfaced' ? T.sealed_draft : T.sealed)(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
+        surface: `${(a['predicate_owner'] === 'ai_surfaced' ? T.sealed_draft : T.sealed)(predicate, checkBy)}${calNote}${beliefLine}${nudge}${syncLine}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],
@@ -491,6 +607,9 @@ export const seal: ToolModule = {
           // The named assumption now lives as a tracked premise (canonical set).
           // Marking it external (argus_premises op=amend) arms reality re-checks.
           ...(promotedRef ? { premise_promoted: promotedRef } : {}),
+          // 믿음 확인창의 결과 사실 (recorded:true면 ref가 전제 번호). 값이
+          // 없으면 창 자체가 발화하지 않은 것이다 (게이트 미충족 또는 미지원).
+          ...(beliefWindow ? { belief_window: beliefWindow } : {}),
         },
       });
     } catch (e) {

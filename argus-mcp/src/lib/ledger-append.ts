@@ -44,6 +44,9 @@ export interface LedgerEventInput {
   /** The user's own words a premise rests on (premise_add) — persisted so the
    *  terminal can show its lineage the way the browser card does. */
   anchor_quote?: string;
+  /** 확인창 직접 입력 표식 (premise_add, 입력 깊이 사이클 3): 이 문장이 모델을
+   *  거치지 않고 elicit 채널로 도착했다는 사실 — 저자성이 구조로 확보된 경로. */
+  elicited?: boolean;
   /** M2 materiality rule (jsonb-nested on premise_add) — no schema migration. */
   materiality_rule?: unknown;
   /** M1 re-check cadence in days (jsonb-nested on premise_add/amend) — no migration. */
