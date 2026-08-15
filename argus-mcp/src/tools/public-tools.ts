@@ -40,7 +40,7 @@ const premiseInput = z.strictObject({
   chat_confirmed: z.boolean().default(false).describe('사용자가 이 초안을 대화에서 이미 승인한 경우에만 true입니다. 확인창을 건너뛰고 ai_surfaced 표기 그대로 기록합니다. 사용자가 보지 않은 초안에는 절대 쓰지 않습니다.\n\nTRUE only when the user already approved this exact draft in conversation; skips the confirm window, provenance stays ai_surfaced.'),
   recheck_cadence_days: z.number().int().min(1).max(365).describe('이 사실을 다시 확인할 간격(일)입니다.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
-  confidence: z.enum(['confident', 'uncertain', 'contested']).describe('사용자가 실제로 표현한 확신 정도만. 추측 금지 — 정산 때 현실과 대조됩니다.\n\nOnly confidence the user expressed; never guess.').optional(),
+  confidence: z.enum(['confident', 'uncertain', 'contested']).describe('사용자가 실제로 표현한 확신 정도만. 추측 금지, 정산 때 현실과 대조됩니다.\n\nOnly confidence the user expressed; never guess.').optional(),
 }).superRefine((value, ctx) => {
   if (value.source === 'ai_surfaced' && !value.ai_original?.trim()) {
     ctx.addIssue({
