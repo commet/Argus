@@ -149,7 +149,14 @@ const PERSONA_SYS = [
 ].join('\n');
 
 // ── 3. 서버 기동 + 실제 도구 목록 읽기 ───────────────────────────────────────
-const ledgerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'journey-argus-'));
+// 실사용자의 프로젝트는 대부분 git 저장소다 — v2 이중쓰기의 저장소 바인딩이
+// git 정체성에서 오므로(듀얼라이트 테스트도 .git을 만든다), 합성 작업 공간도
+// 같은 모양이어야 옵트인 실측(ARGUS_V2_DEBUG=1)에서 거울이 묶인다. .git이
+// 없으면 거울은 조용히 미바인딩으로 남는다 (15차 실측 발견 2).
+const journeyRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'journey-argus-'));
+fs.mkdirSync(path.join(journeyRepo, '.git'), { recursive: true });
+const ledgerDir = path.join(journeyRepo, '.argus');
+fs.mkdirSync(ledgerDir, { recursive: true });
 /**
  * 자식 프로세스는 npm에서 방금 내려받은 코드다. process.env를 통째로 물려주면
  * ANTHROPIC_API_KEY를 비롯한 호스트 비밀이 그 코드의 손에 들어간다 — 발행본을
