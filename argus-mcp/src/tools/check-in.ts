@@ -94,9 +94,13 @@ export const checkIn: ToolModule = {
       const ledger = replayLedger(dir, today);
       const seeds = bearingContracts(dir, today, ledger);
 
-      const dueMap = new Map<string, { id: string; predicate: string; check_by: string; days_overdue: number; source: string }>();
+      const dueMap = new Map<string, { id: string; predicate: string; check_by: string; days_overdue: number; source: string; question?: string }>();
       for (const c of ledger.overdue) {
-        dueMap.set(c.id, { id: c.id, predicate: c.text, check_by: c.date, days_overdue: daysBetween(c.date, today), source: 'ledger' });
+        // 열 때의 질문(입력 깊이)을 due 항목에 태운다 — "돌아볼 때 먼저
+        // 보여줍니다"의 check_in 쪽 이행. data 전용: 표면 예산은 그대로 두고,
+        // 모델이 귀환을 열 때 질문부터 되비출 재료를 준다.
+        const cogQ = ledger.contracts.get(c.id)?.question;
+        dueMap.set(c.id, { id: c.id, predicate: c.text, check_by: c.date, days_overdue: daysBetween(c.date, today), source: 'ledger', ...(cogQ ? { question: cogQ } : {}) });
       }
       for (const s of seeds) {
         if (!dueMap.has(s.id)) dueMap.set(s.id, { id: s.id, predicate: s.predicate, check_by: s.check_by, days_overdue: daysBetween(s.date, today), source: 'bearing' });

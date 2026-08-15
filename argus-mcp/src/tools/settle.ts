@@ -134,6 +134,15 @@ export const settle: ToolModule = {
         // the handle that works.
         const q = sanitizeLine(current.predicate ?? id, 96);
         const due = current.check_by ?? '';
+        // 열 때의 질문을 선택보다 먼저 (입력 깊이 — 수집 스키마의 약속
+        // "돌아볼 때 먼저 보여줍니다"의 이행). 완전한 "선택 가림"은 픽커에서
+        // 불가하다: 어느 예측인지 밝히는 규율(2026-07-28)과 충돌한다. 질문을
+        // 예측보다 먼저 보여 열 때의 프레임을 되살리는 것이 이 표면의 정직한
+        // 최소 이행이고, 질문이 수집 안 된 결정에서는 흔적도 없다.
+        const openedQ = current.entry?.question ? sanitizeLine(current.entry.question, 96) : '';
+        const qPrefix = openedQ
+          ? (pickerLocale === 'ko' ? `열 때의 질문: "${openedQ}"\n` : `The question you opened with: "${openedQ}"\n`)
+          : '';
         // Is this field genuinely optional right now? Only if the model already
         // carried what-happened in from the conversation. Found on real
         // hardware 2026-07-28: the label said "(optional)" and "leave blank if
@@ -150,8 +159,8 @@ export const settle: ToolModule = {
           // 2026-07-29) is being told to press keys that are not there, and a
           // desktop user with a mouse likewise. The load-bearing fact is not the
           // keystroke, it is that a selection alone does not record anything.
-          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? 하나 고른 뒤 Accept까지 진행하면 기록됩니다.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
-          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one, then continue to Accept to record it.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
+          ? `${qPrefix}"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? 하나 고른 뒤 Accept까지 진행하면 기록됩니다.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
+          : `${qPrefix}"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one, then continue to Accept to record it.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
           type: 'object',
           properties: {
             outcome: {
@@ -420,13 +429,26 @@ export const settle: ToolModule = {
       // held" the user can't catch (LLM-glue: keep the semantic pick visible).
       const echoPred = firstReceipt ? '' : sanitizeLine(fresh.predicate ?? '', 90);
 
+      // ── 정산 대조 (입력 깊이 사이클 4) ── 봉인 때 사용자가 표현한 확신도를
+      // 현실의 답 옆에 사실로 병치한다. 결과 단어는 같은 화면의 정산 줄이 이미
+      // 말하므로 재진술하지 않고, 평가 어휘는 0이다(과신·적중 같은 단어 금지).
+      // 판정은 사용자 몫: 수집(사이클 1·2)이 정산 순간에 소비되는 전선이다.
+      const sealedConfidence = fresh.entry?.predicate_confidence;
+      const confidenceLine = sealedConfidence
+        ? (locale === 'ko'
+          ? `\n봉인 때 남긴 확신도: '${{ confident: '확신함', uncertain: '불확실함', contested: '이견 있음' }[sealedConfidence]}'.`
+          : `\nConfidence recorded at seal: '${sealedConfidence}'.`)
+        : '';
+
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed', echoPred) + syncLine + connectionLine
+        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed', echoPred) + confidenceLine + syncLine + connectionLine
           + (firstReceipt ? `\n\n${receiptText}` : ''),
         next_actions: ['argus_patterns', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
+          // 봉인 때의 확신도 병치 사실 (사이클 4) — 없으면 키 자체가 없다.
+          ...(sealedConfidence ? { sealed_confidence: sealedConfidence } : {}),
           // For the MCP Apps settle card's done-view (echoes the user's OWN
           // words back; never model content) + its locale.
           what_happened_echo: a['what_happened'], locale,
