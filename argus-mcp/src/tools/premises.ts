@@ -73,6 +73,7 @@ const zPremiseInput = z.strictObject({
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional: how many days between reality re-checks for this fact (M1). Absent → a default derived from the rule type (a moving number is checked more often than slow-moving state). The user pins this; it only moves the DUE nudge, never blocks a recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional (kind="open_question" only): how many days between reconsider nudges — a "come back and see if you can answer this yet" timer (M3). Absent → a sensible default. Leaving the question open stays a valid answer; this only moves the nudge, never forces a resolution.'),
   reconsider_cadence_days: z.number().int().min(1).max(365).optional().describe('Alias of reponder_cadence_days (the historical field name) — either spelling is accepted.'),
+  confidence: z.enum(['confident', 'uncertain', 'contested']).optional().describe('사용자가 실제로 표현한 확신 정도입니다. 추측 금지.'),
 });
 
 const inputSchema = z.strictObject({
@@ -90,6 +91,7 @@ const inputSchema = z.strictObject({
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend: re-set how often (days) this fact is re-checked (M1). Widens or narrows the DUE nudge; never blocks an explicit recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend/still_open: re-set how often (days) this open question is nudged for reconsideration (M3). Only moves the nudge — never forces a resolution.'),
   reconsider_cadence_days: z.number().int().min(1).max(365).optional().describe('Alias of reponder_cadence_days (the historical field name) — either spelling is accepted.'),
+  confidence: z.enum(['confident', 'uncertain', 'contested']).optional().describe('사용자가 실제로 표현한 확신 정도입니다. 추측 금지.'),
   decision: z.string().min(1).max(400).optional().describe('op=resolve: the user\'s own closing call. MUST be the user\'s words — never an Argus-drafted line.'),
   today_override: zDate.optional(),
 });
@@ -440,6 +442,7 @@ async function opAdd(
     kind: p.kind, text: p.text,
     external: p.external, load_bearing: p.load_bearing,
     ...(typeof p.anchor_quote === 'string' && p.anchor_quote ? { anchor_quote: p.anchor_quote } : {}),
+    ...(p.confidence === 'confident' || p.confidence === 'uncertain' || p.confidence === 'contested' ? { confidence: p.confidence } : {}),
     monitoring_enabled: p.monitoring_enabled,
     source: normalizePremiseSource(p.source),
     ...(p.ai_original ? { ai_original: p.ai_original } : {}),

@@ -53,6 +53,10 @@ const ESSENTIAL_FIELD_DESCRIPTIONS = new Set([
   // adopted_quote(동의의 증거 — 없으면 ai_surfaced 강등). 이들이 없으면
   // 모델이 계획을 대신 확정하거나 빈칸을 그럴듯한 단계로 메운다.
   'steps', 'open_questions', 'adopted_quote',
+  // 인지 수집(입력 깊이 사이클 1, 2026-08-15 창업자 지시 "입력 깊이 10/100").
+  // 네 설명 전부가 저자성 규율("사용자가 말한 것만")을 나른다 — 걷어내면
+  // 모델이 추측으로 채우고, 그것이 이 수집이 막아야 할 단 하나의 오류다.
+  'question', 'values', 'confidence', 'rejected_alternative',
 ]);
 
 function compactSchemaDescriptions(value: unknown, field?: string): unknown {

@@ -40,6 +40,7 @@ const premiseInput = z.strictObject({
   chat_confirmed: z.boolean().default(false).describe('사용자가 이 초안을 대화에서 이미 승인한 경우에만 true입니다. 확인창을 건너뛰고 ai_surfaced 표기 그대로 기록합니다. 사용자가 보지 않은 초안에는 절대 쓰지 않습니다.\n\nTRUE only when the user already approved this exact draft in conversation; skips the confirm window, provenance stays ai_surfaced.'),
   recheck_cadence_days: z.number().int().min(1).max(365).describe('이 사실을 다시 확인할 간격(일)입니다.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
+  confidence: z.enum(['confident', 'uncertain', 'contested']).describe('사용자가 실제로 표현한 확신 정도만. 추측 금지, 정산 때 현실과 대조됩니다.\n\nOnly confidence the user expressed; never guess.').optional(),
 }).superRefine((value, ctx) => {
   if (value.source === 'ai_surfaced' && !value.ai_original?.trim()) {
     ctx.addIssue({
@@ -78,6 +79,12 @@ const decideSchema = z.discriminatedUnion('action', [
     load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 딛고 선 전제 하나입니다.').optional(),
     related_to: z.array(zId).max(20).describe('사용자가 비슷하다고 본 과거 결정 id입니다.').optional(),
     premises: z.array(premiseInput).min(1).max(5).describe('결정이 딛고 선 전제와 미결 질문입니다. 선택 사항이며, 있으면 결정과 함께 기록합니다.').optional(),
+    question: z.string().min(1).max(300).describe('이 결정이 답하는 질문입니다. 선택이 아닙니다. 돌아볼 때 선택을 가린 채 이 질문만 먼저 보여줍니다.').optional(),
+    values: z.array(z.string().min(1).max(120)).max(3).describe('사용자가 말한 가치 기준만 담습니다.').optional(),
+    rejected_alternative: z.strictObject({
+      alternative: z.string().min(1).max(200),
+      reason: z.string().min(1).max(200),
+    }).describe('사용자가 버린 대안과 그 이유입니다. 말했을 때만.').optional(),
   }),
   z.strictObject({
     ...common,
@@ -209,6 +216,12 @@ const decidePublicSchema = z.strictObject({
   plan_owner: z.enum(['user', 'ai_surfaced']).describe('채택 문안의 출처입니다(user는 adopted_quote 필요).\n\nAuthorship; user needs adopted_quote.').optional(),
   adopted_quote: z.string().min(3).max(400).describe('사용자가 동의한 말 그대로. 없으면 채택이 아닙니다.\n\nThe user\'s adopting words, verbatim.').optional(),
   step: z.number().int().min(1).max(8).describe('plan_check: 단계 번호(1부터)입니다.\n\n1-based step for plan_check.').optional(),
+  question: z.string().min(1).max(300).describe('action=open: 이 결정이 답하는 질문(선택이 아니라 질문). 돌아볼 때 선택을 가린 채 먼저 보여줍니다.\n\nThe QUESTION answered, not the choice; shown first at return.').optional(),
+  values: z.array(z.string().min(1).max(120)).max(3).describe('사용자가 말한 가치 기준만.\n\nOnly criteria the user stated.').optional(),
+  rejected_alternative: z.strictObject({
+    alternative: z.string().min(1).max(200).describe('버린 대안입니다.\n\nThe rejected alternative.'),
+    reason: z.string().min(1).max(200).describe('버린 이유입니다.\n\nWhy it was rejected.'),
+  }).describe('사용자가 버린 대안과 이유. 말했을 때만.\n\nRejected alternative and why, only if stated.').optional(),
 }).superRefine((value, ctx) => {
   const parsed = decideSchema.safeParse(value);
   if (parsed.success) return;

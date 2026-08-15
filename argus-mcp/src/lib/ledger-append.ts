@@ -56,6 +56,12 @@ export interface LedgerEventInput {
    *  clock event `ts` so the reconsider timeline is deterministic (honors
    *  today_override) instead of drifting with real time. */
   anchor_date?: string;
+  // ── cognitive capture on harvest (입력 깊이 사이클 1) ──
+  question?: string;
+  values?: string[];
+  rejected_alternative?: { alternative: string; reason: string };
+  load_bearing_assumption?: string;
+  confidence?: string;
   // ── execution plan (plan_adopt / plan_check) ──
   // plan_check reuses `ordinal` (1-based step) and `note` (the user's words).
   steps?: Array<{ what: string; due?: string }>;

@@ -57,6 +57,16 @@ export interface ContractEntry {
    *  user's note on why reality had not answered yet. defer_history[0].from is
    *  the ORIGINAL check-by — what the receipt reports as "originally due". */
   defer_history?: Array<{ from?: string; to?: string; note?: string; ts?: string }>;
+  /** 인지 수집 (입력 깊이 사이클 1): 이 결정이 답하는 질문(선택과 분리 —
+   *  귀환 때 선택을 가린 채 먼저 보여줄 재료), 사용자가 말한 가치 기준,
+   *  버린 대안과 이유, 하중 가정. 전부 harvest 이벤트에서 온다. */
+  question?: string;
+  /** 봉인된 예측에 대해 사용자가 표현한 확신도 (사이클 2) — 전제의 confidence와
+   *  같은 어휘 한 벌, 다른 대상(전제 vs 예측). 정산 대조의 재료. */
+  predicate_confidence?: 'confident' | 'uncertain' | 'contested';
+  values?: string[];
+  rejected_alternative?: { alternative: string; reason: string };
+  load_bearing_assumption?: string;
   /** Execution plan (PRODUCT-PLAN §3) — process attached to the decision, never
    *  scored, never in track_record. Dated steps marked scheduled surface in
    *  check_in when due; at most PLAN_MAX_SCHEDULED are scheduled (earliest
@@ -244,6 +254,20 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           cur.text = (ev['decision'] as string) || (ev['quote'] as string) || '';
           map.set(id, cur);
         }
+        // 인지 수집 필드 — 첫 기록이 이긴다(재-harvest no-op 규칙과 동거).
+        if (typeof ev['question'] === 'string' && !cur.question) cur.question = ev['question'];
+        if (Array.isArray(ev['values']) && !cur.values) {
+          cur.values = (ev['values'] as unknown[]).filter((v): v is string => typeof v === 'string').slice(0, 3);
+        }
+        if (!cur.rejected_alternative && ev['rejected_alternative'] && typeof ev['rejected_alternative'] === 'object') {
+          const ra = ev['rejected_alternative'] as Record<string, unknown>;
+          if (typeof ra['alternative'] === 'string' && typeof ra['reason'] === 'string') {
+            cur.rejected_alternative = { alternative: ra['alternative'], reason: ra['reason'] };
+          }
+        }
+        if (typeof ev['load_bearing_assumption'] === 'string' && !cur.load_bearing_assumption) {
+          cur.load_bearing_assumption = ev['load_bearing_assumption'];
+        }
         break;
 
       case 'seal': {
@@ -266,6 +290,12 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         if (typeof ev['basis'] === 'string') cur.basis = ev['basis'];
         if (ev['predicate_owner'] === 'user' || ev['predicate_owner'] === 'ai_surfaced') {
           cur.predicate_owner = ev['predicate_owner'];
+        }
+        // 인지 수집 사이클 2: 봉인이 나른 질문·확신도. 질문은 열기 것이 이긴다
+        // (첫 기록 우선); 확신도는 이 봉인의 것이므로 갱신이 맞다.
+        if (typeof ev['question'] === 'string' && ev['question'] && !cur.question) cur.question = ev['question'];
+        if (ev['confidence'] === 'confident' || ev['confidence'] === 'uncertain' || ev['confidence'] === 'contested') {
+          cur.predicate_confidence = ev['confidence'];
         }
         cur.status = 'sealed';
         everSealed.add(id);
@@ -354,6 +384,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           ...(isMaterialityRule(ev['materiality_rule']) ? { materiality_rule: ev['materiality_rule'] as PremiseState['materiality_rule'] } : {}),
           ...(typeof ev['recheck_cadence_days'] === 'number' && Number.isFinite(ev['recheck_cadence_days']) ? { recheck_cadence_days: ev['recheck_cadence_days'] } : {}),
           ...(typeof ev['reponder_cadence_days'] === 'number' && Number.isFinite(ev['reponder_cadence_days']) ? { reponder_cadence_days: ev['reponder_cadence_days'] } : {}),
+          ...(ev['confidence'] === 'confident' || ev['confidence'] === 'uncertain' || ev['confidence'] === 'contested' ? { confidence: ev['confidence'] } : {}),
           // M3 — anchor the reconsider clock at add time (an open_question has no
           // last_recheck; this is the date the first reconsider-due is measured
           // from). Prefer the logical anchor_date (deterministic, honors

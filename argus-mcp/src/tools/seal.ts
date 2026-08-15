@@ -59,6 +59,11 @@ const inputSchema = z.strictObject({
   // produce: it has no clock, and dates were 44% of every refusal in 21
   // recorded journey runs (resolveHorizon() has the full account).
   check_by: zWhen.describe('When to check: +7d / +2w / +3m (prefer this — you have no clock), or YYYY-MM-DD.'),
+  // 인지 수집 사이클 2 (12차 리시트): 열기는 건너뛸 수 있는 문이지만 봉인은
+  // 모든 여정이 지난다. 그래서 결정의 질문과 사용자가 표현한 확신도는 여기에도
+  // 탄다. 둘 다 선택이고, 저자성 규율(사용자가 말한 것만)은 설명이 나른다.
+  question: z.string().min(1).max(300).describe('이 예측이 딛고 선 결정의 질문(선택이 아니라 질문). 돌아볼 때 선택을 가린 채 먼저 보여줍니다.\n\nThe QUESTION behind this bet, not the choice; shown first at return.').optional(),
+  confidence: z.enum(['confident', 'uncertain', 'contested']).describe('이 예측에 대해 사용자가 실제로 표현한 확신 정도만. 추측 금지, 정산 때 현실과 대조됩니다.\n\nOnly confidence the user expressed; never guess.').optional(),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows a one-tap confirm before saving.'),
   // WAS 665 SERVED BYTES — the single most expensive line on the whole tool
   // surface, and it bought nothing measurable: across five recorded journey runs
@@ -305,6 +310,10 @@ export const seal: ToolModule = {
         // the bearing seed / receipt / v2 mirror, none of which the webapp push
         // reads — so an ai_surfaced draft crossed the bridge looking user-authored.
         predicate_owner: a['predicate_owner'] as 'user' | 'ai_surfaced' | undefined,
+        // predicate_owner보다 뒤에 둘 것 — plugin-bridge-provenance.test.ts가
+        // 이 파일의 첫 events.push부터 500자 창 안에서 predicate_owner를 검사한다.
+        ...(typeof a['question'] === 'string' && a['question'] ? { question: a['question'] } : {}),
+        ...(a['confidence'] === 'confident' || a['confidence'] === 'uncertain' || a['confidence'] === 'contested' ? { confidence: a['confidence'] } : {}),
       });
 
       // Promotion (plan v5 §5.4): the named unverified_assumption IS the first

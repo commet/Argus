@@ -120,6 +120,9 @@ export interface PremiseState {
    * default (enabled when the premise is external and load-bearing). This is
    * deliberately independent from material importance and verifiability. */
   monitoring_enabled?: boolean;
+  /** 사용자가 이 전제에 대해 실제로 표현한 확신 정도 (입력 깊이 사이클 1).
+   *  추측 금지 — 정산 때 현실과 대조되어 보정 기록의 재료가 된다. */
+  confidence?: 'confident' | 'uncertain' | 'contested';
   /** The user's own words this premise rests on, verbatim.
    *
    *  Collected since the provenance work and thrown away ever since: the schema

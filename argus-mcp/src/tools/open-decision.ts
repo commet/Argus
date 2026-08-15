@@ -115,7 +115,19 @@ export const openDecision: ToolModule = {
         v: SCHEMA_VERSION, id, problem_text: a['decision'], status_quo: a['status_quo'],
         load_bearing_assumption: a['load_bearing_assumption'] ?? null, created_at: now,
       });
-      await appendLedger(dir, [{ id, event: 'harvest', decision: a['decision'] as string }], now);
+      // 인지 수집(질문·가치·버린 대안·하중 가정)은 세션 파일이 아니라 **원장**에
+      // 산다 — 세션 파일은 fold·패턴·정산 대조 어디에도 안 잡히는 끊긴 전선이었다
+      // (입력 깊이 사이클 1, 2026-08-15 창업자 지시). 필드는 전부 선택이고,
+      // 설명이 저자성 규율을 요구한다(사용자가 말한 것만).
+      await appendLedger(dir, [{
+        id, event: 'harvest', decision: a['decision'] as string,
+        ...(typeof a['question'] === 'string' ? { question: a['question'] } : {}),
+        ...(Array.isArray(a['values']) ? { values: a['values'] as string[] } : {}),
+        ...(a['rejected_alternative'] && typeof a['rejected_alternative'] === 'object'
+          ? { rejected_alternative: a['rejected_alternative'] as { alternative: string; reason: string } } : {}),
+        ...(typeof a['load_bearing_assumption'] === 'string' && a['load_bearing_assumption']
+          ? { load_bearing_assumption: a['load_bearing_assumption'] } : {}),
+      }], now);
 
       const relatedIds = Array.isArray(a['related_to']) ? (a['related_to'] as string[]) : [];
       const continuity = relatedIds.length ? computeContinuity(dir, relatedIds) : undefined;
@@ -183,6 +195,19 @@ export const openDecision: ToolModule = {
           // never a verdict, never appended to the surface as a directive.
           lean_disclosure: T.lean_disclosure,
           load_bearing_assumption: a['load_bearing_assumption'] ?? null,
+          // 정직한 공백 (LLM-glue 불변식): 안 담긴 인지 슬롯을 이름 붙여
+          // 드러낸다. 조용한 공백은 모델이 그럴듯하게 채우거나 영영 잊는다.
+          // data 전용 — 기록의 사실이지 사용자에게 낼 숙제가 아니다. 실측:
+          // 필드가 표면에 있어도 사용률은 페르소나에 따라 0이었다(깊이 측정 1).
+          ...((() => {
+            const missing = [
+              ...(typeof a['question'] === 'string' && a['question'] ? [] : ['question']),
+              ...(Array.isArray(a['values']) && (a['values'] as unknown[]).length ? [] : ['values']),
+              ...(a['rejected_alternative'] ? [] : ['rejected_alternative']),
+              ...(typeof a['load_bearing_assumption'] === 'string' && a['load_bearing_assumption'] ? [] : ['load_bearing_assumption']),
+            ];
+            return missing.length ? { uncaptured_context: missing } : {};
+          })()),
           restraint_option: a['status_quo'],
           fork_emitted: false,
           harvest_written: true,
