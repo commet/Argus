@@ -108,6 +108,10 @@ async function seedOverdue(call) {
   await call('argus_predict', {
     id: 'amb', predicate: '리뉴얼 후 첫 달 재구매율이 20%를 넘는다',
     check_by: '2026-07-10', predicate_owner: 'user', today_override: T0,
+    // 비계 봉인이 믿음 확인창(인밴드, 사이클 3)을 발화시키지 않도록 가정을
+    // 함께 준다 — 이 평가의 물음 카운터는 앰비언트(밖에서 뜨는) 물음만 재야
+    // 한다. 창 자체의 규율은 seal-belief-window.test.ts가 잰다.
+    unverified_assumption: '리뉴얼 공지가 기존 구매자 전원에게 도달했다',
   });
   // A second call at the LATER clock so the ambient timer fires with a today
   // that makes the bet overdue (the timer reads the last call's today_override).
@@ -123,7 +127,8 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   console.log('■ O1 due 0건이면 아예 묻지 않는다');
   const dir = path.join(base, 'o1');
   const s = await sitting({ dir, answer: () => ({ action: 'accept', content: { outcome: 'held' } }) });
-  await s.call('argus_predict', { id: 'future', predicate: '연말까지 신규 채널 3개를 연다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 });
+  // unverified_assumption: 비계 봉인의 믿음 확인창(인밴드) 차단 — seedOverdue와 같은 이유.
+  await s.call('argus_predict', { id: 'future', predicate: '연말까지 신규 채널 3개를 연다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0, unverified_assumption: '신규 채널 검토 리스트가 이미 있다' });
   await s.call('argus_patterns', { view: 'all', today_override: T0 });
   await sleep(1500);
   ok('O1 아무것도 due가 아니면 물음 0건', s.asks.length === 0, `asks=${s.asks.length}`);

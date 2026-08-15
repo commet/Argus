@@ -485,8 +485,8 @@ export const seal: ToolModule = {
       if (!elicitedKeep && !hasLoadBearing && !beliefWindowShownFor.has(dir) && canElicit()) {
         const asked = await elicitDetailed(
           locale === 'ko'
-            ? `봉인됐습니다: "${sanitizeLine(predicate, 96)}"\n이 예측이 가장 크게 딛고 선 믿음 하나를 당신의 말로 남겨주세요. 아래 칸에 적은 뒤 Accept까지 진행하세요. (지금 없으면 비워두고 Accept. 건너뛰어도 봉인은 그대로입니다.)`
-            : `Sealed: "${sanitizeLine(predicate, 96)}"\nWhat is the one belief this bet rests on, in your words? Type it below, then continue to Accept. (Leave it blank and Accept to skip. The seal stays either way.)`,
+            ? `봉인됐습니다: "${sanitizeLine(predicate, 96)}"\n이 예측이 가장 크게 딛고 선 믿음 하나를 당신의 말로 남겨주세요.\n아래 칸에 적은 뒤 Accept까지 진행하세요.\n(지금 없으면 비워두고 Accept. 건너뛰어도 봉인은 그대로입니다.)`
+            : `Sealed: "${sanitizeLine(predicate, 96)}"\nWhat is the one belief this bet rests on, in your words?\nType it below, then continue to Accept.\n(Leave it blank and Accept to skip. The seal stays either way.)`,
           {
             type: 'object',
             properties: {
