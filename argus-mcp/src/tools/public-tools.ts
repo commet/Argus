@@ -204,10 +204,10 @@ const decidePublicSchema = z.strictObject({
   steps: z.array(z.strictObject({
     what: z.string().min(1).max(200).describe('할 일 한 줄입니다.\n\nOne line of work.'),
     due: zWhen.optional().describe('확인 날짜(YYYY-MM-DD 또는 +7d/+2w/+3m). 날짜 있는 단계만 그날 check_in이 다시 꺼냅니다.\n\nCheck date; dated steps return via check_in.'),
-  })).min(1).max(8).describe('action=plan: 사용자가 동의한 실행 단계입니다. 시점이 중요한 단계에 due(YYYY-MM-DD/+7d)를 붙이면 그 날짜에 check_in이 도로 꺼냅니다. 모르는 것은 지어내지 말고 open_questions로.\n\naction=plan: adopted steps. due (YYYY-MM-DD/+7d) makes check_in return that step that day. Unknowns go to open_questions.').optional(),
-  open_questions: z.array(z.string().min(1).max(200)).max(5).describe('아직 몰라 단계로 못 만든 것입니다 ("확인 필요: X").\n\nUnknowns named, never invented into steps.').optional(),
+  })).min(1).max(8).describe('action=plan: 사용자가 동의한 실행 단계입니다. 시점이 중요한 단계에 due(YYYY-MM-DD/+7d)를 붙이면 그 날짜에 check_in이 도로 꺼냅니다. 모르는 것은 지어내지 말고 open_questions로.\n\naction=plan: adopted steps. A dated step (due: YYYY-MM-DD/+7d) comes back via check_in that day.').optional(),
+  open_questions: z.array(z.string().min(1).max(200)).max(5).describe('아직 몰라 단계로 못 만든 것입니다 ("확인 필요: X").\n\nUnknowns, named instead of invented.').optional(),
   plan_owner: z.enum(['user', 'ai_surfaced']).describe('채택 문안의 출처입니다(user는 adopted_quote 필요).\n\nAuthorship; user needs adopted_quote.').optional(),
-  adopted_quote: z.string().min(3).max(400).describe('사용자가 동의한 말 그대로. 없으면 채택이 아닙니다.\n\nUser\'s adopting words verbatim; without them it is not adopted.').optional(),
+  adopted_quote: z.string().min(3).max(400).describe('사용자가 동의한 말 그대로. 없으면 채택이 아닙니다.\n\nThe user\'s adopting words, verbatim.').optional(),
   step: z.number().int().min(1).max(8).describe('plan_check: 단계 번호(1부터)입니다.\n\n1-based step for plan_check.').optional(),
 }).superRefine((value, ctx) => {
   const parsed = decideSchema.safeParse(value);
