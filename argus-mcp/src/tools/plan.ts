@@ -91,8 +91,8 @@ export const plan: ToolModule = {
             ? '이 결정에는 이미 실행 계획이 있습니다. 계획을 갈아끼우면 걸어 둔 돌아보기 약속이 조용히 불어납니다.'
             : 'This decision already has an execution plan. Swapping plans would silently multiply the scheduled check-backs.',
           recovery: ko
-            ? '남은 단계는 그대로 두고, 새로 확인할 것은 새 결정으로 여세요. 단계의 결과는 op=check로 기록합니다.'
-            : 'Leave the remaining steps as they are and open anything new as a new decision. Record step results with op=check.',
+            ? '남은 단계는 그대로 두고, 새로 확인할 것은 새 결정으로 여세요. 단계의 결과는 action="plan_check"로 기록합니다.'
+            : 'Leave the remaining steps as they are and open anything new as a new decision. Record step results with action="plan_check".',
         });
       }
 
@@ -150,7 +150,7 @@ export const plan: ToolModule = {
         // 자물쇠 안 재확인이 걸리면 밖의 정직한 거절과 같은 코드로 말한다 —
         // 맨 Error는 INTERNAL_ERROR로 위장되어 사용자가 원인을 잃는다.
         if (fresh.entry?.plan) {
-          throw new GuardError('PLAN_ALREADY_ADOPTED', 'This decision already has an execution plan.', 'Leave the remaining steps as they are; record step results with op=check.');
+          throw new GuardError('PLAN_ALREADY_ADOPTED', 'This decision already has an execution plan.', 'Leave the remaining steps as they are; record step results with action="plan_check".');
         }
         return (await appendLedger(dir, [{
           id, event: 'plan_adopt', steps, open_questions: openQuestions, plan_owner: planOwner,
@@ -206,7 +206,7 @@ async function recordCheck(
     return toolError({
       ok: false, tool: 'argus_plan', error_code: 'NO_PLAN',
       message: ko ? '이 결정에는 아직 실행 계획이 없습니다.' : 'This decision has no execution plan yet.',
-      recovery: ko ? '사용자가 계획에 동의했다면 op=adopt(steps)로 먼저 붙이세요.' : 'If the user adopted a plan, attach it first with op=adopt and steps.',
+      recovery: ko ? '사용자가 계획에 동의했다면 action="plan"과 steps로 먼저 붙이세요.' : 'If the user adopted a plan, attach it first with action="plan" and steps.',
     });
   }
   const ordinal = Number(a['step'] ?? 0);

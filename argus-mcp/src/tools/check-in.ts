@@ -121,6 +121,15 @@ export const checkIn: ToolModule = {
         .slice(0, 40)
         .map((c) => ({ id: c.id, predicate: c.predicate, check_by: c.check_by }));
 
+      // 미확인 계획 단계도 같은 상설 문맥이다 (data 전용, 표면 아님). 실측:
+      // 세션을 여는 유일한 표면이 이걸 안 실으면, 사용자가 단계 결과를 말하는
+      // 순간 모델의 손에 계획이 없어 새 결정만 열고 지나간다 (A/B 2회 재현).
+      const openPlanSteps = [...ledger.contracts.values()]
+        .filter((c) => c.plan && c.status !== 'dismissed' && c.status !== 'settled')
+        .flatMap((c) => (c.plan?.steps ?? []).filter((s) => !s.checked_on)
+          .map((s) => ({ id: c.id, step: s.ordinal, what: s.what.slice(0, 140), ...(s.due ? { due: s.due } : {}) })))
+        .slice(0, 10);
+
       // 당직 미러 (§9.1): the most recent PRIOR day's anchor comes back first,
       // as a question — recognition, never a completion check. Today's own
       // anchor is data-only (no need to echo what the user just wrote).
@@ -345,7 +354,7 @@ export const checkIn: ToolModule = {
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + stuckLine + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...wireFacts(), ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(stuck.length ? { stuck_decisions: stuck } : {}), ...(upDays > 0 ? { upcoming } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...wireFacts(), ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(openPlanSteps.length ? { open_plan_steps: openPlanSteps } : {}), ...(stuck.length ? { stuck_decisions: stuck } : {}), ...(upDays > 0 ? { upcoming } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -400,6 +409,7 @@ export const checkIn: ToolModule = {
           ...(upDays > 0 ? { upcoming } : {}),
           ...watchData,
           ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}),
+          ...(openPlanSteps.length ? { open_plan_steps: openPlanSteps } : {}),
           // 표면은 사실만 말한다. 그것을 고칠 손잡이(id)는 여기에 둔다.
           ...(stuck.length ? { stuck_decisions: stuck } : {}),
           today, integrity: ledger.integrity,
