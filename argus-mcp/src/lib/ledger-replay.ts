@@ -381,6 +381,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           source: normalizePremiseSource(ev['source']),
           ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
           ...(typeof ev['anchor_quote'] === 'string' ? { anchor_quote: ev['anchor_quote'] } : {}),
+          ...(ev['elicited'] === true ? { elicited: true } : {}),
           ...(isMaterialityRule(ev['materiality_rule']) ? { materiality_rule: ev['materiality_rule'] as PremiseState['materiality_rule'] } : {}),
           ...(typeof ev['recheck_cadence_days'] === 'number' && Number.isFinite(ev['recheck_cadence_days']) ? { recheck_cadence_days: ev['recheck_cadence_days'] } : {}),
           ...(typeof ev['reponder_cadence_days'] === 'number' && Number.isFinite(ev['reponder_cadence_days']) ? { reponder_cadence_days: ev['reponder_cadence_days'] } : {}),

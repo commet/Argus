@@ -123,6 +123,10 @@ export interface PremiseState {
   /** 사용자가 이 전제에 대해 실제로 표현한 확신 정도 (입력 깊이 사이클 1).
    *  추측 금지 — 정산 때 현실과 대조되어 보정 기록의 재료가 된다. */
   confidence?: 'confident' | 'uncertain' | 'contested';
+  /** 확인창 직접 입력 표식 (입력 깊이 사이클 3): 이 문장이 모델을 거치지 않고
+   *  elicit 채널로 도착했다 — 저자성이 구조로 확보된 경로라 인용 규율 없이도
+   *  user_stated를 신뢰할 수 있다. */
+  elicited?: boolean;
   /** The user's own words this premise rests on, verbatim.
    *
    *  Collected since the provenance work and thrown away ever since: the schema

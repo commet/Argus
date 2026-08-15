@@ -29,6 +29,9 @@ function machineCancelHost(log: { fired: number }): void {
   setElicitor(async () => { log.fired += 1; return { action: 'cancel' }; }, () => true);
 }
 
+// 호출 순서 주의: 픽커(setElicitor)를 설치하기 **전에** 부른다. 봉인은 하중
+// 믿음이 없으면 믿음 확인창(사이클 3)을 열 수 있는데, 이 파일의 카운터는
+// 전제 확인창만 재야 한다. 창 규율 자체는 seal-belief-window.test.ts가 잰다.
 async function sealedDecision(dir: string, id = 'd1'): Promise<void> {
   await seal.handler({
     argus_dir: dir, id, predicate: 'the launch ships this week without rollback',
@@ -42,8 +45,8 @@ describe('chat_confirmed — 대화에서 이미 승인된 초안', () => {
   it('확인창을 건너뛰고 기록하며, 출처는 ai_surfaced 그대로다', async () => {
     const dir = tmpArgusDir();
     const log = { fired: 0 };
-    machineCancelHost(log);
     await sealedDecision(dir);
+    machineCancelHost(log);
 
     const r = await premises.handler({
       argus_dir: dir, id: 'd1', op: 'add', today_override: TODAY,
@@ -63,8 +66,8 @@ describe('chat_confirmed — 대화에서 이미 승인된 초안', () => {
   it('chat_confirmed 없으면 기계-즉답 호스트에서는 기록되지 않는다 (승인 없는 기록 금지)', async () => {
     const dir = tmpArgusDir();
     const log = { fired: 0 };
-    machineCancelHost(log);
     await sealedDecision(dir);
+    machineCancelHost(log);
 
     const r = await premises.handler({
       argus_dir: dir, id: 'd1', op: 'add', today_override: TODAY,
@@ -83,8 +86,8 @@ describe('chat_confirmed — 대화에서 이미 승인된 초안', () => {
   it('확인창이 살아 있는 호스트에서는 chat_confirmed 없이도 Accept 한 번으로 기록된다 (기존 계약 유지)', async () => {
     const dir = tmpArgusDir();
     let fired = 0;
-    setElicitor(async () => { fired += 1; return { action: 'accept', content: {} }; }, () => true);
     await sealedDecision(dir);
+    setElicitor(async () => { fired += 1; return { action: 'accept', content: {} }; }, () => true);
 
     await premises.handler({
       argus_dir: dir, id: 'd1', op: 'add', today_override: TODAY,

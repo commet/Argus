@@ -120,13 +120,22 @@ describe('argus_seal confirm_draft (one-tap, native Accept/Decline)', () => {
     expect((r['data'] as Record<string, unknown>)['predicate_owner']).toBe('user');
   });
 
-  it('no ceremony on user-authored words: predicate_owner=user without confirm_draft seals with NO picker', async () => {
+  it('no ceremony on user-authored words: never a re-confirm picker (the belief ask is a different door)', async () => {
     const dir = tmpArgusDir();
-    let asked = 0;
-    setElicitor(async () => { asked++; return KEEP; });
+    const messages: string[] = [];
+    setElicitor(async (m) => { messages.push(m); return KEEP; });
     const { confirm_draft: _omit, ...noFlag } = base;
     const r = body(await seal.handler({ argus_dir: dir, id: 'u1', ...noFlag, predicate_owner: 'user' as const }));
-    expect(asked).toBe(0); // over-fire mirror clause: don't re-confirm the user's own words
-    expect((r['data'] as Record<string, unknown>)['status']).toBe('sealed');
+    // 보호 가치는 그대로다: 사용자의 문장을 "기록할까요?"라고 되묻는 창은 0회.
+    // (사이클 3 전에는 창 수==0이 이 가치의 대리 지표였는데, 믿음 수집 창이
+    // 생기면서 대리 지표가 아니라 가치 자체를 검사한다.)
+    expect(messages.filter((m) => m.includes('기록할까요') || m.includes('Record this prediction')).length).toBe(0);
+    // 하중 믿음이 없는 봉인이므로 수집 창 하나는 허용된다 — 재확인이 아니라
+    // 새 질문(딛고 선 믿음)이고, 빈 채 Accept는 아무것도 기록하지 않는다.
+    expect(messages.length).toBe(1);
+    expect(messages[0].includes('belief') || messages[0].includes('믿음')).toBe(true);
+    const data = r['data'] as Record<string, unknown>;
+    expect(data['status']).toBe('sealed');
+    expect((data['belief_window'] as Record<string, unknown>)['recorded']).toBe(false);
   });
 });

@@ -603,6 +603,10 @@ function pickerKind(schema) {
   if (has('reword') && has('check_by')) return 'seal_confirm';
   if (has('reword')) return 'premise_confirm';
   if (has('what_happened')) return 'ambient_what_happened';
+  // 봉인 직후 믿음 직접 입력 (사이클 3). 시나리오 응답이 이 유형을 따로
+  // 다루지 않으면 content에 belief가 없어 서버는 left_blank 건너뛰기로
+  // 처리한다 — 창 자체의 규율은 seal-belief-window.test.ts가 잰다.
+  if (has('belief')) return 'belief_input';
   return 'unknown';
 }
 
