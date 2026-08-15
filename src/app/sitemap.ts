@@ -10,6 +10,7 @@ const ROUTES: Array<{ path: string; priority: number }> = [
   { path: '/workspace', priority: 0.9 },
   // /boss is deliberately absent — public/robots.txt disallows it.
   { path: '/guide', priority: 0.8 },
+  { path: '/import', priority: 0.7 },
   { path: '/login', priority: 0.4 },
   { path: '/privacy', priority: 0.2 },
   { path: '/terms', priority: 0.2 },
