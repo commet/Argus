@@ -162,6 +162,11 @@ const env = {
   PATH: process.env.PATH,
   HOME: process.env.HOME,
   TMPDIR: process.env.TMPDIR,
+  // v2 관찰 채널은 제품 기본값이 옵트인(1.4.0, 교차 프로젝트 노출 차단)이다.
+  // 계측이 옵트인 상태의 거울을 재려면 플래그를 통과시켜야 한다 — 기본 실행은
+  // 종전대로 꺼진 채(실사용 기본값 충실), 켜고 잰 실행은 리시트에 그렇게 적는다.
+  ...(process.env.ARGUS_V2_DEBUG ? { ARGUS_V2_DEBUG: process.env.ARGUS_V2_DEBUG } : {}),
+  ...(process.env.ARGUS_HOME ? { ARGUS_HOME: process.env.ARGUS_HOME } : {}),
   ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
 };
 
