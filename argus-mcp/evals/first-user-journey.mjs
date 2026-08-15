@@ -149,7 +149,14 @@ const PERSONA_SYS = [
 ].join('\n');
 
 // ── 3. 서버 기동 + 실제 도구 목록 읽기 ───────────────────────────────────────
-const ledgerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'journey-argus-'));
+// 실사용자의 프로젝트는 대부분 git 저장소다 — v2 이중쓰기의 저장소 바인딩이
+// git 정체성에서 오므로(듀얼라이트 테스트도 .git을 만든다), 합성 작업 공간도
+// 같은 모양이어야 옵트인 실측(ARGUS_V2_DEBUG=1)에서 거울이 묶인다. .git이
+// 없으면 거울은 조용히 미바인딩으로 남는다 (15차 실측 발견 2).
+const journeyRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'journey-argus-'));
+fs.mkdirSync(path.join(journeyRepo, '.git'), { recursive: true });
+const ledgerDir = path.join(journeyRepo, '.argus');
+fs.mkdirSync(ledgerDir, { recursive: true });
 /**
  * 자식 프로세스는 npm에서 방금 내려받은 코드다. process.env를 통째로 물려주면
  * ANTHROPIC_API_KEY를 비롯한 호스트 비밀이 그 코드의 손에 들어간다 — 발행본을
@@ -162,6 +169,11 @@ const env = {
   PATH: process.env.PATH,
   HOME: process.env.HOME,
   TMPDIR: process.env.TMPDIR,
+  // v2 관찰 채널은 제품 기본값이 옵트인(1.4.0, 교차 프로젝트 노출 차단)이다.
+  // 계측이 옵트인 상태의 거울을 재려면 플래그를 통과시켜야 한다 — 기본 실행은
+  // 종전대로 꺼진 채(실사용 기본값 충실), 켜고 잰 실행은 리시트에 그렇게 적는다.
+  ...(process.env.ARGUS_V2_DEBUG ? { ARGUS_V2_DEBUG: process.env.ARGUS_V2_DEBUG } : {}),
+  ...(process.env.ARGUS_HOME ? { ARGUS_HOME: process.env.ARGUS_HOME } : {}),
   ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
 };
 

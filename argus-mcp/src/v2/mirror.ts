@@ -174,7 +174,18 @@ function mirrorOne(ctx: V2Context, ev: LedgerEventInput, now: string, hints?: Mi
     case 'harvest': {
       const text = str(ev.decision) ?? str((ev as { quote?: string }).quote);
       if (!text) return false;
-      harvestV2(ctx, { decisionId: ev.id, text: hostp(text), idempotencyKey: key });
+      // 인지 수집(입력 깊이)을 유실 없이 나른다 — 떨구면 "계수되며 유실하는
+      // 거울"이다: mirrored++로 보이지만 내용이 결손인 그럴듯한 성공.
+      const ra = ev.rejected_alternative;
+      harvestV2(ctx, {
+        decisionId: ev.id, text: hostp(text), idempotencyKey: key,
+        ...(str(ev.question) ? { question: str(ev.question) } : {}),
+        ...(Array.isArray(ev.values) && ev.values.length
+          ? { values: ev.values.filter((v): v is string => typeof v === 'string' && v.length > 0).slice(0, 3) } : {}),
+        ...(ra && typeof ra.alternative === 'string' && typeof ra.reason === 'string'
+          ? { rejectedAlternative: { alternative: ra.alternative, reason: ra.reason } } : {}),
+        ...(str(ev.load_bearing_assumption) ? { loadBearingAssumption: str(ev.load_bearing_assumption) } : {}),
+      });
       return true;
     }
     case 'seal': {
@@ -189,6 +200,10 @@ function mirrorOne(ctx: V2Context, ev: LedgerEventInput, now: string, hints?: Mi
         checkBy: { value: checkBy, provenance: prov },
         ...(ev.basis ? { basis: ev.basis as 'judgment' | 'luck' | 'mixed' | 'unsure' } : {}),
         ...(h?.realQuestion ? { realQuestion: h.realQuestion } : {}),
+        // 사이클 2의 인지 필드 — 원장 이벤트 자신이 나른다 (힌트 불요).
+        ...(str(ev.question) ? { question: str(ev.question) } : {}),
+        ...(ev.confidence === 'confident' || ev.confidence === 'uncertain' || ev.confidence === 'contested'
+          ? { confidence: ev.confidence } : {}),
         ...(h?.unverifiedAssumption ? { unverifiedAssumption: h.unverifiedAssumption } : {}),
         ...(h?.humanOnly ? { humanOnly: h.humanOnly } : {}),
         // human_judgment는 Keep 픽커에 표시되지 않았다 — elicit이 목격한 것은
@@ -241,8 +256,19 @@ function mirrorOne(ctx: V2Context, ev: LedgerEventInput, now: string, hints?: Mi
       premiseAddV2(ctx, {
         premiseId: pid, decisionId: ev.id,
         kind: (PREMISE_KINDS.has(String(ev.kind)) ? ev.kind : 'premise') as 'premise' | 'fact' | 'question',
-        text: { value: text, provenance: ev.source === 'user' || ev.source === 'user_stated' ? HOST : 'ai_surfaced' },
+        // 확인창 직접 입력(사이클 3, elicited:true)은 모델을 거치지 않은
+        // 채널이므로 v2 사다리의 제 등급인 elicited_user다 — host_reported로
+        // 격하하면 구조적 저자성이 거울에서 유실된다. 모델 전달 user_stated는
+        // 종전대로 host_reported (F5: host_reported는 자동 승격되지 않는다).
+        text: {
+          value: text,
+          provenance: ev.elicited === true
+            ? 'elicited_user'
+            : ev.source === 'user' || ev.source === 'user_stated' ? HOST : 'ai_surfaced',
+        },
         ...(ev.load_bearing !== undefined ? { loadBearing: ev.load_bearing } : {}),
+        ...(ev.confidence === 'confident' || ev.confidence === 'uncertain' || ev.confidence === 'contested'
+          ? { confidence: ev.confidence } : {}),
         ...(ev.recheck_cadence_days !== undefined ? { recheckCadenceDays: ev.recheck_cadence_days } : {}),
         ...(str(ev.capture_id) ? { fromCandidate: str(ev.capture_id) } : {}),
         idempotencyKey: key,

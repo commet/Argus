@@ -57,6 +57,13 @@ export interface DecisionRecord {
   predicate?: { value: string; provenance: string };
   check_by?: { value: string; provenance: string };
   outcome?: { value: string; provenance: string };
+  /** 인지 수집 (입력 깊이) — v1 fold와 같은 의미론: 질문은 첫 기록(열기)이
+   *  이기고, 확신도는 봉인마다 갱신된다(재봉인 = 새 예측의 확신). */
+  question?: string;
+  values?: string[];
+  rejected_alternative?: { alternative: string; reason: string };
+  load_bearing_assumption?: string;
+  confidence?: 'confident' | 'uncertain' | 'contested';
   snoozed_until?: string;
   snooze_count: number;
 }
@@ -67,6 +74,8 @@ export interface PremiseRecord {
   kind: 'premise' | 'fact' | 'question';
   text: { value: string; provenance: string };
   load_bearing: boolean;
+  /** 사용자가 표현한 확신 정도 — 창 경유 여부는 text.provenance가 나른다. */
+  confidence?: 'confident' | 'uncertain' | 'contested';
   recheck_cadence_days?: number;
   /** 등록된 logical_date — 한 번도 recheck 안 된 전제의 다음 재확인일 기준
    *  (added_on + cadence; 웹 premises-core의 never-checked 분기와 같은 사상). */
@@ -308,12 +317,22 @@ function apply(state: LedgerState, e: ArgusEvent): void {
     case 'harvest':
       state.decisions.set(e.decision_id, {
         id: e.decision_id, state: 'harvested', harvested_on: e.logical_date, text: e.text, snooze_count: 0,
+        ...(e.question ? { question: e.question } : {}),
+        ...(e.values && e.values.length ? { values: e.values } : {}),
+        ...(e.rejected_alternative ? { rejected_alternative: e.rejected_alternative } : {}),
+        ...(e.load_bearing_assumption ? { load_bearing_assumption: e.load_bearing_assumption } : {}),
       });
       break;
     case 'seal': {
       const d = state.decisions.get(e.decision_id)
         ?? { id: e.decision_id, state: 'harvested' as const, snooze_count: 0 };
-      state.decisions.set(e.decision_id, { ...d, state: 'sealed', predicate: e.predicate, check_by: e.check_by });
+      state.decisions.set(e.decision_id, {
+        ...d, state: 'sealed', predicate: e.predicate, check_by: e.check_by,
+        // v1 fold와 같은 의미론: 질문은 열기 것이 이긴다(첫 기록 우선),
+        // 확신도는 이 봉인의 것이므로 갱신이 맞다.
+        ...(e.question && !d.question ? { question: e.question } : {}),
+        ...(e.confidence ? { confidence: e.confidence } : {}),
+      });
       break;
     }
     case 'amend': {
@@ -342,6 +361,7 @@ function apply(state: LedgerState, e: ArgusEvent): void {
       state.premises.set(e.premise_id, {
         id: e.premise_id, decision_id: e.decision_id, kind: e.kind, text: e.text,
         load_bearing: e.load_bearing ?? false, recheck_cadence_days: e.recheck_cadence_days,
+        ...(e.confidence ? { confidence: e.confidence } : {}),
         added_on: e.logical_date, resolved: false,
       });
       break;

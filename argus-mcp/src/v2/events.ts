@@ -106,12 +106,27 @@ export const ArgusEventSchema = z.discriminatedUnion('event', [
   // ── 결정 축 ──
   z.strictObject({ ...D, event: z.literal('harvest'), decision_id: zSlug,
     text: provenanced(z.string().min(1).max(400)),
+    // 인지 수집 (입력 깊이 사이클 1, v1 harvest에서 미러) — real_question 등
+    // seal의 선례를 따라 plain optional. 채널 provenance는 v1 저자성 규율이
+    // 나른다 (여기서 떨구면 "계수되며 유실하는 거울"이 된다 — 15차).
+    question: z.string().min(1).max(400).optional(),
+    values: z.array(z.string().min(1).max(120)).max(3).optional(),
+    rejected_alternative: z.strictObject({
+      alternative: z.string().min(1).max(200),
+      reason: z.string().min(1).max(200),
+    }).optional(),
+    load_bearing_assumption: z.string().min(1).max(400).optional(),
     evidence: zEvidencePointer.optional() }),
   z.strictObject({ ...D, event: z.literal('seal'), decision_id: zSlug,
     predicate: provenanced(z.string().min(8).max(400)),
     check_by: provenanced(zIsoDate),
     basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
     real_question: z.string().max(400).optional(),
+    /** 결정이 답하는 질문 (사이클 2, v1 seal의 question) — real_question(봉인
+     *  인자의 별도 필드)과 다른 v1 출처이므로 슬롯을 합치지 않는다(발산 방지). */
+    question: z.string().min(1).max(400).optional(),
+    /** 사용자가 표현한 확신도 (사이클 2) — 정산 대조·보정 기록의 재료. */
+    confidence: z.enum(['confident', 'uncertain', 'contested']).optional(),
     unverified_assumption: z.string().max(400).optional(),
     human_only: z.string().max(400).optional(),
     /** 반드시 사용자의 말 — ai_surfaced로 남더라도 출처를 위조하지 않는다(II-B). */
@@ -135,6 +150,9 @@ export const ArgusEventSchema = z.discriminatedUnion('event', [
     kind: z.enum(['premise', 'fact', 'question']),
     text: provenanced(z.string().min(1).max(400)),
     load_bearing: z.boolean().optional(),
+    /** 사용자가 이 전제에 표현한 확신 정도 (입력 깊이 사이클 1). 창 경유
+     *  여부는 별도 필드가 아니라 text.provenance='elicited_user'가 나른다. */
+    confidence: z.enum(['confident', 'uncertain', 'contested']).optional(),
     recheck_cadence_days: z.number().int().positive().max(365).optional(),
     /** 캡처 후보에서 승격된 경우 원본 참조 — 원본은 원장에 그대로(이동 아님). */
     from_candidate: zSlug.optional() }),
