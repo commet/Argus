@@ -8,7 +8,7 @@ import { PLAN_MAX_SCHEDULED } from '../lib/ledger-replay.js';
 import { resolveResponseLocale } from '../lib/surfaces.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
-import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, zWhen, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 import { asV2WriteField } from '../v2/mirror.js';
 
@@ -33,7 +33,7 @@ import { asV2WriteField } from '../v2/mirror.js';
 
 const stepInput = z.strictObject({
   what: z.string().min(1).max(200).describe('이 단계에서 할 일 한 줄입니다.\n\nOne line: what this step does.'),
-  due: zDate.optional().describe('이 단계를 확인할 날짜(YYYY-MM-DD 또는 +7d/+2w/+3m)입니다. 날짜가 있는 단계만 나중에 check_in이 물어봅니다.\n\nOptional check date (YYYY-MM-DD or +7d/+2w/+3m). Only dated steps come back in check_in.'),
+  due: zWhen.optional().describe('이 단계를 확인할 날짜(YYYY-MM-DD 또는 +7d/+2w/+3m)입니다. 날짜가 있는 단계만 나중에 check_in이 물어봅니다.\n\nOptional check date (YYYY-MM-DD or +7d/+2w/+3m). Only dated steps come back in check_in.'),
 });
 
 export const plan: ToolModule = {
@@ -47,6 +47,7 @@ export const plan: ToolModule = {
     steps: z.array(stepInput).min(1).max(8).optional(),
     open_questions: z.array(z.string().min(1).max(200)).max(5).optional(),
     plan_owner: z.enum(['user', 'ai_surfaced']).default('ai_surfaced'),
+    adopted_quote: z.string().min(3).max(400).optional(),
     step: z.number().int().min(1).max(8).optional(),
     note: z.string().min(1).max(400).optional(),
     today_override: zDate.optional(),
@@ -90,8 +91,8 @@ export const plan: ToolModule = {
             ? '이 결정에는 이미 실행 계획이 있습니다. 계획을 갈아끼우면 걸어 둔 돌아보기 약속이 조용히 불어납니다.'
             : 'This decision already has an execution plan. Swapping plans would silently multiply the scheduled check-backs.',
           recovery: ko
-            ? '남은 단계는 그대로 두고, 새로 확인할 것은 새 결정으로 여세요. 단계의 결과는 op=check로 기록합니다.'
-            : 'Leave the remaining steps as they are and open anything new as a new decision. Record step results with op=check.',
+            ? '남은 단계는 그대로 두고, 새로 확인할 것은 새 결정으로 여세요. 단계의 결과는 action="plan_check"로 기록합니다.'
+            : 'Leave the remaining steps as they are and open anything new as a new decision. Record step results with action="plan_check".',
         });
       }
 
@@ -135,7 +136,13 @@ export const plan: ToolModule = {
       }
 
       const openQuestions = (a['open_questions'] as string[] | undefined) ?? [];
-      const planOwner = a['plan_owner'] === 'user' ? 'user' : 'ai_surfaced';
+      // 저자성은 주장이 아니라 증거다 (전제의 anchor_quote와 같은 규율). 연기
+      // 실행 1호 실측: 모델이 사용자의 동의 발화가 없는 시점에 plan_owner:'user'
+      // 를 찍었다 — 인용 없는 사용자 저작 주장은 기록을 거절하는 대신 정직하게
+      // ai_surfaced로 강등한다. 실패 방향이 중요하다: 추론이 "사용자의 말"로
+      // 둔갑하는 것이 이 설계 전체가 막으려는 단 하나의 오류다.
+      const adoptedQuote = typeof a['adopted_quote'] === 'string' ? a['adopted_quote'].trim() : '';
+      const planOwner = a['plan_owner'] === 'user' && adoptedQuote ? 'user' : 'ai_surfaced';
       const now = logicalNow(today, !!a['today_override']);
       const mirror = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
@@ -143,10 +150,11 @@ export const plan: ToolModule = {
         // 자물쇠 안 재확인이 걸리면 밖의 정직한 거절과 같은 코드로 말한다 —
         // 맨 Error는 INTERNAL_ERROR로 위장되어 사용자가 원인을 잃는다.
         if (fresh.entry?.plan) {
-          throw new GuardError('PLAN_ALREADY_ADOPTED', 'This decision already has an execution plan.', 'Leave the remaining steps as they are; record step results with op=check.');
+          throw new GuardError('PLAN_ALREADY_ADOPTED', 'This decision already has an execution plan.', 'Leave the remaining steps as they are; record step results with action="plan_check".');
         }
         return (await appendLedger(dir, [{
           id, event: 'plan_adopt', steps, open_questions: openQuestions, plan_owner: planOwner,
+          ...(adoptedQuote ? { anchor_quote: adoptedQuote } : {}),
         }], now)).v2_mirror;
       });
 
@@ -198,7 +206,7 @@ async function recordCheck(
     return toolError({
       ok: false, tool: 'argus_plan', error_code: 'NO_PLAN',
       message: ko ? '이 결정에는 아직 실행 계획이 없습니다.' : 'This decision has no execution plan yet.',
-      recovery: ko ? '사용자가 계획에 동의했다면 op=adopt(steps)로 먼저 붙이세요.' : 'If the user adopted a plan, attach it first with op=adopt and steps.',
+      recovery: ko ? '사용자가 계획에 동의했다면 action="plan"과 steps로 먼저 붙이세요.' : 'If the user adopted a plan, attach it first with action="plan" and steps.',
     });
   }
   const ordinal = Number(a['step'] ?? 0);

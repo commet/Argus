@@ -54,6 +54,11 @@ const SUBJECT = argOf('--model', 'claude-sonnet-5');
  * 라우팅 성향인가, 호스트 일반 성향인가"를 물을 수 있다.
  */
 const HOST = argOf('--host-model', SUBJECT);
+/** --script plan: 결정→계획 채택→예측→재시작→단계 결과→정산의 네 걸음 대본
+ *  (PRODUCT-PLAN §3). default 대본과 점수를 섞으면 비교가 거짓이 된다 —
+ *  summary.script가 어느 대본인지 말한다. */
+const SCRIPT = argOf('--script', 'default');
+if (!['default', 'plan'].includes(SCRIPT)) { console.error(`--script: "${SCRIPT}"는 없다. 유효: default, plan`); process.exit(2); }
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ANTHROPIC_API_KEY 가 필요합니다 — 이 하네스는 모델 없이는 사용자를 흉내내지 않습니다.');
@@ -439,6 +444,18 @@ await stage(4, '첫 화면 — 아무 설정 없이 처음 말을 건다',
 await stage(5, '결정이 등장한다 — 실제 업무 판단을 꺼낸다',
   'You are weighing a real decision at work today: whether to migrate your team\'s background jobs from cron to a queue system this quarter. You are genuinely unsure. Talk about it with your assistant the way you actually would.');
 
+if (SCRIPT === 'plan') {
+  // 계획 요청과 채택을 **사용자 턴 둘**로 나눈다. 채택은 사용자의 동사이므로
+  // (원격 argus_adopt와 같은 규율), 어시스턴트가 제안 직후·동의 전에 기록하면
+  // 그것이 저자성 결함이다 — 이 분리가 그 순서를 관측 가능하게 만든다.
+  // 무엇을 채택할지는 지시하지 않는다: 페르소나가 어시스턴트의 실제 제안을
+  // 보고 스스로 정한다 (각본은 의도까지, 내용은 배역의 것).
+  await stage(5.5, '계획을 요청한다',
+    'You want that decision turned into something you can execute: ask your assistant for a short ordered plan of what to prepare, check, and do, with dates on the steps where timing matters. Just ask; do not commit to anything yet.');
+  await stage(5.7, '채택을 말한다 — 혹은 고친다',
+    'Your assistant just responded about the plan. React as you actually would: if it basically works, tell it you will go with that plan; if something is off, say what to change and then decide. Speak in your own words.');
+}
+
 // 6단계는 5단계에서 실제로 일어난 대화를 이어야 한다. 예전 문안은
 // "if you do the migration"으로 **이주하기로 정했다는 전제**를 깔았는데,
 // 5단계는 "아직 못 정했다"로 시작해 자주 "이번 분기엔 안 한다"로 끝난다.
@@ -485,6 +502,26 @@ say(`  세션2 도구 ${tools2.length}종 재노출 — 첫 세션과 ${tools2.l
 
 await stage(8, '귀환 — 다시 켠 사용자에게 무엇이 보이는가',
   'It is the next morning. You just opened your terminal and your assistant again. Start your day.');
+
+if (SCRIPT === 'plan') {
+  // 정산 대상과 같은 규율: 원장에 **실제로 채택된** 계획의 단계를 읽어 그
+  // 결과를 말하게 한다. 아무도 채택하지 않은 단계의 결과를 요구하면 그건
+  // 제품이 아니라 하네스의 자기모순을 재는 것이다.
+  const adoptedSteps = (() => {
+    try {
+      return fs.readFileSync(path.join(ledgerDir, 'ledger', 'ledger.jsonl'), 'utf8')
+        .split('\n').filter(Boolean)
+        .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+        .filter((e) => e && e.event === 'plan_adopt' && Array.isArray(e.steps))
+        .flatMap((e) => e.steps.map((s) => s && s.what).filter(Boolean));
+    } catch { return []; }
+  })();
+  say(`  (계획 확인 대상 — 원장에 채택된 단계 ${adoptedSteps.length}건)`);
+  await stage(8.5, '계획 단계의 결과를 말한다',
+    adoptedSteps.length
+      ? `Earlier you adopted a plan with your assistant. Its steps, as recorded:\n${adoptedSteps.map((w, i) => `  ${i + 1}. "${w}"`).join('\n')}\n\nYou worked on the FIRST step since then. It partly worked but hit one real snag. Tell your assistant what actually happened with that step, the way you would in passing.`
+      : 'You worked on the first step of the plan you discussed earlier. It partly worked but hit one real snag. Tell your assistant what actually happened with that step, the way you would in passing.');
+}
 
 // 정산 단계는 사용자가 **자기가 봉인한 것**의 결과를 말해야 성립한다.
 // 예전 문안은 "실패율이 안 줄었다"로 고정돼 있었는데, 6단계에서 페르소나가
@@ -563,13 +600,22 @@ const eventName = (e) => String(e.event ?? e.type ?? e.kind ?? '');
 const hasEvent = (re) => allEvents.some((e) => re.test(eventName(e)));
 const sealEvents = allEvents.filter((e) => /^seal$/i.test(eventName(e)));
 const settleEvents = allEvents.filter((e) => /^(settle|resolve|outcome)$/i.test(eventName(e)));
+const planAdoptEvents = allEvents.filter((e) => /^plan_adopt$/i.test(eventName(e)));
+const planCheckEvents = allEvents.filter((e) => /^plan_check$/i.test(eventName(e)));
 const gates = [
   ['설치 후 첫 도구 호출이 성공했다', journey.toolCalls.length > 0 && journey.toolCalls[0].ok === true],
   ['봉인이 원장에 남았다 (seal 이벤트)', sealEvents.length > 0],
   ['재시작 후 세션2가 재시작 전 기록을 읽었다', restartEvidence.ok],
   ['정산이 원장에 남았다 (settle 이벤트)', settleEvents.length > 0],
+  // 계획 대본에서만: 미끼→해자 연결의 두 끝. 채택은 날짜 단계까지 남아야
+  // 하고(귀환 계약의 재료), 단계 결과는 사용자의 말로 남아야 한다.
+  ...(SCRIPT === 'plan' ? [
+    ['계획이 원장에 남았다 (plan_adopt, 날짜 단계 포함)',
+      planAdoptEvents.some((e) => Array.isArray(e.steps) && e.steps.some((s) => s && s.due))],
+    ['단계 결과가 원장에 남았다 (plan_check)', planCheckEvents.length > 0],
+  ] : []),
 ];
-say(`  (원장 이벤트 ${allEvents.length}건 — seal ${sealEvents.length} · settle ${settleEvents.length}${hasEvent(/harvest/i) ? ' · harvest 포함' : ''})`);
+say(`  (원장 이벤트 ${allEvents.length}건 — seal ${sealEvents.length} · settle ${settleEvents.length}${planAdoptEvents.length ? ` · plan_adopt ${planAdoptEvents.length} · plan_check ${planCheckEvents.length}` : ''}${hasEvent(/harvest/i) ? ' · harvest 포함' : ''})`);
 say(`  재시작 증거: ${restartEvidence.detail}`);
 let passed = 0;
 for (const [label, ok] of gates) { say(`  ${ok ? '✅' : '❌'} ${label}`); if (ok) passed++; }
@@ -590,7 +636,7 @@ fs.writeFileSync(path.join(OUT, 'TRANSCRIPT.txt'), log.join('\n'));
 // rejections를 반드시 싣는다. 재시도로 끝내 성공하면 errors가 비는데, 그것만
 // 실으면 요약이 "실패 0"이라 말하고 트랜스크립트는 거부를 보여주는 모순이 된다.
 fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({
-  version: declared, persona: persona.id,
+  version: declared, persona: persona.id, script: SCRIPT,
   // 변이 실행은 샘플러에 없으므로 분석기가 역참조로 traits를 복원할 수 없다.
   // 실물을 기록한다 — 기록이 정본이고 역참조는 구세대 실행의 fallback이다.
   traits: persona.traits, language: persona.language,
@@ -601,7 +647,7 @@ fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({
   toolCalls: journey.toolCalls, failedCalls,
   rejections: journey.rejections, errors: journey.errors,
   restartEvidence, ledgerFiles: ledgerCopies,
-  ledgerEventCounts: { total: allEvents.length, seal: sealEvents.length, settle: settleEvents.length },
+  ledgerEventCounts: { total: allEvents.length, seal: sealEvents.length, settle: settleEvents.length, plan_adopt: planAdoptEvents.length, plan_check: planCheckEvents.length },
   elicitations: elicitLog,
 }, null, 2));
 say(`\n  기록: ${OUT}/TRANSCRIPT.txt · summary.json`);

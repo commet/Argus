@@ -172,3 +172,71 @@ describe('check_in — 계획 확인 날짜의 귀환', () => {
     expect(String(body(after)['surface'])).not.toContain('견적 비교');
   });
 });
+
+describe('저자성 — 채택 인용 없는 user 주장은 ai_surfaced로 강등된다', () => {
+  it('adopted_quote 없는 plan_owner=user는 기록되되 출처가 강등된다', async () => {
+    const dir = tmpArgusDir();
+    await openDecision(dir);
+    const r = await decide.handler({
+      argus_dir: dir, action: 'plan', id: 'vendor',
+      steps: [{ what: 'x' }], plan_owner: 'user', today_override: T0,
+    });
+    expect(isError(r)).toBe(false);
+    expect((body(r)['data'] as Record<string, unknown>)['plan_owner']).toBe('ai_surfaced');
+    expect(replayLedger(dir, T0).contracts.get('vendor')?.plan?.owner).toBe('ai_surfaced');
+  });
+
+  it('adopted_quote가 있으면 user 출처가 유지되고 인용이 원장에 남는다', async () => {
+    const dir = tmpArgusDir();
+    await openDecision(dir);
+    const r = await decide.handler({
+      argus_dir: dir, action: 'plan', id: 'vendor',
+      steps: [{ what: 'x' }], plan_owner: 'user',
+      adopted_quote: '그 계획대로 가자, 4번에 롤백 비용만 넣어서', today_override: T0,
+    });
+    expect(isError(r)).toBe(false);
+    expect((body(r)['data'] as Record<string, unknown>)['plan_owner']).toBe('user');
+    expect(replayLedger(dir, T0).contracts.get('vendor')?.plan?.owner).toBe('user');
+  });
+});
+
+describe('상설 손잡이 — 미확인 계획 단계가 다른 호출의 data에 동봉된다', () => {
+  it('계획이 있는 원장에서 새 결정을 열면 open_plan_steps가 실린다', async () => {
+    const dir = tmpArgusDir();
+    await openDecision(dir);
+    await decide.handler({
+      argus_dir: dir, action: 'plan', id: 'vendor',
+      steps: [{ what: '견적 비교', due: '+3d' }, { what: '소량 발주' }], today_override: T0,
+    });
+    const other = await decide.handler({
+      argus_dir: dir, action: 'open', id: 'other-call',
+      decision: '다른 결정 하나', stakes: 'low', reversibility: 'easily_reversible',
+      status_quo: '그대로 둔다', today_override: T0,
+    });
+    expect(isError(other)).toBe(false);
+    const steps = (body(other)['data'] as Record<string, unknown>)['open_plan_steps'] as Array<Record<string, unknown>>;
+    expect(steps?.length).toBe(2);
+    expect(steps[0]).toMatchObject({ id: 'vendor', step: 1, due: '2026-07-04' });
+  });
+});
+
+describe('지평 문법 — 광고한 형태 전체를 받는다 (+N일/주/월)', () => {
+  it('+2d 같은 일반 지평이 스키마에서 거절되지 않고 해석된다', async () => {
+    const dir = tmpArgusDir();
+    await openDecision(dir);
+    // 연기 실행 실측: 한국어 페르소나의 모델이 +2d/+4d/+5d를 보냈고 스키마가
+    // 전부 거절했다 — 표면은 "+7d/+2w/+3m 형태"라 말하면서 실제로는 그 세
+    // 리터럴만 받는 것처럼 굴었다. 해석기는 원래 +N[dwm] 전체를 받는다.
+    const parsed = decide.inputSchema.safeParse({
+      argus_dir: dir, action: 'plan', id: 'vendor',
+      steps: [{ what: 'a', due: '+2d' }, { what: 'b', due: '+10d' }],
+    });
+    expect(parsed.success).toBe(true);
+    const r = await decide.handler({
+      argus_dir: dir, action: 'plan', id: 'vendor',
+      steps: [{ what: 'a', due: '+2d' }], today_override: T0,
+    });
+    expect(isError(r)).toBe(false);
+    expect(replayLedger(dir, T0).contracts.get('vendor')?.plan?.steps[0]?.due).toBe('2026-07-03');
+  });
+});
