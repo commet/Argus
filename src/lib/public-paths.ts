@@ -31,6 +31,15 @@ export const PUBLIC_PATHS = [
   // rate-limited, so a signed-out visitor can drop in a strategy doc and get a
   // Judgment Receipt. The other /tools/* routes stay protected.
   '/tools/review',
+  // /connect is the MCP connector's own declared first screen (its header
+  // comment: testers should stop reading URLs aloud) — walling it behind the
+  // generic AuthGuard reinstated exactly the friction it was built to remove
+  // (2026-08-15 storefront audit: a stranger could not discover the MCP half).
+  '/connect',
+  // /connect/mcp is the OAuth consent screen. The generic wall SHADOWED the
+  // purpose-built screen that names the calling client and previews the grant;
+  // the page handles its own signed-out state with proper messaging.
+  '/connect/mcp',
 ] as const;
 
 export const PUBLIC_PREFIXES = ['/api/', '/_next/', '/favicon.ico'] as const;

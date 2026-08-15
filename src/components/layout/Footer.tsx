@@ -23,6 +23,7 @@ export function Footer() {
         <LocaleLink href="/terms" className="inline-flex items-center min-h-[44px] px-2 hover:text-[var(--text-secondary)] transition-colors">{L('이용약관', 'Terms')}</LocaleLink>
         <span aria-hidden="true" className="opacity-50">·</span>
         <LocaleLink href="/privacy" className="inline-flex items-center min-h-[44px] px-2 hover:text-[var(--text-secondary)] transition-colors">{L('개인정보처리방침', 'Privacy')}</LocaleLink>
+        <LocaleLink href="/import" className="inline-flex items-center min-h-[44px] px-2 hover:text-[var(--text-secondary)] transition-colors">{L('터미널 연결(MCP)', 'Terminal (MCP)')}</LocaleLink>
       </div>
     </footer>
   );
