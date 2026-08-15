@@ -618,7 +618,8 @@ const gates = [
 {
   const prem = allEvents.filter((e) => /^premise_add$/i.test(eventName(e)));
   const harv = allEvents.filter((e) => /^harvest$/i.test(eventName(e)));
-  say(`  입력 깊이 — 전제 ${prem.length}(인용 ${prem.filter((e) => e.anchor_quote).length} · 확신도 ${prem.filter((e) => e.confidence).length}) · 질문 ${harv.filter((e) => e.question).length} · 가치 ${harv.filter((e) => Array.isArray(e.values) && e.values.length).length} · 버린대안 ${harv.filter((e) => e.rejected_alternative).length} · 하중가정 ${harv.filter((e) => e.load_bearing_assumption).length}`);
+  const seals2 = allEvents.filter((e) => /^seal$/i.test(eventName(e)));
+  say(`  입력 깊이 — 전제 ${prem.length}(인용 ${prem.filter((e) => e.anchor_quote).length} · 확신도 ${prem.filter((e) => e.confidence).length}) · 질문 ${[...harv, ...seals2].filter((e) => e.question).length} · 예측확신도 ${seals2.filter((e) => e.confidence).length} · 가치 ${harv.filter((e) => Array.isArray(e.values) && e.values.length).length} · 버린대안 ${harv.filter((e) => e.rejected_alternative).length} · 하중가정 ${harv.filter((e) => e.load_bearing_assumption).length}`);
 }
 say(`  (원장 이벤트 ${allEvents.length}건 — seal ${sealEvents.length} · settle ${settleEvents.length}${planAdoptEvents.length ? ` · plan_adopt ${planAdoptEvents.length} · plan_check ${planCheckEvents.length}` : ''}${hasEvent(/harvest/i) ? ' · harvest 포함' : ''})`);
 say(`  재시작 증거: ${restartEvidence.detail}`);
@@ -662,7 +663,9 @@ fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({
       premises: prem.length,
       with_quote: prem.filter((e) => typeof e.anchor_quote === 'string' && e.anchor_quote).length,
       with_confidence: prem.filter((e) => e.confidence).length,
-      questions: harv.filter((e) => typeof e.question === 'string' && e.question).length,
+      // 질문·확신도는 열기와 봉인 두 문으로 들어온다 (사이클 2) — 둘 다 센다.
+      questions: [...harv, ...allEvents.filter((e) => /^seal$/i.test(eventName(e)))].filter((e) => typeof e.question === 'string' && e.question).length,
+      predicate_confidence: allEvents.filter((e) => /^seal$/i.test(eventName(e)) && e.confidence).length,
       values: harv.filter((e) => Array.isArray(e.values) && e.values.length).length,
       rejected_alternatives: harv.filter((e) => e.rejected_alternative).length,
       load_bearing_assumptions: harv.filter((e) => typeof e.load_bearing_assumption === 'string' && e.load_bearing_assumption).length,
