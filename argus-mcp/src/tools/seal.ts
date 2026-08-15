@@ -306,12 +306,14 @@ export const seal: ToolModule = {
       if (current.state === 'absent') events.push({ id, event: 'harvest', decision: predicate });
       events.push({
         id, event: 'seal', predicate, check_by: checkBy, basis: a['basis'] as string | undefined,
-        ...(typeof a['question'] === 'string' && a['question'] ? { question: a['question'] } : {}),
-        ...(a['confidence'] === 'confident' || a['confidence'] === 'uncertain' || a['confidence'] === 'contested' ? { confidence: a['confidence'] } : {}),
         // Provenance rides the ledger event itself. It previously lived only in
         // the bearing seed / receipt / v2 mirror, none of which the webapp push
         // reads — so an ai_surfaced draft crossed the bridge looking user-authored.
         predicate_owner: a['predicate_owner'] as 'user' | 'ai_surfaced' | undefined,
+        // predicate_owner보다 뒤에 둘 것 — plugin-bridge-provenance.test.ts가
+        // 이 파일의 첫 events.push부터 500자 창 안에서 predicate_owner를 검사한다.
+        ...(typeof a['question'] === 'string' && a['question'] ? { question: a['question'] } : {}),
+        ...(a['confidence'] === 'confident' || a['confidence'] === 'uncertain' || a['confidence'] === 'contested' ? { confidence: a['confidence'] } : {}),
       });
 
       // Promotion (plan v5 §5.4): the named unverified_assumption IS the first
