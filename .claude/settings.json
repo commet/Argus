@@ -1,5 +1,17 @@
 {
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash docs/receipts/2026-08-16-g-agent-argus/session-guard.sh"
+          }
+        ]
+      }
+    ]
   }
 }
