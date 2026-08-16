@@ -1,0 +1,210 @@
+{
+  "captured_at": "2026-08-16",
+  "note": "E-0 데이터 인벤토리 스냅샷. 판정은 이 파일에 고정된 필드 기준으로 measure.mjs가 결정론으로 집계한다. 창업자 귀속이 확실한 단위만 원문 인용, 그 외 사용자 데이터는 계수·필드 판정만 기록 (본문 비인용).",
+  "sources": {
+    "supabase": "프로젝트 sckixrzwqntynsisgcdx (프로덕션), 2026-08-16 조회",
+    "repo": "docs/receipts/sim-ledger/home/ledger/ledger.jsonl + docs/receipts/2026-08-11-first-user-journey/README.md (9차·10차 예측 원장)"
+  },
+  "inventory": {
+    "supabase_core": {
+      "argus_cases": 2, "argus_events": 20, "argus_returns": 2,
+      "argus_shadow_predictions": 4, "argus_belief_checks": 1, "argus_profile_items": 4,
+      "plugin_decisions": 1, "plugin_bearings": 1, "telegram_decisions": 1,
+      "decision_items": 23, "judgment_records": 78,
+      "argus_case_bank": 12, "argus_simulation_runs": 3
+    },
+    "supabase_zero_rows_built_but_empty": [
+      "retrospective_answers", "outcome_records", "accuracy_ratings",
+      "decision_quality_scores", "argus_delegations", "synthesize_items",
+      "epistemic_* 전 테이블 (11개)"
+    ],
+    "supabase_behavioral": {
+      "user_events_total": 25078, "distinct_users": 62, "window": "2026-03-20..2026-08-16",
+      "decision_sealed_events": 166, "decision_sealed_window": "2026-06-24..2026-08-11",
+      "decision_baseline_captured": 210, "judgment_card_downloaded": 143,
+      "overreach_shown": 121, "overreach_resolved": 129,
+      "argus_shadow_cron_run": 239
+    },
+    "structural_fact": "웹 결정 본문 테이블은 없다 (decisions 테이블 부재, decision_items만 존재). 웹 결정은 localStorage-first — 서버에는 계수 이벤트만 도착한다. 따라서 웹 봉인 166건의 내용은 서버에서 판정 불능.",
+    "repo_records": {
+      "sim_ledger_decisions": 2,
+      "receipt_series_scratch_preregs": 4,
+      "receipt_series_count": 15,
+      "persistence_localOnly_keys": 22
+    }
+  },
+  "seal_units": [
+    {
+      "id": "plugin:1affed63", "channel": "plugin_decisions(push)", "owner_attribution": "창업자(Argus 프로젝트)",
+      "predicate_present": true,
+      "predicate_quote": "If we compress the production crew to 5 and demote the experimental skill, first-run completion over the next 30 days is flat or higher",
+      "falsifier_kind": "explicit", "falsifier_quote": "30-day first-run completion rate drops below the pre-compression baseline",
+      "check_trigger": "date", "check_by": "2026-07-15", "predicate_owner_field": null,
+      "settled": true, "settle_attempted": true, "outcome": "partial", "determinate": true,
+      "notes": "sealed_at == settled_at (2026-07-16) — 결정(06-15) 한 달 뒤 정산 시점에 사후 봉인. 빈티지가 봉인으로 보호된 기간 0."
+    },
+    {
+      "id": "telegram:c9b8a751", "channel": "telegram_decisions", "owner_attribution": "창업자(데모 표기)",
+      "predicate_present": true,
+      "predicate_quote": "3개월 내에 신입이 첫 기능을 시니어 집중지도 없이 독립적으로 배포한다",
+      "falsifier_kind": "explicit", "falsifier_quote": "3개월 뒤에도 신입의 모든 PR에 시니어의 집중 리뷰가 필요하다",
+      "check_trigger": "date", "check_by": "2026-07-08", "predicate_owner_field": "n/a(스키마 없음)",
+      "settled": false, "settle_attempted": false, "outcome": null, "determinate": null,
+      "notes": "확인일 39일 경과, 정산 없음 (2026-08-16 기준). 봉인 후 귀환이 닿지 않은 유일 채널."
+    },
+    {
+      "id": "case1:card_mslfdkqd", "channel": "argus_cases(MCP 여정)", "owner_attribution": "창업자(라이브 파일럿 결정)",
+      "predicate_present": true,
+      "predicate_quote": "지금 문안으로 파일럿을 나간다. 연결 막힘이 2/3 넘으면 즉시 문안을 고친다",
+      "falsifier_kind": "threshold_in_predicate", "falsifier_quote": "연결 막힘 2/3 초과 = 문안 수정 트리거",
+      "check_trigger": "return_due", "check_by": "2026-08-12", "predicate_owner_field": "user(elicited)",
+      "settled": true, "settle_attempted": true, "outcome": "closed(관찰: 3명 중 2명 연결)", "determinate": true,
+      "notes": "returns 2건(commitment+outcome) 전부 completed. 기대 신호(첫 3명 연결 여부) 명시."
+    },
+    {
+      "id": "case2:card_mslgy42c", "channel": "argus_cases(MCP 여정)", "owner_attribution": "창업자(귀환 이메일 결정)",
+      "predicate_present": true,
+      "predicate_quote": "다음 발송부터 절반 길이로 줄인다 (adoptedState: test)",
+      "falsifier_kind": "ai_proposal_only", "falsifier_quote": "반증문은 ai_proposal 이벤트에만 존재 (\"짧게 줄인 다음 발송 6건에서 클릭률이 그대로면 길이가 원인이 아니다\") — 채택 카드 rationale은 빈 값",
+      "check_trigger": "none", "check_by": null, "predicate_owner_field": "accept(무편집 채택)",
+      "settled": true, "settle_attempted": true, "outcome": "TESTING(표본 미달 노트)", "determinate": false,
+      "notes": "return 미장전 — 시험 상태로 닫혔으나 확인 시한이 없다. C1 settleability 린트(§8)가 잡을 정확한 사례."
+    },
+    {
+      "id": "shadow:e9b93483", "channel": "argus_shadow_predictions", "owner_attribution": "분신(AI)",
+      "predicate_present": true,
+      "predicate_quote": "사용자는 기울기를 뒤집지 않는다 — 단 48시간 내 외부 이의 시 이탈 가능성 상승",
+      "falsifier_kind": "conditional_only", "falsifier_quote": "조건부 서술, 연산화된 반증 경계 없음",
+      "check_trigger": "reveal", "check_by": "정산 시 공개", "predicate_owner_field": "AI(sealed hash)",
+      "settled": true, "settle_attempted": true, "outcome": "contradicted", "determinate": true,
+      "notes": "contaminated_by_lean=true"
+    },
+    {
+      "id": "shadow:d0af69fa", "channel": "argus_shadow_predictions", "owner_attribution": "분신(AI)",
+      "predicate_present": true,
+      "predicate_quote": "발송 직전 최종본과 현재 문안의 diff가 0이면 이 예측이 틀린 것",
+      "falsifier_kind": "operationalized", "falsifier_quote": "diff=0 기준 명시",
+      "check_trigger": "reveal", "check_by": "정산 시 공개", "predicate_owner_field": "AI(sealed hash)",
+      "settled": true, "settle_attempted": true, "outcome": "indeterminate", "determinate": false,
+      "notes": "contaminated_by_lean=true. 관찰 채널(발송 직전 diff)이 정산 시점에 존재하지 않아 판정 불능."
+    },
+    {
+      "id": "shadow:29837ee9", "channel": "argus_shadow_predictions", "owner_attribution": "분신(AI)",
+      "predicate_present": true,
+      "predicate_quote": "사용자는 기울기(짧게 줄인다)에서 이탈하지 않는다 — 조건부",
+      "falsifier_kind": "conditional_only", "falsifier_quote": "조건부 서술, 연산화된 반증 경계 없음",
+      "check_trigger": "reveal", "check_by": "정산 시 공개", "predicate_owner_field": "AI(sealed hash)",
+      "settled": true, "settle_attempted": true, "outcome": "supported", "determinate": true,
+      "notes": "contaminated_by_lean=true"
+    },
+    {
+      "id": "shadow:08098c11", "channel": "argus_shadow_predictions", "owner_attribution": "분신(AI)",
+      "predicate_present": true,
+      "predicate_quote": "최종 발송 본문이 현재 대비 30% 이상 축약되지 않는다면 이 예측은 틀린 것",
+      "falsifier_kind": "operationalized", "falsifier_quote": "30% 축약 임계 명시",
+      "check_trigger": "reveal", "check_by": "정산 시 공개", "predicate_owner_field": "AI(sealed hash)",
+      "settled": true, "settle_attempted": true, "outcome": "indeterminate", "determinate": false,
+      "notes": "contaminated_by_lean=true. 실발송이 정산 창 안에 없어 관찰 부재 → 판정 불능."
+    },
+    {
+      "id": "sim:host-matrix-t08", "channel": "sim-ledger(Argus 원장)", "owner_attribution": "세션(창업자 승인 트랙)",
+      "predicate_present": true,
+      "predicate_quote": "Haiku 4.5 host with the same P08 persona also skips the settle in at least 2 of 3 runs",
+      "falsifier_kind": "threshold_in_predicate", "falsifier_quote": "≥2/3 임계 내장",
+      "check_trigger": "date", "check_by": "2026-08-15", "predicate_owner_field": "user",
+      "settled": true, "settle_attempted": true, "outcome": "held", "determinate": true,
+      "notes": "실험 원장 1호. 정산문이 관찰(3/3 놓침, 분류 포함)을 동반."
+    },
+    {
+      "id": "sim:next-claude-confirmatory", "channel": "sim-ledger(Argus 원장)", "owner_attribution": "세션(창업자 승인 트랙)",
+      "predicate_present": true,
+      "predicate_quote": "The result-statement-plus-next-task settle skip reproduces (at least 2 of 3 P08 runs) on the first next-generation Claude host model released after 2026-08-14",
+      "falsifier_kind": "threshold_in_predicate", "falsifier_quote": "≥2/3 임계 내장",
+      "check_trigger": "date", "check_by": "2026-11-14", "predicate_owner_field": "user",
+      "settled": false, "settle_attempted": false, "outcome": null, "determinate": null,
+      "notes": "확인일 도래 전 (기한 내 대기 — 연체 아님)."
+    },
+    {
+      "id": "prereg:ab-cause", "channel": "리시트 연작 스크래치 사전등록", "owner_attribution": "세션",
+      "predicate_present": true,
+      "predicate_quote": "A/B 인과 예측 (9차 정산: 적중)",
+      "falsifier_kind": "threshold_in_predicate", "falsifier_quote": "팔별 임계 명시",
+      "check_trigger": "date", "check_by": "실행 직후", "predicate_owner_field": "session",
+      "settled": true, "settle_attempted": true, "outcome": "held", "determinate": true,
+      "notes": "리시트 예측 원장 기재: 적중 1(A/B 인과)"
+    },
+    {
+      "id": "prereg:t08-terse", "channel": "리시트 연작 스크래치 사전등록", "owner_attribution": "세션",
+      "predicate_present": true,
+      "predicate_quote": "V팔(압축 해제)은 정산 ≥2/3, D팔(압축 유지)은 놓침 ≥2/3 — p=0.55",
+      "falsifier_kind": "threshold_in_predicate", "falsifier_quote": "≥2/3 임계 명시",
+      "check_trigger": "date", "check_by": "실행 직후", "predicate_owner_field": "session",
+      "settled": true, "settle_attempted": true, "outcome": "missed", "determinate": true,
+      "notes": "빗나감 — 원문 보존 (contrast-prereg)"
+    },
+    {
+      "id": "prereg:repair-effect", "channel": "리시트 연작 스크래치 사전등록", "owner_attribution": "세션",
+      "predicate_present": true,
+      "predicate_quote": "수리 후 P08 로컬 3회에서 제품 귀속 정산 놓침 ≤1/3 — p=0.7",
+      "falsifier_kind": "threshold_in_predicate", "falsifier_quote": "≤1/3 임계 명시",
+      "check_trigger": "date", "check_by": "실행 직후", "predicate_owner_field": "session",
+      "settled": true, "settle_attempted": true, "outcome": "missed", "determinate": true,
+      "notes": "빗나감 — 원문 보존 (repair-prereg 예측 1)"
+    },
+    {
+      "id": "prereg:repair-boundary", "channel": "리시트 연작 스크래치 사전등록", "owner_attribution": "세션",
+      "predicate_present": true,
+      "predicate_quote": "Consensus 변이 로컬 2회에서 과발화 0",
+      "falsifier_kind": "threshold_in_predicate", "falsifier_quote": "0건 임계 명시",
+      "check_trigger": "date", "check_by": "실행 직후", "predicate_owner_field": "session",
+      "settled": true, "settle_attempted": true, "outcome": "missed", "determinate": true,
+      "notes": "빗나감 — 원문 보존 (repair-prereg 예측 2)"
+    }
+  ],
+  "sealed_count_only": {
+    "web_decision_sealed_events": 166,
+    "window": "2026-06-24..2026-08-11",
+    "content_visible": false,
+    "note": "localStorage-first 정책의 의도된 결과 — 결함이 아니라 프라이버시 기본값. 단 반증가능성·기억·저자성 측정은 이 166건에 대해 서버측에서 불가능하다는 사실을 E-0이 계수로 확정."
+  },
+  "m1_pairs": [
+    {
+      "case": "case_mslfdkqd (파일럿 문안)",
+      "vintage_lean": "지금 문안으로 나간다",
+      "vintage_stated_reasons": ["문안 다듬기는 끝이 없다", "실사용 피드백이 문안 추측보다 낫다"],
+      "mid_session_adopted_frame": "외부 문서(필드 키트 초안) 발원 — \"성공 기준은 문안 품질이 아니라 연결률\"",
+      "recall_text": "문안 다듬기보다 실사용이 먼저라고 판단했었다. 연결률이 관문이라는 이유였다",
+      "recall_units": [
+        {"unit": "실사용이 먼저", "in_vintage_reasons": true, "origin": "user_vintage"},
+        {"unit": "연결률이 관문이라는 이유였다", "in_vintage_reasons": false, "origin": "external_source(세션 중 채택)"}
+      ],
+      "direction_preserved": true,
+      "verdict": "방향 보존, 근거 1/2 단위가 세션 중 채택된 외부 문서 프레임을 '내가 판단했던 이유'로 소급"
+    },
+    {
+      "case": "case_mslgy42c (귀환 이메일 길이)",
+      "vintage_lean": "더 짧게 줄인다",
+      "vintage_stated_reasons": ["긴 메일은 안 읽힌다"],
+      "mid_session_adopted_frame": "AI reframe 제안 발원 — \"클릭 저하 원인이 길이다(가설) | 반증: 6건에서 클릭률 그대로면 원인 아님\" → test 상태로 채택",
+      "recall_text": "길이가 원인이라는 가정을 시험하려고 줄였었다",
+      "recall_units": [
+        {"unit": "길이가 원인이라는 가정을 시험", "in_vintage_reasons": false, "origin": "ai_proposal(세션 중 채택)"}
+      ],
+      "direction_preserved": true,
+      "verdict": "방향 보존, 회고 근거가 단정(빈티지)에서 실험 프레임(AI 발원, 채택됨)으로 교체 — 채택 카드 기준으론 정합, 빈티지 기준으론 재구성"
+    }
+  ],
+  "m1_control": {
+    "what": "리시트 연작의 사전등록 정산 4건 (스크래치 원문 인용 후 판정)",
+    "rewrite_count": 0,
+    "mechanism": "정산이 빈티지 원문 인용을 강제하는 형식이라 회고가 원문을 대체할 자리가 없다 — 빗나간 예측 3건이 원문 그대로 보존됨"
+  },
+  "m4": {
+    "decision_items": {"total": 23, "authored_ai": 22, "authored_user": 1, "rows_with_nonempty_edits": 0, "note": "user 1건은 premise-watch 검증행. AI 전제 22건 전부 edits=[] — 무편집 원문이 전제 목록에 그대로. source/authored 정직 태그는 전 행 존재."},
+    "cards": {"total": 2, "rationale_user_filled": 1, "accept_verbatim_empty_rationale": 1, "note": "case2 카드: values=[], materialBeliefs=[], adoption mode=accept — AI 카드 무편집 채택"},
+    "shadow_predictions": {"total": 4, "contaminated_by_lean": 4, "note": "분신 예측 전부 사용자 기울기 노출 후 생성 — TWIN 오염 태그가 4/4를 정직하게 잡음"},
+    "profile_items": {"total": 4, "provenance_ai_extracted": 4, "provenance_user": 0},
+    "predicate_owner_stamp": {"plugin_null": 1, "sim_ledger_user": 2, "note": "저자성 도장 도입 전(plugin 행) vs 후(sim-ledger) 대비"},
+    "judgment_records_old_gen": {"actor_override": 59, "actor_override_user_changed": 59, "hidden_question_selection": 19, "window": "2026-03-19..2026-07-03", "note": "구세대: 사용자가 AI 배정을 100% 뒤집은 기록 — 저자성 행사가 실재했던 표면"}
+  }
+}
