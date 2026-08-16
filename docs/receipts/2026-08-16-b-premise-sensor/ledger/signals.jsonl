@@ -1,0 +1,11 @@
+{"v":1,"event":"signal_read","at":"2026-08-16T16:10:00Z","premise_id":"P1-발행본이-설치-가능하다","signal":"npm_version","value":"1.2.0","error":null,"injected":false,"state":"holds","why":"1.2.0 ≥ baseline 1.2.0"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:10:00Z","premise_id":"P2-프로덕션이-살아있다","signal":"http_status","value":"307","error":null,"injected":false,"state":"holds","why":"307 — 응답함"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:10:00Z","premise_id":"P3-사람이-혼자-연결까지-간다","signal":"supabase_count","value":2,"error":null,"injected":true,"state":"holds","why":"첫 판독 2 — 변화 판정 불가(기준선 수립)"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:10:00Z","premise_id":"P4-제품이-쓰이고-있다","signal":"supabase_recent","value":1937,"error":null,"injected":true,"state":"holds","why":"최근 7일 1937건"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:10:00Z","premise_id":"P5-다음세대-호스트가-아직-없다","signal":"manual","value":null,"error":"manual — Anthropic 모델 목록·릴리스 공지 확인","injected":false,"state":"unread","why":"신호 미가용 — 판정하지 않는다"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:15:00Z","premise_id":"P1-발행본이-설치-가능하다","signal":"npm_version","value":"1.2.0","error":null,"injected":false,"state":"holds","why":"1.2.0 ≥ baseline 1.2.0"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:15:00Z","premise_id":"P2-프로덕션이-살아있다","signal":"http_status","value":"307","error":null,"injected":false,"state":"holds","why":"307 — 응답함"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:15:00Z","premise_id":"P3-사람이-혼자-연결까지-간다","signal":"supabase_count","value":2,"error":null,"injected":true,"state":"watch","why":"직전 판독과 동일(2) — 초대 발송 사실과 함께 읽어야 한다"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:15:00Z","premise_id":"P4-제품이-쓰이고-있다","signal":"supabase_recent","value":1937,"error":null,"injected":true,"state":"holds","why":"최근 7일 1937건"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:15:00Z","premise_id":"P6-제품이-여러-사람에게-쓰인다","signal":"supabase_distinct","value":2,"error":null,"injected":true,"state":"alert","why":"7일 고유 사용자 2명 ≤ 임계 2 — 활동량이 아니라 사람 수가 붕괴"}
+{"v":1,"event":"signal_read","at":"2026-08-16T16:15:00Z","premise_id":"P5-다음세대-호스트가-아직-없다","signal":"manual","value":null,"error":"manual — Anthropic 모델 목록·릴리스 공지 확인","injected":false,"state":"unread","why":"신호 미가용 — 판정하지 않는다"}
