@@ -190,6 +190,73 @@ function countUtterances(phrase, who) {
   return turns.filter((t) => t.who === who && t.text.includes(phrase)).length;
 }
 
+// ---------- 4.5 자동 개념구 추출 (큐레이션 없는 M4) ----------
+// census의 하중 개념구는 사람이 고른 목록이라 선택 편향이 있다. 같은 질문에
+// 손을 안 대고 답하려면 규칙만으로 개념구를 뽑아야 한다:
+//   (a) 창업자 발화에 등장하고 (b) 대화 이전 저장소 어휘에 없고
+//   (c) 전체 2회 이상 쓰이는 2~3어절 구.
+// 두 숫자(큐레이션·자동)를 나란히 내면 편향의 크기가 보인다.
+{
+  const CH = /[가-힣A-Za-z0-9]+/g;
+  const phraseCount = new Map(); // phrase -> {founder, ai, firstWho, firstTs}
+  // **턴 수로 센다, 출현 수가 아니라.** 창업자가 파일 목록을 한 번 붙여넣으면
+  // 같은 구가 한 턴 안에서 100번 나온다 — 그것은 저자성이 아니라 붙여넣기다.
+  // (첫 판이 실제로 그렇게 오염됐다: "overfire eval" 창업자 102회 = 붙여넣기 1턴)
+  const seenInTurn = (text, who, ts) => {
+    const toks = text.match(CH) || [];
+    const inThisTurn = new Set();
+    for (let n = 2; n <= 3; n += 1) {
+      for (let i = 0; i + n <= toks.length; i += 1) {
+        const win = toks.slice(i, i + n);
+        if (win.some((t) => t.length < 2)) continue;
+        const ph = win.join(' ');
+        if (ph.length < 6 || ph.length > 30) continue;
+        inThisTurn.add(ph);
+      }
+    }
+    for (const ph of inThisTurn) {
+      let c = phraseCount.get(ph);
+      if (!c) { c = { founder: 0, ai: 0, firstWho: who, firstTs: ts }; phraseCount.set(ph, c); }
+      c[who] += 1;
+    }
+  };
+  for (const t of turns) seenInTurn(t.text, t.who, t.ts);
+
+  // 대화 이전 저장소에 있던 구는 제외 (정규화 후 포함 검사)
+  const priorBlob = [];
+  if (priorCorpusDir && existsSync(priorCorpusDir)) {
+    const walk2 = (dir) => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        let st; try { st = statSync(p); } catch { continue; }
+        if (st.isDirectory()) { walk2(p); continue; }
+        if (!/\.(md|ts|tsx|js|mjs|json|txt|sql)$/.test(name) || st.size > 4_000_000) continue;
+        try { priorBlob.push((readFileSync(p, 'utf8').match(CH) || []).join(' ')); } catch { /* skip */ }
+      }
+    };
+    walk2(priorCorpusDir);
+  }
+  const priorText = priorBlob.join('\n');
+
+  const candidates = [...phraseCount.entries()]
+    .filter(([, c]) => c.founder >= 1 && c.founder + c.ai >= 2)
+    .filter(([ph]) => !priorText.includes(ph));
+  const autoAi = candidates.filter(([, c]) => c.firstWho === 'ai');
+  // 창업자가 **여러 턴에 걸쳐** 쓴 것 = 어휘로 정착한 것 (붙여넣기 1턴과 구분)
+  const settled = candidates.filter(([, c]) => c.founder >= 2);
+  const settledAi = settled.filter(([, c]) => c.firstWho === 'ai');
+
+  out('[M4-자동] 손으로 고르지 않은 개념구 — 규칙만으로 추출');
+  out('  조건: 창업자 발화 등장 + 대화 이전 저장소에 없음 + 2턴 이상 (2~3어절)');
+  out('  ※ 출현 수가 아니라 **턴 수**로 센다 — 한 턴 안의 반복(붙여넣기)은 1회다');
+  out(`  모집단 ${candidates.length}개 중 AI 최초 발화: ${pct(autoAi.length, candidates.length)}`);
+  out(`  창업자가 2턴 이상 쓴 것(어휘 정착) ${settled.length}개 중 AI 최초: ${pct(settledAi.length, settled.length)}`);
+  const topAuto = settledAi.sort((a, b) => b[1].founder - a[1].founder || b[1].ai - a[1].ai).slice(0, 12);
+  out('  창업자가 여러 턴에 걸쳐 쓴 AI 발원 구 (상위):');
+  for (const [ph, c] of topAuto) out(`    AI ${c.firstTs.slice(5, 16)} · 창업자 ${c.founder}턴/AI ${c.ai}턴 · "${ph}"`);
+  out('');
+}
+
 const censusPath = join(here, 'census-log.json');
 if (existsSync(censusPath)) {
   const census = JSON.parse(readFileSync(censusPath, 'utf8'));
