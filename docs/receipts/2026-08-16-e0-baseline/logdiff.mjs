@@ -31,6 +31,11 @@ import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const transcriptPath = process.argv[2];
 const priorCorpusDir = process.argv[3];
+// 말뭉치 경계 고정 (재현성). 대화 로그는 **살아있는 파일**이라 세션이 진행되면
+// 계속 자란다 — 경계를 안 박으면 같은 명령이 매번 다른 숫자를 낸다. 첫 판이
+// 실제로 그랬고(1238턴 → 1260턴), 재검증에서 잡혔다.
+const untilIdx = process.argv.indexOf('--until');
+const UNTIL = untilIdx > -1 ? process.argv[untilIdx + 1] : null;
 if (!transcriptPath || !existsSync(transcriptPath)) {
   console.error('사용법: node logdiff.mjs <transcript.jsonl> [pre-conversation-corpus-dir]');
   console.error('대화 로그는 개인 데이터라 저장소에 넣지 않는다 — 경로로만 받는다.');
@@ -47,6 +52,7 @@ for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
   const ts = e.timestamp;
   const msg = e.message;
   if (!ts || !msg) continue;
+  if (UNTIL && ts > UNTIL) continue;
   if (e.type === 'user') {
     // 창업자가 실제로 타이핑한 턴만 (도구 결과·시스템 주입 제외)
     if (typeof msg.content !== 'string') continue;
@@ -150,6 +156,9 @@ out('='.repeat(64));
 out('');
 out(`말뭉치: ${turns.length}턴 (창업자 ${founderTurns.length} · AI ${aiTurns.length})`);
 out(`기간: ${turns[0].ts.slice(0, 10)} ~ ${turns[turns.length - 1].ts.slice(0, 10)}`);
+out(UNTIL
+  ? `경계 고정: --until ${UNTIL} (로그는 살아있는 파일 — 고정 없이는 재현 불가)`
+  : '경계 미고정 — 로그가 자라면 숫자가 달라진다. 보고용 실행에는 --until 을 쓸 것.');
 out(`창업자 발화 총 글자수: ${founderTurns.reduce((s, t) => s + t.text.length, 0).toLocaleString()}`);
 out('');
 if (priorVocab.size) {
