@@ -1,0 +1,35 @@
+인지 프레임 엔진 — 시뮬레이션 체크
+================================================================
+시드 20260817 · 에피소드 200 · 기준시 2026-08-17T00:00:00Z (고정)
+
+축 레지스트리 (문헌 등급):
+  frame         human_only           필수 하중  무엇을 묻고 있나
+  values        human_only           필수 하중  무엇을 좋다고 보나
+  premises      machine_checkable    필수 하중  무엇에 기대고 있나
+  inference     machine_recordable   선택      어떻게 이어지나
+  confidence    machine_checkable    선택      얼마나 확신하나
+  alternatives  machine_recordable   선택      무엇을 버렸나
+  falsifier     machine_checkable    필수 하중  무엇이 내 마음을 바꾸나
+
+시나리오 커버리지 (0이면 검증되지 않은 경로):
+  ai_accepted        40
+  ai_unrestated      40
+  authority_break    40
+  bound_premise      40
+  full_user          40
+
+봉인 결과: 통과 120 · 거부 80
+거부 사유 분포:
+  comprehension_pending        160
+  authority_violation          80
+
+전 프레임 거울:
+  · 프레임 120개 — 봉인 120개, 정산 0개.
+  · '얼마나 확신하나' 축이 120개 프레임 중 63개에서 비어 있습니다. 해당 프레임: sim-frame-0, sim-frame-5, sim-frame-12, sim-frame-14, sim-frame-20, sim-frame-25, sim-frame-30, sim-frame-42, sim-frame-44, sim-frame-47, sim-frame-49, sim-frame-50, sim-frame-52, sim-frame-54, sim-frame-55, sim-frame-57, sim-frame-62, sim-frame-64, sim-frame-65, sim-frame-74, sim-frame-82, sim-frame-85, sim-frame-87, sim-frame-89, sim-frame-92, sim-frame-97, sim-frame-102, sim-frame-104, sim-frame-110, sim-frame-114, sim-frame-117, sim-frame-119, sim-frame-120, sim-frame-124, sim-frame-127, sim-frame-129, sim-frame-130, sim-frame-134, sim-frame-135, sim-frame-137, sim-frame-140, sim-frame-142, sim-frame-145, sim-frame-147, sim-frame-149, sim-frame-150, sim-frame-152, sim-frame-154, sim-frame-157, sim-frame-159, sim-frame-160, sim-frame-162, sim-frame-164, sim-frame-165, sim-frame-167, sim-frame-169, sim-frame-172, sim-frame-174, sim-frame-180, sim-frame-185, sim-frame-187, sim-frame-189, sim-frame-190.
+  · 정산된 해결가능 예측이 아직 없습니다 — 채점할 대상이 없습니다.
+
+----------------------------------------------------------------
+불변식 위반 0 — 여덟 불변식이 200 에피소드에서 양방향으로 서 있다.
+  I1 이해 게이트 · I1b 탈출구 · I2 권한 등급 · I3 봉인 일관성
+  I4 시끄러운 실패 · I5 두 세계 · I6 미판독 보존 · I7 무판정
+  I8 정산 접촉 · I9 빈티지 보존

@@ -145,6 +145,9 @@ const LIVE_USER_SCOPED_TABLES = [
   'argus_belief_checks', 'argus_cases', 'argus_delegations', 'argus_events', 'argus_oauth_grants',
   // TWIN (2026-08-06) — case_bank 는 전역이라 없음
   'argus_profile_items', 'argus_returns', 'argus_shadow_predictions', 'argus_simulation_runs',
+  // 인지 구조 기록 (2026-08-17, 마이그레이션 20260817000000). 실DB 확인:
+  // information_schema 조회로 3개 테이블 · RLS 3/3 활성 · 정책 own_* 3개.
+  'cognitive_frame_elements', 'cognitive_frame_readings', 'cognitive_frames',
   'decision_items', 'decision_quality_scores', 'deep_judgment_usage', 'epistemic_account_policies',
   'epistemic_artifact_descriptors', 'epistemic_authority_events', 'epistemic_command_receipts', 'epistemic_context_traces', 'epistemic_erasure_receipts',
   'epistemic_projection_outbox', 'epistemic_recall_documents', 'epistemic_recall_projection_state', 'epistemic_restore_receipts', 'epistemic_use_receipts', 'feedback_records', 'human_agent_messages',

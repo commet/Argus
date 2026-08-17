@@ -1,0 +1,445 @@
+'use client';
+
+// 인지 구조 프레임 — Track R 파일럿 (BLUEPRINT §9.12 단일 예외 채널의 형제 라우트).
+//
+// 재정초 브리프(ARGUS-REFOUNDATION-BRIEF-2026-08-16)의 원형 E+B 를 일곱 축으로
+// 일반화한 표면. 기존 /method-pilot 페이지는 손대지 않는다 — 그쪽은 R3-B 하네스
+// 러너이고 여기는 인지 구조 기록이다. 초대 전용·비공개·폐기 전제는 동일.
+//
+// 이 화면의 규율 셋:
+//   1. **판정하지 않는다.** 사람에 대한 점수·등급·성향 문장이 없다. 거울은
+//      기록의 구조를 비추고, 문장의 주어는 항상 기록이다 (mirror.ts).
+//   2. **두 세계를 다른 색으로 그린다.** 프레임 안 / 현실 접촉. 산문 불변식이
+//      데이터에 없으면 화면은 둘을 같은 색으로 그린다 — 그래서 world 가 타입이다.
+//   3. **공백을 메우지 않는다.** 빈 축은 비었다고 적는다. AI가 채우면 이 도구가
+//      자기가 방어하려는 실패의 사례가 된다.
+//
+// 판정 로직은 전부 src/lib/cognition/ 의 순수 엔진에 있다. 이 파일은 입력을
+// 모아 엔진에 넘기고 결과를 그린다 — 화면에 판정을 두면 테스트가 닿지 못한다.
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { STORAGE_KEYS, getStorage, setStorage } from '@/lib/storage';
+import {
+  AXES,
+  acceptAsIs,
+  addElement,
+  blockMessage,
+  corpusMirror,
+  emptyFrame,
+  evaluateRestatement,
+  frameMirror,
+  gateApplies,
+  liveElements,
+  makeElement,
+  sealBlocks,
+  sealFrame,
+  settleFrame,
+  type AxisId,
+  type CognitiveFrame,
+  type FrameElement,
+} from '@/lib/cognition';
+
+const MAX_TEXT = 2000;
+const MAX_TITLE = 200;
+
+/** 축별 초안 상태 — 화면이 소유하는 유일한 것. */
+interface AxisDraft {
+  text: string;
+  aiDraft: string;
+  touched: boolean;
+  rounds: number;
+  restatement: string;
+}
+
+const emptyDraft = (): AxisDraft => ({ text: '', aiDraft: '', touched: false, rounds: 0, restatement: '' });
+
+/**
+ * 파일럿용 초안 문구. **모델을 부르지 않는다** — 이 화면의 목적은 저자성과
+ * 이해를 측정하는 것이므로, 초안이 어디서 왔는지가 고정돼야 한다. 실제 제품에서
+ * 이 자리는 LLM이 되고, 그때도 `aiDraft` 로 들어가 같은 게이트를 통과한다.
+ */
+const PILOT_DRAFTS: Partial<Record<AxisId, string>> = {
+  premises: '이 판단은 현재 전환율이 유지된다는 것을 전제한다',
+  falsifier: '4주 안에 전환율이 절반으로 떨어지면 이 판단은 틀렸다',
+  inference: '전제가 유지되면 지금 속도로 목표에 닿는다',
+  alternatives: '더 기다렸다가 신호를 더 모으는 길을 버렸다',
+};
+
+function loadFrames(): CognitiveFrame[] {
+  // getStorage 가 파싱·fallback·손상 가드를 이미 한다 — 여기서 다시 JSON.parse 하면
+  // 그 가드를 우회하는 두 번째 경로가 생긴다.
+  const parsed = getStorage<CognitiveFrame[]>(STORAGE_KEYS.COGNITIVE_FRAMES, []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+const WORLD_LABEL: Record<FrameElement['world'], string> = {
+  in_frame: '프레임 안',
+  reality_contact: '현실에 닿음',
+};
+
+const COMPREHENSION_LABEL: Record<FrameElement['comprehension']['state'], string> = {
+  own_words: '당신 말로 다시 씀',
+  echo: '원문을 되풀이함',
+  absent: '아직 당신 말이 아님',
+  not_required: '',
+};
+
+export default function CognitiveFramesPilot() {
+  const [frames, setFrames] = useState<CognitiveFrame[]>([]);
+  const [title, setTitle] = useState('');
+  const [drafts, setDrafts] = useState<Record<string, AxisDraft>>({});
+  const [notice, setNotice] = useState<string[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setFrames(loadFrames());
+    setHydrated(true);
+  }, []);
+
+  const persist = useCallback((next: CognitiveFrame[]) => {
+    setFrames(next);
+    setStorage(STORAGE_KEYS.COGNITIVE_FRAMES, next);
+  }, []);
+
+  const draftFor = useCallback((axis: AxisId): AxisDraft => drafts[axis] ?? emptyDraft(), [drafts]);
+
+  const setDraft = useCallback((axis: AxisId, patch: Partial<AxisDraft>) => {
+    setDrafts((prev) => ({ ...prev, [axis]: { ...(prev[axis] ?? emptyDraft()), ...patch } }));
+  }, []);
+
+  /** 초안을 불러온다 — 그대로 확정하면 기계 문장으로 기록된다. */
+  const applyPilotDraft = useCallback(
+    (axis: AxisId) => {
+      const d = PILOT_DRAFTS[axis];
+      if (!d) return;
+      setDraft(axis, { text: d, aiDraft: d, touched: false, rounds: 0 });
+    },
+    [setDraft],
+  );
+
+  /** 현재 초안들로 프레임을 조립한다 (봉인 전 미리보기 겸 검사용). */
+  const assembled = useMemo(() => {
+    const now = 0; // 결정론: 조립 미리보기는 시각에 의존하지 않는다.
+    let f = emptyFrame({ id: 'draft', userId: null, title, now });
+    for (const spec of AXES) {
+      const d = draftFor(spec.id);
+      if (!d.text.trim()) continue;
+      f = addElement(
+        f,
+        makeElement({
+          id: `draft-${spec.id}`,
+          axis: spec.id,
+          text: d.text,
+          aiDraft: d.aiDraft,
+          touched: d.touched,
+          revisionRounds: d.rounds,
+          restatement: d.restatement,
+          now,
+        }),
+        now,
+      );
+    }
+    return f;
+  }, [title, draftFor]);
+
+  const blocks = useMemo(() => sealBlocks(assembled), [assembled]);
+  const mirror = useMemo(() => frameMirror(assembled), [assembled]);
+  const corpus = useMemo(() => corpusMirror(frames), [frames]);
+
+  const onSeal = useCallback(() => {
+    const now = Date.now();
+    const id = `frame_${now.toString(36)}`;
+    let f = emptyFrame({ id, userId: null, title, now });
+    for (const spec of AXES) {
+      const d = draftFor(spec.id);
+      if (!d.text.trim()) continue;
+      f = addElement(
+        f,
+        makeElement({
+          id: `${id}_${spec.id}`,
+          axis: spec.id,
+          text: d.text,
+          aiDraft: d.aiDraft,
+          touched: d.touched,
+          revisionRounds: d.rounds,
+          restatement: d.restatement,
+          now,
+        }),
+        now,
+      );
+    }
+    const res = sealFrame({ frame: f, now });
+    if (!res.ok) {
+      setNotice(res.messages);
+      return;
+    }
+    setNotice([]);
+    setTitle('');
+    setDrafts({});
+    persist([res.frame, ...frames]);
+  }, [title, draftFor, frames, persist]);
+
+  const onSettle = useCallback(
+    (frameId: string, observed: boolean) => {
+      const now = Date.now();
+      const next = frames.map((f) => {
+        if (f.id !== frameId || f.status !== 'sealed') return f;
+        return settleFrame({
+          frame: f,
+          settlement: {
+            falsifier_observed: observed,
+            observed: observed ? '반증 조건이 관찰됐다' : '반증 조건이 관찰되지 않았다',
+            evidence_ref: `pilot:settle:${frameId}`,
+            observed_at: new Date(now).toISOString(),
+            retrospective: '',
+          },
+          now,
+        });
+      });
+      persist(next);
+    },
+    [frames, persist],
+  );
+
+  if (!hydrated) return <main className="mx-auto max-w-3xl px-5 py-10 text-sm opacity-60">불러오는 중…</main>;
+
+  return (
+    <main className="mx-auto max-w-3xl px-5 py-10">
+      <header className="mb-8">
+        <p className="text-xs uppercase tracking-wider opacity-50">Track R · 파일럿</p>
+        <h1 className="mt-1 text-2xl font-semibold">인지 구조 기록</h1>
+        <p className="mt-3 text-sm leading-relaxed opacity-70">
+          판단은 전제만으로 되어 있지 않습니다. 일곱 축을 따로 적고, 각 문장이 <strong>누구 말인지</strong>와{' '}
+          <strong>어느 세계에 있는지</strong>를 함께 남깁니다. 비어 있는 칸은 비어 있는 대로 둡니다 — 채워 넣지
+          않습니다.
+        </p>
+      </header>
+
+      {/* 두 세계 안내 — 판정이 아니라 위치의 정의 */}
+      <section className="mb-8 rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+        <p className="text-sm leading-relaxed">
+          <strong>프레임 안</strong>은 정합성으로만 검증된 상태입니다 — 대화, 그럴듯함. <strong>현실에 닿음</strong>
+          은 당신의 믿음에 무관심한 무언가가 확인해 준 상태입니다 — 신호 판독, 정산, 외부 산출물. 어느 쪽도 열등하지
+          않고, 스스로 선언해서 건널 수는 없습니다.
+        </p>
+      </section>
+
+      <label className="block text-sm font-medium" htmlFor="frame-title">
+        이 판단을 뭐라고 부를까요
+      </label>
+      <input
+        id="frame-title"
+        value={title}
+        maxLength={MAX_TITLE}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="예: 채용을 한 분기 미룬다"
+        className="mt-2 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+      />
+
+      <div className="mt-8 space-y-6">
+        {AXES.map((spec) => {
+          const d = draftFor(spec.id);
+          const el = liveElements(assembled).find((e) => e.axis === spec.id);
+          const needsRestatement = el ? gateApplies(spec.id, el.authorship) : false;
+          const comp = el && needsRestatement
+            ? evaluateRestatement({
+                axis: spec.id,
+                authorship: el.authorship,
+                sourceText: el.text,
+                restatement: d.restatement,
+              })
+            : null;
+
+          return (
+            <section key={spec.id} className="rounded-lg border border-[var(--border)] px-4 py-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-sm font-semibold">{spec.label}</h2>
+                <span className="text-xs opacity-50">
+                  {spec.optionalForSeal ? '선택' : '필수'}
+                  {spec.authority === 'human_only' ? ' · 사람만' : ''}
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed opacity-60">{spec.prompt}</p>
+
+              <textarea
+                value={d.text}
+                maxLength={MAX_TEXT}
+                rows={2}
+                onChange={(e) =>
+                  setDraft(spec.id, {
+                    text: e.target.value,
+                    touched: true,
+                    rounds: d.touched ? d.rounds + 1 : 1,
+                  })
+                }
+                className="mt-3 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+              />
+
+              {PILOT_DRAFTS[spec.id] && spec.authority !== 'human_only' && (
+                <button
+                  type="button"
+                  onClick={() => applyPilotDraft(spec.id)}
+                  className="mt-2 rounded-md bg-[var(--accent)]/[0.08] px-3 py-1.5 text-xs"
+                >
+                  초안 넣어보기 (그대로 두면 기계 문장으로 기록됩니다)
+                </button>
+              )}
+
+              {el && (
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-70">
+                  <span>
+                    저자: {el.authorship.wording_source === 'ai_surfaced' ? '기계' : '당신'}
+                    {el.authorship.wording_source === 'user_reworded' && ` (고침 · 거리 ${el.authorship.revision_distance})`}
+                  </span>
+                  <span>{WORLD_LABEL[el.world]}</span>
+                  {COMPREHENSION_LABEL[el.comprehension.state] && (
+                    <span>{COMPREHENSION_LABEL[el.comprehension.state]}</span>
+                  )}
+                </div>
+              )}
+
+              {needsRestatement && (
+                <div className="mt-3 rounded-lg bg-[var(--accent)]/[0.04] px-3 py-3">
+                  <p className="text-xs leading-relaxed">
+                    이 문장은 기계가 쓴 것입니다. <strong>당신 말로 한 번 다시 써 주세요</strong> — 어휘가 넘어와도
+                    이해는 넘어오지 않습니다.
+                  </p>
+                  <textarea
+                    value={d.restatement}
+                    maxLength={MAX_TEXT}
+                    rows={2}
+                    onChange={(e) => setDraft(spec.id, { restatement: e.target.value })}
+                    placeholder="무슨 뜻인지 당신 문장으로"
+                    className="mt-2 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+                  />
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setDraft(spec.id, { restatement: acceptAsIs(d.text).restatement })}
+                      className="rounded-md bg-[var(--accent)]/[0.08] px-3 py-1.5 text-xs"
+                    >
+                      그대로 쓰겠습니다
+                    </button>
+                    {comp && comp.state !== 'not_required' && (
+                      <span className="text-xs opacity-60">
+                        {COMPREHENSION_LABEL[comp.state]} (원문 어휘 겹침 {Math.round(comp.overlap * 100)}%, 임계{' '}
+                        {Math.round(comp.echo_threshold * 100)}%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      {/* 거울 — 주어는 항상 기록이다 */}
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold">지금 이 기록의 모습</h2>
+        <ul className="mt-3 space-y-2">
+          {mirror.sentences.map((s, i) => (
+            <li key={i} className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-sm leading-relaxed">
+              {s}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {blocks.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-semibold">봉인 전에 남은 것</h2>
+          <ul className="mt-2 space-y-1 text-sm opacity-80">
+            {blocks.map((b, i) => (
+              <li key={i}>· {blockMessage(b)}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {notice.length > 0 && (
+        <section className="mt-6 rounded-lg bg-[var(--accent)]/[0.06] px-4 py-3">
+          <ul className="space-y-1 text-sm">
+            {notice.map((m, i) => (
+              <li key={i}>· {m}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <button
+        type="button"
+        onClick={onSeal}
+        disabled={blocks.length > 0 || !title.trim()}
+        className="mt-6 w-full rounded-md bg-[var(--accent)] px-4 py-3 text-sm font-medium text-[var(--accent-fg,#fff)] disabled:opacity-40"
+      >
+        봉인하기
+      </button>
+      <p className="mt-2 text-xs leading-relaxed opacity-55">
+        봉인하면 문장은 바뀌지 않습니다. 생각이 바뀌면 새 기록을 만들어 잇습니다 — 덮어쓰지 않는 것이 나중에 당신을
+        지킵니다.
+      </p>
+
+      {frames.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-sm font-semibold">봉인된 기록 {frames.length}개</h2>
+          <ul className="mt-3 space-y-3">
+            {corpus.sentences.map((s, i) => (
+              <li key={`c${i}`} className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-sm leading-relaxed">
+                {s}
+              </li>
+            ))}
+          </ul>
+
+          <ul className="mt-5 space-y-3">
+            {frames.map((f) => {
+              const m = frameMirror(f);
+              return (
+                <li key={f.id} className="rounded-lg border border-[var(--border)] px-4 py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-sm font-medium">{f.title || '(제목 없음)'}</span>
+                    <span className="text-xs opacity-50">
+                      {f.status === 'settled' ? '정산됨' : '봉인됨'} · 현실 접촉 {m.world.reality_contact}/{m.world.total}
+                    </span>
+                  </div>
+                  {f.status === 'sealed' && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onSettle(f.id, false)}
+                        className="rounded-md bg-[var(--accent)]/[0.08] px-3 py-1.5 text-xs"
+                      >
+                        반증 조건이 오지 않았다
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onSettle(f.id, true)}
+                        className="rounded-md bg-[var(--accent)]/[0.08] px-3 py-1.5 text-xs"
+                      >
+                        반증 조건이 관찰됐다
+                      </button>
+                    </div>
+                  )}
+                  {f.settlement && (
+                    <p className="mt-2 text-xs leading-relaxed opacity-70">
+                      정산: {f.settlement.observed} · 원문은 그대로 남아 있습니다.
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <footer className="mt-16 text-xs leading-relaxed opacity-45">
+        <p>
+          이 화면은 당신에 대한 점수를 만들지 않습니다. 비추는 것은 기록의 구조이고, 그것이 무엇을 뜻하는지는 당신이
+          해석합니다. 축마다 기계에게 허용된 권한이 다르며(
+          {AXES.filter((a) => a.authority === 'human_only').map((a) => a.label).join(' · ')} 은 사람만 씁니다), 근거는
+          <code className="mx-1">src/lib/cognition/axes.ts</code>에 문헌과 함께 적혀 있습니다.
+        </p>
+      </footer>
+    </main>
+  );
+}

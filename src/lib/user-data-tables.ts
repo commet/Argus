@@ -33,6 +33,10 @@ export const USER_DATA_TABLES = [
   'agent_activities',
   'agent_chains',
   'agents',
+  // 인지 구조 기록 (2026-08-17, 재정초 브리프 원형 E+B 일곱 축).
+  'cognitive_frame_elements',
+  'cognitive_frame_readings',
+  'cognitive_frames',
   'decision_items',
   'decision_quality_scores',
   'deep_judgment_usage',

@@ -26,6 +26,7 @@ type Decl = { table: string } | { localOnly: string };
 /** 키별 영속성 선언 — 새 키를 추가하면 여기서 결정을 내려야 한다. */
 const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   METHOD_PILOT_LEDGER: { localOnly: 'R3-B pilot 채널 (BLUEPRINT §9.12 단일 예외) — 초대 전용·폐기 전제 pilot ledger. pilot 종료 시 반출·삭제 계약이므로 서버 동기화 금지' },
+  COGNITIVE_FRAMES: { localOnly: '인지 구조 프레임 파일럿(/method-pilot/frames) — Supabase cognitive_frames 테이블은 2026-08-17 마이그레이션으로 실재하고 RLS·불변식 시험까지 통과했으나, 서버 승격은 R3 증거 게이트 이후 사용자 표면을 열 때 계정 이동성·삭제 계약과 함께 설계한다. 그 전까지 로컬 전용' },
   REFRAME_LIST: { table: 'reframe_items' },
   SYNTHESIZE_LIST: { table: 'synthesize_items' },
   RECAST_LIST: { table: 'recast_items' },
