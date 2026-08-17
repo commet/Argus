@@ -38,7 +38,10 @@ export {
   readingToCrossing,
   reconcileWorld,
   worldBalance,
+  retractCrossing,
+  worldTrajectory,
   type WorldBalance,
+  type WorldTransition,
 } from './world';
 
 export {
@@ -66,6 +69,57 @@ export {
   type CorpusMirror,
   type FrameMirror,
 } from './mirror';
+
+export {
+  toNumericSeries,
+  cusum,
+  adaptiveWindow,
+  detectAll,
+  anyAlert,
+  allInsufficient,
+  type NumericSeries,
+  type CusumPrior,
+  type AdwinPrior,
+  type DetectionResult,
+  type DetectionVerdict,
+} from './detect';
+
+export {
+  runPortfolio,
+  disagreement,
+  type HypothesisId,
+  type PortfolioPrior,
+  type PortfolioResult,
+  type PortfolioStep,
+} from './portfolio';
+
+export {
+  makePremise,
+  appendReading,
+  referenceFrom,
+  assessPremise,
+  returnTriggers,
+  measureM2,
+  measureM3,
+  type DurablePremise,
+  type PremiseAssessment,
+  type PremiseStance,
+  type ReturnTrigger,
+  type M2Reading,
+  type M3Reading,
+} from './premise';
+
+export {
+  MIN_PER_SIDE,
+  attributedSettlements,
+  measureM5,
+  attributionDrift,
+  type AttributedSettlement,
+  type AttributionDrift,
+  type M5Reading,
+  type OutcomeAttribution,
+  type PreregisteredAttribution,
+} from './attribution';
 
 export type {
   Authorship,

@@ -32,7 +32,84 @@ export function isValidCrossing(c: Crossing): boolean {
   if (!ref || !observed || !at) return false;
   // ISO 8601 로 파싱되지 않는 시각은 빈티지가 될 수 없다 (P1: 당시 정보 상태로만
   // 평가 가능해야 하는데, 시각이 없으면 '당시'가 정의되지 않는다).
-  return !Number.isNaN(Date.parse(at));
+  if (Number.isNaN(Date.parse(at))) return false;
+  // 철회된 증거는 세계 판정에서 빠진다. **행은 남지만 힘은 없다.**
+  // 사유 없는 철회는 철회로 세지 않는다 — 사후 조작과 구분되지 않기 때문이다.
+  if (c.retracted_at && (c.retraction_reason || '').trim()) return false;
+  return true;
+}
+
+/**
+ * 증거를 철회한다. 행을 지우지 않고 표시만 한다 (P1 빈티지 보존).
+ *
+ * 사유가 비면 철회하지 않는다 — 사유 없이 증거를 무력화할 수 있으면 불편한
+ * 관측을 조용히 없앨 수 있고, 그것이 이 설계가 막으려는 실패다.
+ */
+export function retractCrossing(c: Crossing, at: string, reason: string): Crossing {
+  const r = (reason || '').trim();
+  if (!r || !at) return c;
+  return { ...c, retracted_at: at, retraction_reason: r };
+}
+
+/**
+ * 세계 궤적 — 원소가 두 세계를 **어떻게 오갔나.**
+ *
+ * 창업자의 요구("두 세계를 자유롭게 넘나드는 Neo")를 데이터로 옮기면 이것이
+ * 남는다. 한 방향 승격만 있으면 그건 넘나듦이 아니라 다른 감옥이다.
+ * 건넘과 철회를 시간순으로 재생해 세계가 바뀐 지점만 남긴다.
+ */
+export interface WorldTransition {
+  at: string;
+  to: ElementWorld;
+  /** 이 전이를 일으킨 사건. */
+  cause: 'crossing' | 'retraction';
+  evidence_ref: string;
+  detail: string;
+}
+
+export function worldTrajectory(crossings: readonly Crossing[]): WorldTransition[] {
+  // 건넘(관찰 시각)과 철회(철회 시각)를 하나의 사건 열로 합쳐 시간순 재생.
+  type Ev = { at: string; kind: 'crossing' | 'retraction'; c: Crossing };
+  const events: Ev[] = [];
+  for (const c of crossings ?? []) {
+    if (!c) continue;
+    const at = (c.observed_at || '').trim();
+    if (at && !Number.isNaN(Date.parse(at))) events.push({ at, kind: 'crossing', c });
+    const rt = (c.retracted_at || '').trim();
+    if (rt && !Number.isNaN(Date.parse(rt)) && (c.retraction_reason || '').trim()) {
+      events.push({ at: rt, kind: 'retraction', c });
+    }
+  }
+  events.sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || a.kind.localeCompare(b.kind));
+
+  const out: WorldTransition[] = [];
+  const live = new Set<string>();
+  let world: ElementWorld = 'in_frame';
+
+  for (const ev of events) {
+    const key = `${ev.c.evidence_ref}@${ev.c.observed_at}`;
+    if (ev.kind === 'crossing') {
+      // 철회 시각이 이 건넘보다 앞이면 애초에 살아 있던 적이 없다.
+      live.add(key);
+    } else {
+      live.delete(key);
+    }
+    const next: ElementWorld = live.size > 0 ? 'reality_contact' : 'in_frame';
+    if (next !== world) {
+      world = next;
+      out.push({
+        at: ev.at,
+        to: next,
+        cause: ev.kind,
+        evidence_ref: ev.c.evidence_ref,
+        detail:
+          ev.kind === 'crossing'
+            ? ev.c.observed
+            : `증거 철회: ${ev.c.retraction_reason ?? ''}`,
+      });
+    }
+  }
+  return out;
 }
 
 /**

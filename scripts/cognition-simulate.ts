@@ -13,6 +13,7 @@
  */
 import { runSimulation } from '../src/lib/cognition/simulate';
 import { AXES } from '../src/lib/cognition/axes';
+import { runSystemSimulation } from '../src/lib/cognition/simulate-system';
 
 const episodes = Number(process.argv[2] ?? 200);
 const seed = Number(process.argv[3] ?? 20260817);
@@ -62,5 +63,34 @@ if (r.violations.length === 0) {
   }
 }
 
+// ── 2층: 시스템 루프 ─────────────────────────────────────────────────
+const sys = runSystemSimulation(BASE_TIME);
+out.push('');
+out.push('='.repeat(64));
+out.push('시스템 루프 — 전제가 흔들리면 판단이 깨어나는가');
+out.push('');
+out.push('  시나리오'.padEnd(24) + '전제 처지'.padEnd(14) + '깨어난 판단');
+for (const s of sys.scenarios) {
+  out.push(`  ${s.padEnd(22)} ${String(sys.stances[s]).padEnd(13)} ${sys.woken[s]}`);
+}
+out.push('');
+out.push('지표 판독 (E-0에서 "측정조차 못 함"이던 것):');
+for (const s of sys.scenarios) {
+  out.push(`  [${s}]`);
+  out.push(`    M2 ${sys.m2[s]}`);
+  out.push(`    M3 ${sys.m3[s]}`);
+  out.push(`    M5 ${sys.m5[s]}`);
+}
+out.push('');
+out.push('-'.repeat(64));
+if (sys.violations.length === 0) {
+  out.push('시스템 불변식 위반 0 — 열 개의 불변식이 양방향으로 서 있다.');
+  out.push('  S1 전제 처지 · S2 미판독 보존 · S3 귀환 트리거 · S4 과발화 금지');
+  out.push('  S5 M2 · S6 M3 · S7 M5 · S8 넘나듦 · S9 무판정 · S10 임계 공시');
+} else {
+  out.push(`시스템 불변식 위반 ${sys.violations.length}건:`);
+  for (const v of sys.violations) out.push(`  [${v.invariant}] ${v.scenario}: ${v.detail}`);
+}
+
 console.log(out.join('\n'));
-process.exitCode = r.violations.length === 0 ? 0 : 1;
+process.exitCode = r.violations.length === 0 && sys.violations.length === 0 ? 0 : 1;
