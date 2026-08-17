@@ -142,3 +142,37 @@ begin
       with check (user_id = (select auth.uid()));
   end if;
 end $$;
+
+-- 귀속 (M5). 사전등록과 사후 귀속을 **둘 다** 남긴다 — 결과를 본 뒤의 선택만
+-- 기록하면 그 선택 자체가 사후 합리화의 산물이다 (Fischhoff 1977: 사후확신은
+-- 경고로 줄지 않고, 당시 기록의 보존만이 듣는다).
+--
+-- ⚠️ 이 블록은 2026-08-17 실DB에 먼저 적용됐고 저장소 파일에는 누락돼 있었다.
+-- erasure-coverage 가드는 **마이그레이션 파일에서** 사용자 범위 테이블을 파생하므로,
+-- 파일에 없으면 계정 삭제·내보내기가 이 표를 영영 건너뛴다. 점검에서 잡아 보강한다.
+create table if not exists public.cognitive_attributions (
+  frame_id uuid primary key references public.cognitive_frames(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  -- 봉인 시점의 사전등록.
+  prereg_if_right text check (prereg_if_right in ('judgment','luck','both','unclear')),
+  prereg_if_wrong text check (prereg_if_wrong in ('judgment','luck','both','unclear')),
+  prereg_at timestamptz,
+  -- 정산 시점의 실제 귀속. 기계가 추론하지 않는다 — 사용자가 고른다
+  -- (Nisbett-Wilson: 자기보고도 못 믿는데 타자의 해석은 더하다).
+  settled_attribution text check (settled_attribution in ('judgment','luck','both','unclear')),
+  settled_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.cognitive_attributions enable row level security;
+
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'cognitive_attributions' and policyname = 'own_rows') then
+    create policy own_rows on public.cognitive_attributions
+      for all to authenticated
+      using (user_id = (select auth.uid()))
+      with check (user_id = (select auth.uid()));
+  end if;
+end $$;

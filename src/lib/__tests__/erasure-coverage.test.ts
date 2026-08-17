@@ -147,7 +147,7 @@ const LIVE_USER_SCOPED_TABLES = [
   'argus_profile_items', 'argus_returns', 'argus_shadow_predictions', 'argus_simulation_runs',
   // 인지 구조 기록 (2026-08-17, 마이그레이션 20260817000000). 실DB 확인:
   // information_schema 조회로 3개 테이블 · RLS 3/3 활성 · 정책 own_* 3개.
-  'cognitive_frame_elements', 'cognitive_frame_readings', 'cognitive_frames',
+  'cognitive_attributions', 'cognitive_frame_elements', 'cognitive_frame_readings', 'cognitive_frames',
   'cognitive_frame_premises', 'cognitive_premise_readings', 'cognitive_premises',
   'decision_items', 'decision_quality_scores', 'deep_judgment_usage', 'epistemic_account_policies',
   'epistemic_artifact_descriptors', 'epistemic_authority_events', 'epistemic_command_receipts', 'epistemic_context_traces', 'epistemic_erasure_receipts',

@@ -149,6 +149,7 @@ const LOCAL_ONLY: Record<string, Record<string, string>> = {
   synthesize_items: {},
   // 인지 구조 기록 (2026-08-17 마이그레이션 20260817000000). 동기화 인터페이스가
   // 아직 없으므로(엔진이 순수, 지속은 cognition-db.ts) 컬럼 목록만 실DB 사본으로 둔다.
+  cognitive_attributions: {},
   cognitive_frames: {},
   cognitive_frame_elements: {},
   cognitive_frame_readings: {},
