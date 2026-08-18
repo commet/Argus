@@ -109,7 +109,7 @@ export function dueOpenQuestions(state: LedgerState): DueOpenQuestion[] {
       const anchor = reconsiderAnchor(p);
       out.push({
         decision_id: entry.id,
-        decision_text: (entry.text || '').slice(0, 48),
+        decision_text: (entry.decision_text || entry.text || '').slice(0, 48),
         ordinal: p.ordinal,
         premise_id: p.premise_id,
         text: p.text,
@@ -137,7 +137,7 @@ export function duePremises(state: LedgerState): DuePremise[] {
       const added = dateOnly(p.added_ts);
       out.push({
         decision_id: entry.id,
-        decision_text: (entry.text || '').slice(0, 48),
+        decision_text: (entry.decision_text || entry.text || '').slice(0, 48),
         ordinal: p.ordinal,
         premise_id: p.premise_id,
         text: p.text,

@@ -64,6 +64,15 @@ export interface ContractEntry {
   /** 봉인된 예측에 대해 사용자가 표현한 확신도 (사이클 2) — 전제의 confidence와
    *  같은 어휘 한 벌, 다른 대상(전제 vs 예측). 정산 대조의 재료. */
   predicate_confidence?: 'confident' | 'uncertain' | 'contested';
+  /** 사용자가 마주한 **결정** 문장 (harvest 의 것). `text` 와 따로 두는 이유:
+   *  seal 이 `text` 를 예측 문장으로 덮어쓰므로(아래 case 'seal'), 봉인된 뒤에는
+   *  fold 에 결정 문장이 남지 않았다. 그 결과 `decision` 이라는 이름을 가진
+   *  필드들이 예측을 보여 줬다 — 2026-08-18 창업자 배역 실주행에서 발견:
+   *  미결 질문의 `decision` 이 "이번 분기에 …옮길지 정한다" 대신 "…절반 이하로
+   *  줄어든다"였다. 이름이 약속한 것과 값이 다르면 그것을 읽는 모델이 사용자에게
+   *  거짓을 말한다. 없으면 키가 없다(seal 자기생성 결정에는 결정 문장이 애초에
+   *  없고, 그때 예측이 헤드라인인 것은 정직하다). */
+  decision_text?: string;
   /** 이 귀환이 남긴 규칙 한 줄 (CONTEXT.md 의 `Lesson`) — 사용자가 정산
    *  확인창에 직접 타이핑한 문장 그대로. 모델 요약이 여기 오면 다음 결정으로
    *  가는 것은 사용자의 기준이 아니라 모델의 요약이므로, 저자성은 채널로
@@ -259,6 +268,8 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         if (!cur) {
           cur = freshEntry(id);
           cur.text = (ev['decision'] as string) || (ev['quote'] as string) || '';
+          // seal 이 text 를 덮어써도 결정 문장은 여기 남는다.
+          if (cur.text) cur.decision_text = cur.text;
           map.set(id, cur);
         }
         // 인지 수집 필드 — 첫 기록이 이긴다(재-harvest no-op 규칙과 동거).
