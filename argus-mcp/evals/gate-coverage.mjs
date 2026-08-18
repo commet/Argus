@@ -70,6 +70,10 @@ const WAIVED = new Map([
     'installs the PUBLISHED tarball from npm and drives a persona through the whole install→seal→restart→return→settle journey: needs ANTHROPIC_API_KEY and network, and a first-user journey has no pass/fail contract a merge can block on — its value is the friction it surfaces, recorded in docs/receipts/2026-08-11-first-user-journey/',
   ],
   [
+    'plan-clock',
+    'pure deterministic date picker for the journey harness (reads plan_adopt dues from a ledger dir), not a gate; it exists as a module precisely so it can be measured WITHOUT the model — its properties (earliest-due choice, null on undated/absent plans, never throws on a missing ledger, ignores unparsable lines) are vitest-guarded by plan-clock.test.ts, and both directions were mutation-proven before merge',
+  ],
+  [
     'persona-sampling',
     'pure deterministic sampler over MIT-licensed MatrAIx schema axes, not a gate; its two load-bearing properties (level coverage, no axis confounding) are vitest-guarded by persona-sampling-guard.test.ts',
   ],
