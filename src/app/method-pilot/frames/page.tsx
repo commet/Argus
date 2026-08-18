@@ -82,6 +82,12 @@ import {
   watchToPortfolioPrior,
   readingFrom,
   watchStatus,
+  recordReading,
+  reconcileWorld,
+  retractCrossing,
+  worldTrajectory,
+  isSamePremiseText,
+  type Crossing,
   type DurablePremise,
   type WatchSetup,
 } from '@/lib/cognition';
@@ -157,6 +163,8 @@ export default function CognitiveFramesPilot() {
   const [watchDraft, setWatchDraft] = useState<Record<string, WatchSetup>>({});
   /** 오늘 본 값 입력 (전제 id → 값). */
   const [readingDraft, setReadingDraft] = useState<Record<string, string>>({});
+  /** 건넘을 무를 때의 사유 (원소 id → 사유). 사유 없이는 무를 수 없다. */
+  const [retractDraft, setRetractDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setFrames(loadFrames());
@@ -390,23 +398,45 @@ export default function CognitiveFramesPilot() {
     (premiseId: string) => {
       const w = watchDraft[premiseId];
       if (!w || watchBlocks(w).length > 0) return;
+      const target = premises.find((p) => p.id === premiseId);
+      if (!target) return;
       const now = Date.now();
+      const binding = watchToBinding(w);
+
       persistPremises(
         premises.map((p) =>
           p.id !== premiseId
             ? p
             : {
                 ...p,
-                bindings: [watchToBinding(w)],
+                bindings: [binding],
                 cusum_prior: watchToCusumPrior(w),
                 portfolio_prior: watchToPortfolioPrior(w),
                 updated_at: new Date(now).toISOString(),
               },
         ),
       );
+
+      // 같은 결박을 **봉인된 판단의 그 전제 원소에도** 건다. 이게 있어야
+      // 판독이 왔을 때 그 원소가 두 세계의 경계를 건널 수 있다. 봉인이 잠그는
+      // 것은 문장이지 현실과의 접촉이 아니다 — DB 트리거도 body 만 잠근다.
+      persist(
+        frames.map((f) => {
+          if (!target.referenced_by.includes(f.id)) return f;
+          return {
+            ...f,
+            elements: f.elements.map((el) =>
+              el.axis === 'premises' && isSamePremiseText(el.text, target.text)
+                ? { ...el, bindings: [binding] }
+                : el,
+            ),
+            updated_at: new Date(now).toISOString(),
+          };
+        }),
+      );
       setWatchDraft((prev) => ({ ...prev, [premiseId]: w }));
     },
-    [watchDraft, premises, persistPremises],
+    [watchDraft, premises, persistPremises, frames, persist],
   );
 
   /** 오늘 본 값을 원장에 append 한다. 덮어쓰지 않는다. */
@@ -416,24 +446,54 @@ export default function CognitiveFramesPilot() {
       if (!p) return;
       const w = watchFor(p);
       const now = Date.now();
-      persistPremises(
-        premises.map((x) =>
-          x.id !== premiseId
-            ? x
-            : appendReading(
-                x,
-                readingFrom(w, {
-                  value: readingDraft[premiseId] ?? '',
-                  unreadReason: '값을 적지 않았습니다.',
-                  observedAt: new Date(now).toISOString(),
-                }),
-                now,
-              ),
-        ),
-      );
+      const reading = readingFrom(w, {
+        value: readingDraft[premiseId] ?? '',
+        unreadReason: '값을 적지 않았습니다.',
+        observedAt: new Date(now).toISOString(),
+      });
+      persistPremises(premises.map((x) => (x.id !== premiseId ? x : appendReading(x, reading, now))));
+      // 같은 판독이 그 전제를 쓴 **판단들에도 흘러간다.** 값이 읽혔으면
+      // 그 원소는 "머릿속에서만 말이 되는 것"에서 "현실이 확인해 준 것"으로
+      // 건넌다. 못 읽었으면(unread) 건너지 않는다 — readingToCrossing 이 null.
+      persist(frames.map((f) => (p.referenced_by.includes(f.id) ? recordReading(f, reading, now) : f)));
+
       setReadingDraft((prev) => ({ ...prev, [premiseId]: '' }));
     },
-    [premises, watchFor, readingDraft, persistPremises],
+    [premises, watchFor, readingDraft, persistPremises, frames, persist],
+  );
+
+  /**
+   * 건넜던 것을 되돌린다 — **한 방향 승격만 있으면 넘나듦이 아니라 다른 감옥이다.**
+   * 증거를 지우지 않고 철회 시각과 사유를 얹는다. 원장은 덮어쓰지 않는다.
+   */
+  const onRetractCrossing = useCallback(
+    (frameId: string, elementId: string, crossing: Crossing, reason: string) => {
+      const r = reason.trim();
+      if (!r) return;
+      const at = new Date().toISOString();
+      persist(
+        frames.map((f) => {
+          if (f.id !== frameId) return f;
+          return {
+            ...f,
+            elements: f.elements.map((el) =>
+              el.id !== elementId
+                ? el
+                : reconcileWorld({
+                    ...el,
+                    crossings: el.crossings.map((c) =>
+                      c.evidence_ref === crossing.evidence_ref && c.observed_at === crossing.observed_at
+                        ? retractCrossing(c, at, r)
+                        : c,
+                    ),
+                  }),
+            ),
+            updated_at: at,
+          };
+        }),
+      );
+    },
+    [frames, persist],
   );
 
   const onSettle = useCallback(
@@ -946,6 +1006,55 @@ export default function CognitiveFramesPilot() {
                       확인: {f.settlement.observed} · 그때 쓴 문장은 그대로입니다.
                     </p>
                   )}
+
+                  {/* 현실에 닿은 문장 — 그리고 되돌아올 수 있다는 것 */}
+                  {liveElements(f)
+                    .filter((el) => el.crossings.length > 0)
+                    .map((el) => {
+                      const traj = worldTrajectory(el.crossings);
+                      const live = el.crossings.filter((c) => !c.retracted_at);
+                      return (
+                        <div key={el.id} className="mt-3 rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
+                          <p className="text-xs leading-relaxed">{el.text}</p>
+                          <p className="mt-1 text-xs opacity-60">
+                            {el.world === 'reality_contact'
+                              ? `현실이 확인해 준 문장입니다 (맞춰본 횟수 ${live.length}번).`
+                              : '지금은 다시 머릿속에만 있는 문장입니다 — 근거를 물렸습니다.'}
+                            {traj.length > 1 && ` 세계를 ${traj.length}번 오갔습니다.`}
+                          </p>
+                          {live.length > 0 && (
+                            <div className="mt-2 flex gap-2">
+                              <input
+                                value={retractDraft[el.id] ?? ''}
+                                maxLength={500}
+                                onChange={(e) => setRetractDraft((prev) => ({ ...prev, [el.id]: e.target.value }))}
+                                placeholder="이 근거를 무르는 이유 (예: 지표를 잘못 읽었다)"
+                                className="flex-1 rounded-md border border-[var(--border)] bg-transparent px-3 py-1.5 text-xs"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onRetractCrossing(f.id, el.id, live[live.length - 1], retractDraft[el.id] ?? '')
+                                }
+                                disabled={!(retractDraft[el.id] ?? '').trim()}
+                                className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs disabled:opacity-40"
+                              >
+                                무르기
+                              </button>
+                            </div>
+                          )}
+                          {el.crossings.some((c) => c.retracted_at) && (
+                            <ul className="mt-2 space-y-0.5 text-xs opacity-55">
+                              {el.crossings
+                                .filter((c) => c.retracted_at)
+                                .map((c, i) => (
+                                  <li key={i}>· 물림: {c.retraction_reason}</li>
+                                ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
                 </li>
               );
             })}

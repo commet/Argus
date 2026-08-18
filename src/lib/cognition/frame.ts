@@ -299,19 +299,5 @@ export function settleFrame(input: { frame: CognitiveFrame; settlement: Settleme
   };
 }
 
-/** 축별 채움 현황 — 화면이 "무엇이 비었나"를 정직하게 그릴 재료. */
-export function axisCoverage(frame: CognitiveFrame): Array<{
-  axis: AxisId;
-  label: string;
-  filled: number;
-  required: boolean;
-  authority: string;
-}> {
-  return AXES.map((spec) => ({
-    axis: spec.id,
-    label: spec.label,
-    filled: elementsByAxis(frame, spec.id).filter((e) => e.text.trim()).length,
-    required: !spec.optionalForSeal,
-    authority: spec.authority,
-  }));
-}
+// 축별 채움 현황은 `mirror.ts` 의 axisReflection 이 낸다. 여기 같은 것을
+// 하나 더 두면 두 화면이 서로 다른 숫자를 말하게 된다.

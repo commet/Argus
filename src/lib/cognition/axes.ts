@@ -206,5 +206,5 @@ export function isKnownAxis(id: string): id is AxisId {
 /** 봉인에 반드시 채워져야 하는 축들. */
 export const REQUIRED_AXES: readonly AxisId[] = AXES.filter((a) => !a.optionalForSeal).map((a) => a.id);
 
-/** 하중 축 — 이해 재진술 게이트가 걸리는 범위. */
-export const LOAD_BEARING_AXES: readonly AxisId[] = AXES.filter((a) => a.loadBearing).map((a) => a.id);
+// 하중 축 목록 상수는 두지 않는다. 게이트는 `axisSpec(axis).loadBearing` 을
+// 직접 읽는다 — 같은 사실을 두 군데 두면 한쪽만 고쳐지는 날이 온다.

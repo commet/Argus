@@ -33,7 +33,6 @@
 export {
   AXES,
   REQUIRED_AXES,
-  LOAD_BEARING_AXES,
   axisSpec,
   isKnownAxis,
   type AxisId,
@@ -67,7 +66,6 @@ export {
 
 export {
   addElement,
-  axisCoverage,
   blockMessage,
   elementsByAxis,
   emptyFrame,
@@ -165,7 +163,6 @@ export {
   splitSentences,
   extractCandidates,
   extractionSummary,
-  turnsFromOwnWriting,
   isAiWorded,
   authorLine,
   type TranscriptTurn,

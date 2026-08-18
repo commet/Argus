@@ -36,6 +36,7 @@ export function rowToElement(row: Record<string, unknown>): FrameElement | null 
       revision_distance: Number(row?.revision_distance ?? 1),
       revision_rounds: Number(row?.revision_rounds ?? 0),
       recorded_at: String(row?.created_at ?? ''),
+      // (created_at 은 elementToRow 가 반드시 실어 보낸다 — 위 주석 참조.)
     },
     world: (row?.world as FrameElement['world']) ?? 'in_frame',
     crossings,
@@ -122,6 +123,8 @@ export function frameToRow(frame: CognitiveFrame): Record<string, unknown> {
     settled_observed_at: frame.settlement?.observed_at ?? null,
     settled_retrospective: frame.settlement?.retrospective ?? null,
     sealed_at: frame.sealed_at,
+    // 원소와 같은 이유 — 기본값 now() 가 "언제 이 판단을 열었나"를 덮어쓴다.
+    created_at: frame.created_at || null,
   };
 }
 
@@ -145,6 +148,12 @@ export function elementToRow(el: FrameElement, frameId: string, userId: string |
     comprehension_echo_threshold: el.comprehension.echo_threshold,
     bindings: el.bindings,
     supersedes: el.supersedes,
+    // ⚠️ 반드시 실어 보낸다. 컬럼 기본값이 `now()` 라서 이걸 빼면 **동기화한
+    // 시각이 문장을 쓴 시각으로 기록된다.** 8월 1일에 쓴 판단을 20일에
+    // 올리면 DB는 20일에 쓴 것이라고 말한다 — P1(빈티지 보존, Croushore-Stark)
+    // 이 막으려는 바로 그 일이고, M1(기억 다시쓰기)의 측정 기준선이 무너진다.
+    // 한 번도 실행된 적 없는 코드였고, 왕복 테스트가 이걸 잡았다.
+    created_at: el.created_at || el.authorship.recorded_at || null,
   };
 }
 

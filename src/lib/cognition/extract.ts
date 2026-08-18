@@ -144,23 +144,6 @@ export function parseTranscript(jsonl: string, opts?: { maxTurns?: number }): Tr
   return out;
 }
 
-/**
- * 사용자가 자기 말을 붙여넣거나 그냥 쓴 것을 턴 하나로 만든다.
- *
- * **왜 이게 필요한가**: 로그가 아예 없는 사람이 있고, 있어도 열지 않을 사람이
- * 있다. 그 사람들에게 일곱 칸을 내밀면 아무도 안 쓴다. 대신 한 칸에 편하게
- * 쓰게 하고, 거기서 일곱 축을 뽑아 보여준다.
- *
- * 저자성은 정직하게 처리된다: 사용자가 자기 손으로 넣은 글이므로 `user` 다.
- * 로그처럼 기계가 증명하는 게 아니라 **사용자의 주장**이지만, 그 주장은
- * 사용자 자신에 대한 것이라 받아들이는 게 맞다. (반대로 대화 전체를 붙여넣으면
- * 누가 무슨 말을 했는지 갈라낼 수 없으므로, 그건 파일·훅 경로로 보내야 한다.)
- */
-export function turnsFromOwnWriting(text: string, at: string): TranscriptTurn[] {
-  const t = (text || '').trim();
-  if (!t) return [];
-  return [{ who: 'user', text: t, at, id: `own:${at}` }];
-}
 
 /**
  * 말이 아닌 것. 대화 로그에는 사람이 한 말만 있는 게 아니라 표·목록·UI 목업·
