@@ -1,4 +1,4 @@
-import { AXES, REQUIRED_AXES, axisSpec, isKnownAxis, type AxisId } from './axes';
+import { REQUIRED_AXES, axisSpec, isKnownAxis, type AxisId } from './axes';
 import { elementAuthorship } from './authorship';
 import { comprehensionNotRequired, evaluateRestatement, gateApplies } from './comprehension';
 import { deriveWorld, elementsClaimingUnevidencedCrossing, readingToCrossing, reconcileWorld } from './world';
