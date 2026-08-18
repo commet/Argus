@@ -321,14 +321,14 @@ describe('거울 — 사람이 아니라 기록을 비춘다', () => {
 
   it('빈 축을 AI가 채우지 않고 비었다고 적는다', () => {
     const m = frameMirror(emptyFrame({ id: 'm2', userId: 'u1', title: '', now: T0 }));
-    expect(m.sentences.join(' ')).toContain('비어 있습니다');
-    expect(m.sentences.join(' ')).toContain('AI가 채우지 않습니다');
+    expect(m.sentences.join(' ')).toContain('아직 안 쓴 칸');
+    expect(m.sentences.join(' ')).toContain('AI가 대신 채우지 않습니다');
   });
 
   it('현실에 닿은 것이 없으면 그 사실을 그대로 말한다', () => {
     const res = sealFrame({ frame: fullFrame('m3', T0), now: T0 });
     if (!res.ok) throw new Error('봉인 실패');
-    expect(frameMirror(res.frame).sentences.join(' ')).toContain('전부 프레임 안에');
+    expect(frameMirror(res.frame).sentences.join(' ')).toContain('아직 실제로 맞춰보지 않았습니다');
   });
 
   it('고쳐 쓴 문장이 없으면 평균 편집 거리는 null 이다 (0으로 적으면 정반대 사실)', () => {

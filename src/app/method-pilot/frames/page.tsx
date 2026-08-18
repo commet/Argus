@@ -73,14 +73,14 @@ function loadFrames(): CognitiveFrame[] {
 }
 
 const WORLD_LABEL: Record<FrameElement['world'], string> = {
-  in_frame: '프레임 안',
-  reality_contact: '현실에 닿음',
+  in_frame: '아직 안 맞춰봄',
+  reality_contact: '맞춰봄',
 };
 
 const COMPREHENSION_LABEL: Record<FrameElement['comprehension']['state'], string> = {
-  own_words: '당신 말로 다시 씀',
-  echo: '원문을 되풀이함',
-  absent: '아직 당신 말이 아님',
+  own_words: '내 말로 씀',
+  echo: 'AI 문장과 거의 같음',
+  absent: '아직 AI 문장 그대로',
   not_required: '',
 };
 
@@ -206,26 +206,25 @@ export default function CognitiveFramesPilot() {
   return (
     <main className="mx-auto max-w-3xl px-5 py-10">
       <header className="mb-8">
-        <p className="text-xs uppercase tracking-wider opacity-50">Track R · 파일럿</p>
-        <h1 className="mt-1 text-2xl font-semibold">인지 구조 기록</h1>
+        <p className="text-xs uppercase tracking-wider opacity-50">시험판</p>
+        <h1 className="mt-1 text-2xl font-semibold">지금 내린 결정, 적어두기</h1>
         <p className="mt-3 text-sm leading-relaxed opacity-70">
-          판단은 전제만으로 되어 있지 않습니다. 일곱 축을 따로 적고, 각 문장이 <strong>누구 말인지</strong>와{' '}
-          <strong>어느 세계에 있는지</strong>를 함께 남깁니다. 비어 있는 칸은 비어 있는 대로 둡니다 — 채워 넣지
-          않습니다.
+          나중에 &ldquo;내가 그때 왜 이렇게 했더라&rdquo; 할 때 꺼내보려고 적는 겁니다. 빈칸은 비워둬도 됩니다 —
+          AI가 대신 채우지 않습니다.
         </p>
       </header>
 
-      {/* 두 세계 안내 — 판정이 아니라 위치의 정의 */}
+      {/* 두 상태 안내 — 좋고 나쁨이 아니라 어디쯤 와 있는지 */}
       <section className="mb-8 rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
         <p className="text-sm leading-relaxed">
-          <strong>프레임 안</strong>은 정합성으로만 검증된 상태입니다 — 대화, 그럴듯함. <strong>현실에 닿음</strong>
-          은 당신의 믿음에 무관심한 무언가가 확인해 준 상태입니다 — 신호 판독, 정산, 외부 산출물. 어느 쪽도 열등하지
-          않고, 스스로 선언해서 건널 수는 없습니다.
+          문장 옆에 <strong>아직 안 맞춰봄</strong> 또는 <strong>맞춰봄</strong>이 붙습니다. 머릿속에서 말이 되는
+          것과 실제로 숫자·결과로 확인된 것은 다르니까요. 확인했다고 그냥 표시할 수는 없고, 실제 결과가 있어야
+          바뀝니다.
         </p>
       </section>
 
       <label className="block text-sm font-medium" htmlFor="frame-title">
-        이 판단을 뭐라고 부를까요
+        무슨 결정인가요
       </label>
       <input
         id="frame-title"
@@ -281,15 +280,18 @@ export default function CognitiveFramesPilot() {
                   onClick={() => applyPilotDraft(spec.id)}
                   className="mt-2 rounded-md bg-[var(--accent)]/[0.08] px-3 py-1.5 text-xs"
                 >
-                  초안 넣어보기 (그대로 두면 기계 문장으로 기록됩니다)
+                  AI 예시 넣기 (안 고치면 AI 문장으로 남습니다)
                 </button>
               )}
 
               {el && (
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-70">
                   <span>
-                    저자: {el.authorship.wording_source === 'ai_surfaced' ? '기계' : '당신'}
-                    {el.authorship.wording_source === 'user_reworded' && ` (고침 · 거리 ${el.authorship.revision_distance})`}
+                    {el.authorship.wording_source === 'ai_surfaced'
+                      ? 'AI가 쓴 문장'
+                      : el.authorship.wording_source === 'user_reworded'
+                        ? `AI 문장을 고쳐 씀 (${Math.round(el.authorship.revision_distance * 100)}% 바꿈)`
+                        : '내가 쓴 문장'}
                   </span>
                   <span>{WORLD_LABEL[el.world]}</span>
                   {COMPREHENSION_LABEL[el.comprehension.state] && (
@@ -301,15 +303,15 @@ export default function CognitiveFramesPilot() {
               {needsRestatement && (
                 <div className="mt-3 rounded-lg bg-[var(--accent)]/[0.04] px-3 py-3">
                   <p className="text-xs leading-relaxed">
-                    이 문장은 기계가 쓴 것입니다. <strong>당신 말로 한 번 다시 써 주세요</strong> — 어휘가 넘어와도
-                    이해는 넘어오지 않습니다.
+                    이건 AI가 쓴 문장입니다. <strong>무슨 뜻인지 한 줄로 다시 써보시겠어요?</strong> 쓰다 보면
+                    &ldquo;어, 이게 말이 되나&rdquo; 싶은 데가 보일 때가 있습니다.
                   </p>
                   <textarea
                     value={d.restatement}
                     maxLength={MAX_TEXT}
                     rows={2}
                     onChange={(e) => setDraft(spec.id, { restatement: e.target.value })}
-                    placeholder="무슨 뜻인지 당신 문장으로"
+                    placeholder="쉽게 말하면…"
                     className="mt-2 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
                   />
                   <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -318,12 +320,12 @@ export default function CognitiveFramesPilot() {
                       onClick={() => setDraft(spec.id, { restatement: acceptAsIs(d.text).restatement })}
                       className="rounded-md bg-[var(--accent)]/[0.08] px-3 py-1.5 text-xs"
                     >
-                      그대로 쓰겠습니다
+                      그냥 이대로 쓸게요
                     </button>
                     {comp && comp.state !== 'not_required' && (
                       <span className="text-xs opacity-60">
-                        {COMPREHENSION_LABEL[comp.state]} (원문 어휘 겹침 {Math.round(comp.overlap * 100)}%, 임계{' '}
-                        {Math.round(comp.echo_threshold * 100)}%)
+                        {COMPREHENSION_LABEL[comp.state]} — AI 문장과 낱말이 {Math.round(comp.overlap * 100)}%
+                        겹칩니다 ({Math.round(comp.echo_threshold * 100)}% 넘으면 &lsquo;거의 같음&rsquo;)
                       </span>
                     )}
                   </div>
@@ -336,7 +338,7 @@ export default function CognitiveFramesPilot() {
 
       {/* 거울 — 주어는 항상 기록이다 */}
       <section className="mt-10">
-        <h2 className="text-sm font-semibold">지금 이 기록의 모습</h2>
+        <h2 className="text-sm font-semibold">지금 이 기록은</h2>
         <ul className="mt-3 space-y-2">
           {mirror.sentences.map((s, i) => (
             <li key={i} className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-sm leading-relaxed">
@@ -348,7 +350,7 @@ export default function CognitiveFramesPilot() {
 
       {blocks.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-sm font-semibold">봉인 전에 남은 것</h2>
+          <h2 className="text-sm font-semibold">저장하기 전에 남은 것</h2>
           <ul className="mt-2 space-y-1 text-sm opacity-80">
             {blocks.map((b, i) => (
               <li key={i}>· {blockMessage(b)}</li>
@@ -376,13 +378,13 @@ export default function CognitiveFramesPilot() {
         봉인하기
       </button>
       <p className="mt-2 text-xs leading-relaxed opacity-55">
-        봉인하면 문장은 바뀌지 않습니다. 생각이 바뀌면 새 기록을 만들어 잇습니다 — 덮어쓰지 않는 것이 나중에 당신을
-        지킵니다.
+        잠그면 문장이 더 이상 바뀌지 않습니다. 나중에 생각이 바뀌면 새로 적으면 됩니다. 지금 쓴 말을 그대로 남겨두는
+        게 나중에 자기를 속이지 않는 유일한 방법이라서요.
       </p>
 
       {frames.length > 0 && (
         <section className="mt-12">
-          <h2 className="text-sm font-semibold">봉인된 기록 {frames.length}개</h2>
+          <h2 className="text-sm font-semibold">적어둔 결정 {frames.length}개</h2>
           <ul className="mt-3 space-y-3">
             {corpus.sentences.map((s, i) => (
               <li key={`c${i}`} className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-sm leading-relaxed">
@@ -399,7 +401,7 @@ export default function CognitiveFramesPilot() {
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="text-sm font-medium">{f.title || '(제목 없음)'}</span>
                     <span className="text-xs opacity-50">
-                      {f.status === 'settled' ? '정산됨' : '봉인됨'} · 현실 접촉 {m.world.reality_contact}/{m.world.total}
+                      {f.status === 'settled' ? '결과 확인함' : '잠김'} · 맞춰본 문장 {m.world.reality_contact}/{m.world.total}
                     </span>
                   </div>
                   {f.status === 'sealed' && (
@@ -409,20 +411,20 @@ export default function CognitiveFramesPilot() {
                         onClick={() => onSettle(f.id, false)}
                         className="rounded-md bg-[var(--accent)]/[0.08] px-3 py-1.5 text-xs"
                       >
-                        반증 조건이 오지 않았다
+                        예상대로 안 됐다 (내 판단이 맞았다)
                       </button>
                       <button
                         type="button"
                         onClick={() => onSettle(f.id, true)}
                         className="rounded-md bg-[var(--accent)]/[0.08] px-3 py-1.5 text-xs"
                       >
-                        반증 조건이 관찰됐다
+                        그 일이 실제로 일어났다 (내가 틀렸다)
                       </button>
                     </div>
                   )}
                   {f.settlement && (
                     <p className="mt-2 text-xs leading-relaxed opacity-70">
-                      정산: {f.settlement.observed} · 원문은 그대로 남아 있습니다.
+                      확인: {f.settlement.observed} · 그때 쓴 문장은 그대로입니다.
                     </p>
                   )}
                 </li>

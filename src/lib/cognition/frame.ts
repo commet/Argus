@@ -175,7 +175,7 @@ export function sealBlocks(frame: CognitiveFrame): SealBlock[] {
         kind: 'authority_violation',
         element_id: el.id,
         axis: el.axis,
-        detail: `'${spec.label}'는 사람만 쓸 수 있는 축이다 (${spec.lineage})`,
+        detail: `'${spec.label}' 칸은 AI가 대신 쓸 수 없습니다. 직접 써주세요.`,
       });
     }
 
@@ -185,7 +185,7 @@ export function sealBlocks(frame: CognitiveFrame): SealBlock[] {
         kind: 'authority_violation',
         element_id: el.id,
         axis: el.axis,
-        detail: '신호 결박은 전제 축에서만 의미가 있다',
+        detail: '숫자에 묶는 건 \'무엇에 기대고 있나\' 칸에서만 됩니다.',
       });
     }
 
@@ -214,19 +214,19 @@ export function sealBlocks(frame: CognitiveFrame): SealBlock[] {
 export function blockMessage(block: SealBlock): string {
   switch (block.kind) {
     case 'axis_empty':
-      return `'${axisSpec(block.axis).label}' 칸이 비어 있습니다 — 이 칸은 비워둔 채 봉인할 수 없습니다.`;
+      return `'${axisSpec(block.axis).label}' 칸이 비어 있습니다. 이 칸은 채워야 잠글 수 있습니다.`;
     case 'comprehension_pending':
-      return `'${axisSpec(block.axis).label}'의 문장이 아직 당신 말이 아닙니다 — 당신 말로 한 번 다시 쓰거나, 그대로 쓰겠다고 표시해 주세요.`;
+      return `'${axisSpec(block.axis).label}' 칸이 아직 AI 문장 그대로입니다. 한 줄로 다시 써보거나, '그냥 이대로 쓸게요'를 눌러주세요.`;
     case 'authority_violation':
       return block.detail;
     case 'crossing_without_evidence':
-      return '현실에 닿았다고 표시되어 있으나 증거가 없습니다 — 신호 판독·정산·외부 산출물 중 하나가 필요합니다.';
+      return '맞춰봤다고 되어 있는데 실제 결과가 없습니다. 숫자·결과·외부 기록 중 하나가 있어야 합니다.';
     case 'binding_without_rationale':
-      return `신호 '${block.binding_kind}'의 임계에 근거가 없습니다 — 임계는 검증 불가능한 사전 믿음이므로 근거 없이 둘 수 없습니다.`;
+      return `'${block.binding_kind}' 기준선을 왜 그 숫자로 잡았는지가 비어 있습니다. 이 숫자는 데이터가 정해주는 게 아니라 사람이 고르는 거라, 이유가 있어야 나중에 다시 볼 수 있습니다.`;
     default:
       // 새 블록 종류를 추가하고 문안을 잊으면 조용히 빈 문자열이 나가는 대신
       // 눈에 보이는 문장이 나간다.
-      return '봉인할 수 없습니다 (사유 문안 미작성).';
+      return '아직 잠글 수 없습니다 (사유 문구 미작성).';
   }
 }
 
@@ -241,7 +241,7 @@ export function sealFrame(input: {
 }): SealResult {
   const { frame, now } = input;
   if (frame.status === 'sealed' || frame.status === 'settled') {
-    return { ok: false, blocked_by: [], messages: ['이미 봉인된 프레임입니다.'] };
+    return { ok: false, blocked_by: [], messages: ['이미 잠근 기록입니다.'] };
   }
 
   const blocks = sealBlocks(frame);

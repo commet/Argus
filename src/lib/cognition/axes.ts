@@ -117,7 +117,7 @@ export const AXES: readonly AxisSpec[] = [
   {
     id: 'frame',
     label: '무엇을 묻고 있나',
-    prompt: '이 판단이 답하려는 질문 한 줄. 준거집합(무엇과 같은 문제로 보는가)을 포함해도 된다.',
+    prompt: '지금 뭘 정하려는 건지 한 줄로. (예: 지금 올릴 때인가, 더 기다릴 때인가)',
     authority: 'human_only',
     lineage:
       'Kahneman-Tversky 프레이밍 + Lucas(1976) 심층 모수 + Hume 사실-가치. 프레임 선택은 §1.2의 기계화 불가능 목록에 있다.',
@@ -127,7 +127,7 @@ export const AXES: readonly AxisSpec[] = [
   {
     id: 'values',
     label: '무엇을 좋다고 보나',
-    prompt: '이 판단에서 무엇을 얻으면 성공인가. 손실 함수에 해당하는 문장.',
+    prompt: '이게 잘 됐다는 건 뭐가 어떻게 된 상태인가요.',
     authority: 'human_only',
     lineage: 'Hume 사실-가치 구분. 손실 함수는 기계화 불가능(§1.2). AI가 대신 쓰면 그 판단은 사용자의 것이 아니다.',
     loadBearing: true,
@@ -136,7 +136,7 @@ export const AXES: readonly AxisSpec[] = [
   {
     id: 'premises',
     label: '무엇에 기대고 있나',
-    prompt: '이 판단이 참이라고 가정하는 사실들. 각각 외부 신호에 결박할 수 있으면 결박한다.',
+    prompt: '이게 맞다고 치고 있는 것들. 나중에 숫자로 확인할 수 있으면 더 좋습니다.',
     authority: 'machine_checkable',
     lineage:
       'Chow(1960)→Quandt·Andrews(1993)→Bai-Perron(1998,2003) 단절 추정 + Page(1954) CUSUM + ADWIN(2007). 임계는 검증 불가능한 사전 믿음이므로 사용자 소유로 노출한다.',
@@ -146,7 +146,7 @@ export const AXES: readonly AxisSpec[] = [
   {
     id: 'inference',
     label: '어떻게 이어지나',
-    prompt: '전제에서 결론으로 가는 연결. 기억해 둘 만한 한 줄이면 충분하다.',
+    prompt: '그래서 왜 이 결론이 나오는지 한 줄. 안 써도 됩니다.',
     authority: 'machine_recordable',
     lineage:
       'Nisbett-Wilson(1977) "Telling more than we can know" — 자기 판단의 이유에 대한 자기보고는 신뢰할 수 없다. 그래서 기록만 하고 채점하지 않는다.',
@@ -156,7 +156,7 @@ export const AXES: readonly AxisSpec[] = [
   {
     id: 'confidence',
     label: '얼마나 확신하나',
-    prompt: '0~100. 해결 가능한 주장에만 의미가 있다 — 판정 불가능한 문장의 확신도는 채점되지 않는다.',
+    prompt: '0~100. 나중에 맞았는지 틀렸는지 가릴 수 있는 것에만 의미가 있습니다.',
     authority: 'machine_checkable',
     lineage:
       'Tetlock(2005,2015) + Murphy(1973) Brier 분해(보정+분해능−불확실성). 사전등록된 해결가능 예측에만 채점이 성립한다.',
@@ -166,7 +166,7 @@ export const AXES: readonly AxisSpec[] = [
   {
     id: 'alternatives',
     label: '무엇을 버렸나',
-    prompt: '고려했다가 택하지 않은 길. 준거집합을 밖에서 보는 자리.',
+    prompt: '생각했다가 안 하기로 한 것. 안 써도 됩니다.',
     authority: 'machine_recordable',
     lineage:
       'Kahneman outside view + Flyvbjerg 준거집합 예측. 버린 길의 기록은 반사실 처리의 최소 형태이며, 기계가 좋고 나쁨을 판정할 근거는 없다.',
@@ -176,7 +176,7 @@ export const AXES: readonly AxisSpec[] = [
   {
     id: 'falsifier',
     label: '무엇이 내 마음을 바꾸나',
-    prompt: '이것이 관찰되면 이 판단은 틀렸다고 인정한다 — 라고 미리 적는 문장.',
+    prompt: '이런 일이 벌어지면 내가 틀린 거다 — 를 지금 미리 적어둡니다.',
     authority: 'machine_checkable',
     lineage:
       'Popper 반증가능성 + 사전등록(pre-registration) + Strotz(1955)·Laibson(1997) 시간 비일관성에 대한 돛대 원리. 유혹의 상류에서 잠기지 않으면 사후 합리화가 이긴다.',

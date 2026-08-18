@@ -161,27 +161,27 @@ export function frameMirror(frame: CognitiveFrame): FrameMirror {
   const gaps = axes.filter((a) => a.gap);
   sentences.push(
     gaps.length === 0
-      ? `일곱 축이 모두 채워졌습니다 (원소 ${els.length}개).`
-      : `필수 축 ${gaps.length}개가 비어 있습니다: ${gaps.map((g) => g.label).join(' · ')}. 비워둔 채로 둘 수 있고, AI가 채우지 않습니다.`,
+      ? `일곱 칸을 다 채웠습니다 (문장 ${els.length}개).`
+      : `아직 안 쓴 칸이 ${gaps.length}개 있습니다: ${gaps.map((g) => g.label).join(' · ')}. 비워둬도 되고, AI가 대신 채우지 않습니다.`,
   );
 
   sentences.push(
     world.reality_contact === 0
-      ? `이 프레임의 원소 ${world.total}개는 전부 프레임 안에 있습니다 — 아직 아무것도 현실과 대조되지 않았습니다.`
-      : `원소 ${world.total}개 중 ${world.reality_contact}개가 현실에 닿았습니다 (${pct(world.reality_contact, world.total)}%). 나머지 ${world.in_frame}개는 프레임 안입니다.`,
+      ? `문장 ${world.total}개 전부 아직 실제로 맞춰보지 않았습니다 — 지금은 머릿속에서만 말이 되는 상태입니다.`
+      : `문장 ${world.total}개 중 ${world.reality_contact}개는 실제 결과로 맞춰봤습니다 (${pct(world.reality_contact, world.total)}%). 나머지 ${world.in_frame}개는 아직입니다.`,
   );
 
   if (authorship.unedited_machine > 0) {
     sentences.push(
-      `문장 ${authorship.total}개 중 ${authorship.unedited_machine}개가 기계가 쓴 그대로입니다 (한 글자도 고쳐지지 않음). 해당 원소: ${authorship.unedited_machine_ids.join(', ')}.`,
+      `문장 ${authorship.total}개 중 ${authorship.unedited_machine}개는 AI가 쓴 걸 한 글자도 안 고쳤습니다.`,
     );
   } else if (authorship.ai_surfaced === 0) {
-    sentences.push(`문장 ${authorship.total}개가 모두 당신이 직접 쓰거나 고쳐 쓴 것입니다.`);
+    sentences.push(`문장 ${authorship.total}개 전부 직접 쓰거나 고쳐 썼습니다.`);
   }
 
   if (comprehension.gated > 0) {
     sentences.push(
-      `기계 발원 하중 문장 ${comprehension.gated}개 중 당신 말로 다시 쓴 것 ${comprehension.own_words}개, 원문을 되풀이한 것 ${comprehension.echo}개, 아직 안 쓴 것 ${comprehension.absent}개입니다 (되풀이 임계 ${comprehension.echo_threshold}).`,
+      `AI가 쓴 중요한 문장 ${comprehension.gated}개 중 내 말로 다시 쓴 것 ${comprehension.own_words}개, AI 문장과 거의 같은 것 ${comprehension.echo}개, 아직 안 쓴 것 ${comprehension.absent}개입니다.`,
     );
   }
 
@@ -233,7 +233,7 @@ export function corpusMirror(frames: readonly CognitiveFrame[]): CorpusMirror {
   const sentences: string[] = [];
 
   sentences.push(
-    `프레임 ${list.length}개 — 봉인 ${list.filter((f) => f.status === 'sealed').length}개, 정산 ${list.filter((f) => f.status === 'settled').length}개.`,
+    `적어둔 결정 ${list.length}개 — 잠근 것 ${list.filter((f) => f.status === 'sealed').length}개, 결과까지 확인한 것 ${list.filter((f) => f.status === 'settled').length}개.`,
   );
 
   const worst = [...axis_gap_frequency].sort((a, b) => b.gaps - a.gaps)[0];
@@ -243,7 +243,7 @@ export function corpusMirror(frames: readonly CognitiveFrame[]): CorpusMirror {
     const shown = worst.frame_ids.slice(0, 5).join(', ');
     const rest = worst.frame_ids.length - 5;
     sentences.push(
-      `'${worst.label}' 축이 ${worst.of}개 프레임 중 ${worst.gaps}개에서 비어 있습니다. 예: ${shown}${rest > 0 ? ` 외 ${rest}개` : ''}.`,
+      `'${worst.label}' 칸이 결정 ${worst.of}개 중 ${worst.gaps}개에서 비어 있습니다. 예: ${shown}${rest > 0 ? ` 외 ${rest}개` : ''}.`,
     );
   }
 
