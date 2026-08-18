@@ -1,10 +1,4 @@
 export const STORAGE_KEYS = {
-  // 인지 구조 프레임 (2026-08-17, 재정초 브리프 원형 E+B 일곱 축).
-  // Track R 파일럿 채널(/method-pilot/frames)의 로컬 원장. Supabase 테이블
-  // cognitive_frames 는 실재하지만 이 키는 파일럿 로컬 사본이며, 서버 승격은
-  // R3 증거 게이트 이후 사용자 표면을 열 때 함께 설계한다.
-  COGNITIVE_FRAMES: 'sot_cognitive_frames',
-  COGNITIVE_PREMISES: 'sot_cognitive_premises',
   REFRAME_LIST: 'sot_reframe_list',
   SYNTHESIZE_LIST: 'sot_synthesize_list',
   RECAST_LIST: 'sot_recast_list',

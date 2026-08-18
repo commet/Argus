@@ -1,34 +1,32 @@
 /**
  * 인지 구조 엔진 — 공개 표면.
  *
- * 재정초 브리프(`ARGUS-REFOUNDATION-BRIEF-2026-08-16`)의 원형 E+B 하이브리드를
- * **일곱 축 × 두 세계**로 일반화한 코어. 브리프가 검토한 "전제 단일축" 설계는
- * 문헌의 절반만 읽은 것이었다 — 판단은 프레임·값·전제·추론·확신·대안·반증
- * 조건으로 되어 있고, 축마다 기계에게 허용된 권한이 다르다 (`axes.ts` 참조).
+ * ── 지위 (2026-08-18, 창업자 §6 결정 봉인 — BLUEPRINT R 트랙 절 참조) ──
  *
- * 이 모듈은 **순수**하다. 네트워크·시각·난수 없음. 지속은 `cognition-db.ts`,
- * 화면은 `/method-pilot` 이 담당한다.
+ * 이 모듈은 **소비자 없는 순수 라이브러리**다. 그것은 결함이 아니라 봉인된
+ * 결정의 결과다: 파일럿 화면(/method-pilot/frames)은 원형 선택 전에 지어진
+ * §5 수칙 위반이라 철거됐고, 이 엔진의 소비처는 **대화 루프**로 정해졌다 —
+ * MCP `argus_predict` 봉인 흐름(MIT 존, 별도 PR)이 `watch.ts`의 사람말 질문을
+ * 이식해 전제 결박을 원탭으로 받고, 귀환은 기존 T2 게이트를 탄다.
+ * 그 편입 전까지 여기 함수를 새 앱 존 화면에서 소비하는 것은 봉인된 결정
+ * 위반이다. (지속: `db.ts`가 왕복 테스트로 검증된 매핑을 갖고 있고, Supabase
+ * 테이블 7개는 실재하나 0행이다 — 서버 승격은 계정 이동성·삭제 계약과 함께.)
  *
- * ── 이미 있는 능력과의 관계 (한 곳에 모아둔다) ───────────────────────
+ * 내용: 일곱 축(축마다 기계 권한을 타입으로), 두 세계(증거 있는 건넘과 철회),
+ * 지속 전제(동일성은 premises-core 정규화 재사용), 탐지(CUSUM·ADWIN)와
+ * 포트폴리오(fixed-share), 봉인 시점 예측의 보정(Murphy 분해), 거울.
+ * 순수 — 네트워크·시각·난수 없음.
  *
- * 이 저장소에는 이 모듈이 건드리는 능력들이 **이미 살고 있다.** 무엇을 빌리고
- * 무엇을 왜 새로 짓는지 여기서 한 번에 밝힌다. (`docs/receipts/2026-08-16-
- * g-agent-argus/capability-survey.mjs` 가 이 언급을 기계로 강제한다.)
- *
- *   대화 로그 수집   `argus-mcp/src/v2/capture-cli.ts`·`harvest.ts` 가 정본.
- *                    훅이 transcript 경로를 자동으로 준다. 여기 `parseTranscript`
- *                    는 **입력 경로가 아니라 추출기**이고, 갈 자리는
- *                    `argus-mcp/src/v2/candidate-capture.ts` 의
- *                    `CandidateExtractorPort` 새 구현이다.
- *   후보 추출        같은 파일의 `deterministicCandidateExtractor` 가 턴당
- *                    `{quote, typed_span}` 하나를 낸다. 여기 `extractCandidates`
- *                    는 그것을 **일곱 축 + 저자 증명**으로 넓힌 것이다.
- *   저자성 판정      `src/lib/judgment-authorship.ts` 가 정본. `./authorship` 이
+ * ── 이미 있는 능력과의 관계 (검사기가 강제하는 언급) ─────────────────
+ *   대화 로그 수집   정본은 `argus-mcp/src/v2/capture-cli.ts`·`harvest.ts` —
+ *                    훅이 transcript 경로를 자동으로 준다. 여기 `extract.ts`의
+ *                    `parseTranscript`/`extractCandidates`는 편입 시
+ *                    `argus-mcp/src/v2/candidate-capture.ts`의
+ *                    `CandidateExtractorPort` 새 구현으로 들어간다.
+ *   저자성 판정      정본은 `src/lib/judgment-authorship.ts` — `./authorship`이
  *                    그것을 부르고 깊이(수정 거리·라운드)만 얹는다.
- *   전제 모델        `src/lib/premises-core.ts` 가 정본(결정 단위). `./premise`
- *                    는 그 위의 **지속 계층**이고 동일성 판정은
- *                    `normalizePremiseText()` 를 그대로 빌려 쓴다 — 이유는
- *                    `premise.ts` 헤더에 적어두었다.
+ *   전제 모델        정본은 `src/lib/premises-core.ts` — 동일성 판정은
+ *                    `normalizePremiseText()`를 그대로 빌려 쓴다.
  */
 export {
   AXES,
@@ -169,19 +167,6 @@ export {
   type Candidate,
   type ExtractionResult,
 } from './extract';
-
-export {
-  SOURCES,
-  DEFAULT_SOURCE,
-  sourceSpec,
-  sourceReport,
-  turnsFromPluginCandidates,
-  turnsFromPastedWriting,
-  turnsFromTranscriptFile,
-  type SourceId,
-  type SourceSpec,
-  type PluginCandidateRow,
-} from './sources';
 
 export type {
   Authorship,
