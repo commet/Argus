@@ -70,6 +70,7 @@ import {
   type FrameElement,
   type SourceId,
   type TranscriptTurn,
+  calibration,
   makePremise,
   appendReading,
   referenceFrom,
@@ -165,6 +166,16 @@ export default function CognitiveFramesPilot() {
   const [readingDraft, setReadingDraft] = useState<Record<string, string>>({});
   /** 건넘을 무를 때의 사유 (원소 id → 사유). 사유 없이는 무를 수 없다. */
   const [retractDraft, setRetractDraft] = useState<Record<string, string>>({});
+  /**
+   * 봉인 시점의 예측. **선택이다** — 안 적으면 그 판단은 채점 대상이 아니고,
+   * 그게 정직하다. 지금 받아야 하는 이유: 결과를 알고 나서 받은 확신도는
+   * 예측이 아니라 사후 서술이다 (Fischhoff 1975 — 사후확신은 경고로 안 준다).
+   */
+  const [predict, setPredict] = useState<{ value: string; resolvable: boolean | null; reason: string }>({
+    value: '',
+    resolvable: null,
+    reason: '',
+  });
 
   useEffect(() => {
     setFrames(loadFrames());
@@ -340,7 +351,21 @@ export default function CognitiveFramesPilot() {
         now,
       );
     }
-    const res = sealFrame({ frame: f, now });
+    // 예측을 적었으면 함께 봉인한다. 판정 가능 여부까지 같이 받는다 —
+    // 제3자가 판정할 수 없는 문장에 점수를 매기는 건 숫자 놀이다(M6 정의).
+    const raw = Number(predict.value);
+    const falsifierEl = f.elements.find((el) => el.axis === 'falsifier');
+    const confidence =
+      predict.value.trim() && Number.isFinite(raw) && raw >= 0 && raw <= 100
+        ? {
+            value: raw,
+            about_element_id: falsifierEl?.id ?? '',
+            // 미지정을 true 로 두면 판정 불가능한 문장이 채점 분모에 들어간다.
+            resolvable: predict.resolvable === true,
+            resolvable_reason: predict.reason.trim().slice(0, 500),
+          }
+        : null;
+    const res = sealFrame({ frame: f, confidence, now });
     if (!res.ok) {
       setNotice(res.messages);
       return;
@@ -348,6 +373,7 @@ export default function CognitiveFramesPilot() {
     setNotice([]);
     setTitle('');
     setDrafts({});
+    setPredict({ value: '', resolvable: null, reason: '' });
     persist([res.frame, ...frames]);
 
     // 봉인한 판단의 전제를 **프레임 밖으로** 꺼낸다. 이게 있어야 같은 전제를
@@ -375,7 +401,7 @@ export default function CognitiveFramesPilot() {
       }
     }
     persistPremises(nextPremises);
-  }, [title, draftFor, frames, persist, premises, persistPremises]);
+  }, [title, draftFor, frames, persist, premises, persistPremises, predict]);
 
   /**
    * 이 전제의 감시 설정. 편집 중이면 그 초안, 아니면 이미 걸린 감시에서 되살린다.
@@ -523,6 +549,12 @@ export default function CognitiveFramesPilot() {
    * 여기에 조건을 더 얹으면 테스트가 닿지 못하는 판정이 화면에 생긴다.
    */
   const triggers = useMemo(() => returnTriggers(premises, frames), [premises, frames]);
+
+  /**
+   * 봉인해 둔 예측의 채점. 표본이 모자라면 숫자 대신 "아직 모릅니다"가 나온다
+   * (calibration.ts 가 정한다 — 화면이 임계를 다시 정하지 않는다).
+   */
+  const calib = useMemo(() => calibration(frames), [frames]);
 
   if (!hydrated) return <main className="mx-auto max-w-3xl px-5 py-10 text-sm opacity-60">불러오는 중…</main>;
 
@@ -813,6 +845,67 @@ export default function CognitiveFramesPilot() {
         </section>
       )}
 
+      {/* 봉인 전 예측 — 결과를 알기 전에만 받을 수 있다 */}
+      <section className="mt-8 rounded-lg border border-[var(--border)] px-4 py-4">
+        <h2 className="text-sm font-semibold">이 판단이 맞을 것 같은 정도 (안 적어도 됩니다)</h2>
+        <p className="mt-1 text-xs leading-relaxed opacity-65">
+          지금 적어두면 나중에 결과가 나왔을 때 이 예측들만 모아서 맞춰봅니다. 결과를 알고 난 뒤에 적으면
+          그건 예측이 아니라 기억이라서, 지금이 아니면 받을 수가 없습니다.
+        </p>
+
+        <div className="mt-3 flex items-center gap-2">
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={predict.value}
+            onChange={(e) => setPredict((p) => ({ ...p, value: e.target.value }))}
+            placeholder="70"
+            className="w-24 rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+          />
+          <span className="text-xs opacity-70">100 중에</span>
+        </div>
+
+        {predict.value.trim() !== '' && (
+          <div className="mt-3">
+            <p className="text-xs opacity-70">
+              위에 쓴 &ldquo;틀렸다는 건&rdquo; 문장을, 나중에 다른 사람이 봐도 맞았는지 틀렸는지 딱 가릴 수 있나요?
+            </p>
+            <div className="mt-2 flex gap-2">
+              {([
+                [true, '네, 가릴 수 있습니다'],
+                [false, '아니요, 애매합니다'],
+              ] as const).map(([v, label]) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => setPredict((p) => ({ ...p, resolvable: v }))}
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    predict.resolvable === v ? 'bg-[var(--accent)]/[0.12] font-medium' : 'bg-[var(--accent)]/[0.04] opacity-70'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {predict.resolvable === false && (
+              <input
+                value={predict.reason}
+                maxLength={500}
+                onChange={(e) => setPredict((p) => ({ ...p, reason: e.target.value }))}
+                placeholder="어디가 애매한가요 (한 줄)"
+                className="mt-2 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-xs"
+              />
+            )}
+            {predict.resolvable !== true && (
+              <p className="mt-2 text-xs opacity-55">
+                애매한 문장은 채점에서 빼둡니다. 가릴 수 없는 문장에 점수를 매기면 숫자만 그럴듯해집니다.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+
       <button
         type="button"
         onClick={onSeal}
@@ -825,6 +918,35 @@ export default function CognitiveFramesPilot() {
         잠그면 문장이 더 이상 바뀌지 않습니다. 나중에 생각이 바뀌면 새로 적으면 됩니다. 지금 쓴 말을 그대로 남겨두는
         게 나중에 자기를 속이지 않는 유일한 방법이라서요.
       </p>
+
+      {/* 봉인해 둔 예측의 채점 — 채점 대상은 예측이지 사람이 아니다 */}
+      {frames.some((f) => f.confidence) && (
+        <section className="mt-10 rounded-lg border border-[var(--border)] px-4 py-4">
+          <h2 className="text-sm font-semibold">적어둔 예측, 얼마나 맞았나</h2>
+          {calib.state === 'unknown' ? (
+            <p className="mt-2 text-xs leading-relaxed opacity-70">{calib.reason}</p>
+          ) : (
+            <>
+              <p className="mt-2 text-xs leading-relaxed opacity-80">{calib.subject_sentence}</p>
+              <ul className="mt-2 space-y-1 text-xs opacity-75">
+                <li>· 맞춰본 예측 {calib.sample}건</li>
+                <li>
+                  · 적어둔 확신과 실제 결과가 얼마나 붙어 있었나: {(calib.reliability ?? 0).toFixed(3)}
+                  <span className="opacity-60"> (0에 가까울수록 붙어 있음)</span>
+                </li>
+                <li>
+                  · 맞을 때와 틀릴 때를 얼마나 갈라서 말했나: {(calib.resolution ?? 0).toFixed(3)}
+                  <span className="opacity-60"> (클수록 갈라서 말함)</span>
+                </li>
+              </ul>
+            </>
+          )}
+          <p className="mt-2 text-xs leading-relaxed opacity-55">
+            여기 붙는 점수는 <strong>적어둔 예측</strong>에 대한 것입니다. 당신이 어떤 결정을 하는 사람인지에
+            대한 평가는 이 도구에 없습니다.
+          </p>
+        </section>
+      )}
 
       {/* 지금 흔들린 것 — 이 도구가 인트로에서 끝나지 않는 이유 */}
       {triggers.length > 0 && (
