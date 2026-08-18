@@ -131,7 +131,7 @@ const decideSchema = z.discriminatedUnion('action', [
     ref: z.string().max(64).describe('재확인할 전제 번호 또는 id입니다.'),
     finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.'),
     numeric_value: z.number().finite().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
-    changed: z.boolean().describe('문장형 사실이 기준값에서 실질적으로 달라졌는지 표시합니다.').optional(),
+    changed: z.union([z.boolean(), z.literal('uncertain')]).describe('문장형 사실이 기준값에서 실질적으로 달라졌는지 표시합니다. 찾아봤는데 못 가리겠으면 "uncertain" 을 넣습니다. 못 가린 것을 false 로 넣으면 확인하지 못한 것이 확인으로 기록됩니다.').optional(),
     // 기본값이 필요한 이유: 런타임 union 이 핸들러의 default 보다 먼저 검사하므로
     // 여기서 source 를 필수로 두면 실제 update_fact 호출이 전부 알 수 없는
     // INVALID_INPUT 으로 죽는다 (1.4.0 필드 발견).

@@ -77,7 +77,7 @@ const inputSchema = z.strictObject({
   // a stricter number here would be a dead declaration lying about the contract.
   finding: z.string().min(1).max(800).describe('The CURRENT state of the fact, one literal comparable sentence. e.g. "base rate 3.75% after a 25bp hike".'),
   numeric_value: z.number().finite().optional().describe('The fact\'s current number, named EXPLICITLY (e.g. 3.75). Never extracted from prose by regex. When present, drift is decided mechanically (>=10% move or sign flip).'),
-  changed: z.boolean().optional().describe('Text premises only: has the FACT materially changed vs the recorded baseline? A research finding about external reality (provenance required) — never a judgment of the user.'),
+  changed: z.union([z.boolean(), z.literal('uncertain')]).optional().describe('Text premises only: has the FACT materially changed vs the recorded baseline? A research finding about external reality (provenance required) — never a judgment of the user. Pass "uncertain" when you looked and genuinely cannot tell: recording that as false would file a non-verification as a verification.'),
   source: z.enum(['url', 'user_stated', 'host_reported']).describe('Where the finding comes from. host_reported = the model\'s own research without a citation — recorded honestly as such.'),
   source_detail: z.string().max(1000).optional().describe('URL or short citation when source="url".'),
   apply_to_matching: z.boolean().default(false).describe('Also record this re-check on OTHER decisions whose monitored premise has the same normalized text (same fact, same evidence — an explicit mechanical fan-out, plan v5 P1).'),
@@ -126,7 +126,7 @@ export const recheck: ToolModule = {
       const srcLabel = SOURCE_LABEL[rLocale]?.[source] ?? source;
       const sourceDetail = a['source_detail'] as string | undefined;
       const numericValue = a['numeric_value'] as number | undefined;
-      const changed = a['changed'] as boolean | undefined;
+      const changed = a['changed'] as boolean | 'uncertain' | undefined;
 
       // ── drift decision (mechanical or host-asserted; plan v5 §7.1, M2 §4) ──
       const prior = premise.last_recheck;
@@ -151,6 +151,20 @@ export const recheck: ToolModule = {
           if (typeof changed === 'boolean' && changed !== drifted && status !== 'uncertain') {
             integrityNote = `numeric materiality (${reason}) disagrees with the asserted changed=${changed}; the numbers win, and both are on the record.`;
           }
+        } else if (changed === 'uncertain') {
+          // 찾아봤는데 못 가리는 경우. 이 선택지가 없던 동안 그 사람의 유일한
+          // 답은 changed=false 였고, 그것이 "그대로임을 확인했다"로 기록됐다 —
+          // **확인하지 못한 것을 확인으로 파일링하는 것**이고, 이 저장소가
+          // 정직한 공백 원칙으로 금지한 형태다. 상태 자체는 새로 만들지 않았다:
+          // Materiality 의 'uncertain' 과 그 표면(T.uncertain)은 숫자 전제용으로
+          // 이미 있었고, 텍스트 전제만 도달할 수 없었다.
+          //
+          // 주기 시계(anchor_date)는 숫자 uncertain 과 **같게** 둔다. 못 가린
+          // 재확인이 시계를 어떻게 해야 하는지는 별도의 제품 결정이고, 지금
+          // 다르게 두면 두 uncertain 이 서로 다르게 행동한다.
+          status = 'uncertain';
+          drifted = false;
+          reason = 'the host looked and could not tell whether the fact moved';
         } else if (typeof changed === 'boolean') {
           status = changed ? 'material' : 'unchanged';
           drifted = changed;
@@ -162,7 +176,7 @@ export const recheck: ToolModule = {
           return toolError({
             ok: false, tool: 'argus_recheck', error_code: 'RECHECK_NEEDS_ASSERTION',
             message: 'A prior baseline exists but neither a comparable numeric_value nor a `changed` assertion was given.',
-            recovery: `Pass numeric_value (explicit number) for a numeric fact, or changed=true/false as your research finding vs the baseline: "${prior.finding}".`,
+            recovery: `Pass numeric_value (explicit number) for a numeric fact, or changed=true/false as your research finding vs the baseline: "${prior.finding}". If you looked and cannot tell, pass changed="uncertain" — do not file a non-verification as false.`,
           });
         }
       }
