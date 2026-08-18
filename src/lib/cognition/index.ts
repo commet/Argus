@@ -121,6 +121,16 @@ export {
   type PreregisteredAttribution,
 } from './attribution';
 
+export {
+  parseTranscript,
+  splitSentences,
+  extractCandidates,
+  extractionSummary,
+  type TranscriptTurn,
+  type Candidate,
+  type ExtractionResult,
+} from './extract';
+
 export type {
   Authorship,
   CognitiveFrame,

@@ -34,8 +34,13 @@ import {
   sealBlocks,
   sealFrame,
   settleFrame,
+  parseTranscript,
+  extractCandidates,
+  extractionSummary,
   type AxisId,
+  type Candidate,
   type CognitiveFrame,
+  type ExtractionResult,
   type FrameElement,
 } from '@/lib/cognition';
 
@@ -90,6 +95,8 @@ export default function CognitiveFramesPilot() {
   const [drafts, setDrafts] = useState<Record<string, AxisDraft>>({});
   const [notice, setNotice] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
+  const [reading, setReading] = useState(false);
 
   useEffect(() => {
     setFrames(loadFrames());
@@ -106,6 +113,43 @@ export default function CognitiveFramesPilot() {
   const setDraft = useCallback((axis: AxisId, patch: Partial<AxisDraft>) => {
     setDrafts((prev) => ({ ...prev, [axis]: { ...(prev[axis] ?? emptyDraft()), ...patch } }));
   }, []);
+
+  /**
+   * 대화 로그를 읽어 후보를 뽑는다. **자동으로 칸에 넣지 않는다** — 사람이 고른다.
+   * 넣는 순간 사용자의 판단이 기계가 고른 문장으로 대체되기 때문이다.
+   */
+  const onPickLog = useCallback(async (file: File | undefined) => {
+    if (!file) return;
+    setReading(true);
+    try {
+      const text = await file.text();
+      const turns = parseTranscript(text, { maxTurns: 20000 });
+      setExtraction(extractCandidates(turns, { perAxis: 4 }));
+    } catch {
+      setNotice(['로그 파일을 읽지 못했습니다. Claude Code 세션의 .jsonl 파일이 맞는지 확인해 주세요.']);
+    } finally {
+      setReading(false);
+    }
+  }, []);
+
+  /**
+   * 후보를 칸에 넣는다. 저자는 **로그가 증명한다** — 사람 턴이면 사용자 문장이라
+   * 초안 없이(aiDraft='') 넣고, AI 턴이거나 AI 인용이면 그 문장을 초안으로 넣어
+   * 손대지 않으면 AI 문장으로 남게 한다.
+   */
+  const applyCandidate = useCallback(
+    (c: Candidate) => {
+      const fromAi = c.who === 'ai' || c.quoted_from_ai;
+      setDraft(c.axis, {
+        text: c.text,
+        aiDraft: fromAi ? c.text : '',
+        touched: false,
+        rounds: 0,
+        restatement: '',
+      });
+    },
+    [setDraft],
+  );
 
   /** 초안을 불러온다 — 그대로 확정하면 기계 문장으로 기록된다. */
   const applyPilotDraft = useCallback(
@@ -223,6 +267,30 @@ export default function CognitiveFramesPilot() {
         </p>
       </section>
 
+      {/* 대화에서 불러오기 — 손으로 다 치지 않게 하는 자리 */}
+      <section className="mb-8 rounded-lg border border-[var(--border)] px-4 py-4">
+        <h2 className="text-sm font-semibold">대화에서 불러오기</h2>
+        <p className="mt-1 text-xs leading-relaxed opacity-65">
+          Claude Code 세션 파일(.jsonl)을 넣으면 그 안에서 결정으로 보이는 문장을 찾아 보여줍니다. 문장은{' '}
+          <strong>그대로</strong> 가져오고, 요약하거나 다듬지 않습니다. 자동으로 채우지도 않습니다 — 맞는 것만
+          골라 넣으세요.
+        </p>
+        <input
+          type="file"
+          accept=".jsonl,application/json,text/plain"
+          onChange={(e) => onPickLog(e.target.files?.[0])}
+          className="mt-3 block w-full text-xs"
+        />
+        {reading && <p className="mt-2 text-xs opacity-60">읽는 중…</p>}
+        {extraction && (
+          <ul className="mt-3 space-y-1 text-xs opacity-75">
+            {extractionSummary(extraction).map((line, i) => (
+              <li key={i}>· {line}</li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <label className="block text-sm font-medium" htmlFor="frame-title">
         무슨 결정인가요
       </label>
@@ -274,6 +342,35 @@ export default function CognitiveFramesPilot() {
                 className="mt-3 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
               />
 
+              {extraction && (
+                <div className="mt-3">
+                  {extraction.byAxis[spec.id].length === 0 ? (
+                    <p className="text-xs opacity-55">대화에서 못 찾았습니다 — 직접 써주세요.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {extraction.byAxis[spec.id].map((c) => (
+                        <li key={c.turn_id + c.text.slice(0, 12)}>
+                          <button
+                            type="button"
+                            onClick={() => applyCandidate(c)}
+                            className="w-full rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2 text-left text-xs leading-relaxed"
+                          >
+                            <span className="opacity-90">{c.text}</span>
+                            <span className="mt-1 block opacity-50">
+                              {c.quoted_from_ai ? 'AI 문장을 인용한 것' : c.who === 'user' ? '내가 한 말' : 'AI가 한 말'}
+                              {' · '}
+                              {c.at.slice(5, 16).replace('T', ' ')}
+                              {' · '}
+                              {c.why}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
               {PILOT_DRAFTS[spec.id] && spec.authority !== 'human_only' && (
                 <button
                   type="button"
@@ -290,7 +387,7 @@ export default function CognitiveFramesPilot() {
                     {el.authorship.wording_source === 'ai_surfaced'
                       ? 'AI가 쓴 문장'
                       : el.authorship.wording_source === 'user_reworded'
-                        ? `AI 문장을 고쳐 씀 (${Math.round(el.authorship.revision_distance * 100)}% 바꿈)`
+                        ? 'AI 문장을 고쳐 씀'
                         : '내가 쓴 문장'}
                   </span>
                   <span>{WORLD_LABEL[el.world]}</span>
