@@ -4,8 +4,10 @@
 
 Date: 2026-08-04
 Status: **Descriptive decision history and AI handoff; not a normative method canon**
-Normative canon: `docs/ARGUS-METHOD-V0.3-2026-08-03.md`
-Historical snapshots: `ARGUS-METHOD-V0.1`, `ARGUS-METHOD-V0.2`
+Normative canon: **`docs/ARGUS-METHOD-V1.0.md`** (2026-08-18 정정 — 이 줄은
+원래 `V0.3`을 가리켰으나 V1.0이 V0.1~V0.8을 전부 대체했다. 이 문서는
+그 시점의 설계 이력이지 규범이 아니다.)
+Historical snapshots: `docs/archive/ARGUS-METHOD-V0.1` ~ `V0.8` (2026-08-18 이관)
 Scope: product reasoning, theoretical choices, rejected paths, unresolved hypotheses,
 and review instructions
 

@@ -23,7 +23,7 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const blueprint = read('docs/ARGUS-BLUEPRINT.md');
+const blueprint = read('docs/archive/ARGUS-BLUEPRINT.md');
 const eConstitution = read('docs/DESIGN-epistemic-agency-and-self-knowledge-governance-v1-2026-07-17.md');
 const jcr = read('docs/DESIGN-judgment-continuity-runtime-v1-2026-07-18.md');
 const types = read('src/lib/epistemic/types.ts');

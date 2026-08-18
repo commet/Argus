@@ -1,5 +1,26 @@
 # Argus — Development Guidelines
 
+## 시작하기 전에 — 정본은 여섯이고 이 파일은 그중 하나다
+
+[`docs/ARGUS-CANON.md`](docs/ARGUS-CANON.md) 가 전체 지도다. 이 파일(CLAUDE.md)은
+**코드를 어떻게 짜는가**만 다룬다. **무엇을 짓는가**는 다른 세 문서가 정한다:
+
+| 문서 | 여기서 답을 찾아야 하는 것 |
+|---|---|
+| [`CONTEXT.md`](CONTEXT.md) | 도메인 낱말 11개 (Decision Case · Next Move · **Return Contract** · Observation · Lesson …) |
+| [`PRODUCT.md`](PRODUCT.md) | 제품 약속 · 필수 능력 · **제약** · 원칙 10 |
+| [`DESIGN.md`](DESIGN.md) | 색 · 활자 · 레이아웃 · 컴포넌트 |
+
+**새 개념을 만들기 전에 `CONTEXT.md`의 낱말 11개를 먼저 읽는다.** 거기 있으면
+그 이름을 쓰고, 없으면 왜 없는지 적고 만든다. 이 규칙이 없어서 2026-08-18에
+`Return Contract`를 `watch`라는 이름으로 다시 설계하는 데 하루를 썼다
+(같은 개념의 여섯 번째 어휘였다 — [FINDINGS](docs/FINDINGS-2026-08-18.md) §2).
+
+**PRODUCT.md의 제약은 코드 규율보다 위다.** 특히:
+- 명시적 채택 행위 없이 사용자 결정을 추론하거나 저장하지 않는다
+- AI 제안을 사용자의 원래 믿음으로 제시하지 않는다
+- 사람·결정 품질·예측 정확도를 채점하지 않는다
+
 ## Commands
 
 ```bash
@@ -43,24 +64,33 @@ playwrightExecutablePath() })`로 띄운다(`scripts/lib/playwright-executable.m
 | 경로 | 무엇 | 라이선스 존 |
 |---|---|---|
 | `src/` | Next.js 16 앱 (App Router, `[locale]` 라우팅은 `src/proxy.ts`가 처리) | 앱 |
-| `src/lib/__tests__/` | **가드 테스트 276개** — 아래 원칙 대부분을 기계로 강제 | 앱 |
+| `src/lib/__tests__/` | **가드 테스트** — 아래 원칙 대부분을 기계로 강제 (개수는 계속 는다; 세지 말고 `ls`) | 앱 |
 | `method-harness/` | Track R 오프라인 하네스. `src/`와 상호 import 금지 (테스트가 차단; 승인 예외 2채널: `src/app/method-pilot/`·`src/app/api/mcp/v2/`) | 앱 |
-| `docs/` | 정본 문서 (BLUEPRINT = 빌드 순서, ARGUS-METHOD-V1.0 = 방법 정본) | — |
+| `docs/` | `ARGUS-CANON.md`(정본 지도) · `ARGUS-METHOD-V1.0.md`(방법 정본) · `FINDINGS-*`(확인 기록). 나머지는 역사, `archive/`는 은퇴 | — |
 | `argus-mcp/`, `argus-plugin-v2/` | MIT 존 — **PR은 앱 존과 섞지 않는다** | MIT |
 
-## 빌드 정본 (모든 세션의 첫 규칙, 2026-07-07)
+## 무엇을 지을 것인가 — 정본은 PRODUCT.md다 (2026-08-18 개정)
 
-빌드 순서의 정본은 `docs/ARGUS-BLUEPRINT.md`다. 세션 시작 시 그 문서의
-§6 공정표에서 **현재 공정**을 확인하고, 그 공정의 항목만 진행한다.
-새 설계 문서(DESIGN-*, 감사, 계획서) 작성 금지 — 새 아이디어는 BLUEPRINT
-§8 대기 목록에 한 줄로 추가하고 짓지 않는다. 단, **창업자가 독립 병렬 트랙과
-기존 공정 무접촉 경계를 명시적으로 승인하고 BLUEPRINT에 등록한 단일 정본 문서**는
-예외다. 예외 문서는 새 기능 표면을 곧바로 여는 허가가 아니다. 모든 PR 본문 첫 줄:
-`공정 N · 겨냥 퍼널 단계 X→Y`.
+`docs/ARGUS-BLUEPRINT.md`는 **은퇴했다**(`docs/archive/`). 2026-07-26 판이었고
+`PRODUCT.md`(2026-08-10)와 "무엇을 지을 것인가"를 두고 충돌했다. 창업자 판정:
+**지금 정하는 것이 과거 공정표보다 우선한다.**
 
-exit 체크박스 `[x]`는 같은 커밋에서 `blueprint-exit-evidence.test.ts`의
-EVIDENCE 맵 갱신과 함께만 (개수·파일 실존을 CI가 대조). 시공과 완료 판정을
-분리한다 — exit 문구를 "무엇이 이걸 빨간불로 만드는가"로 검증한 뒤 체크한다.
+함께 폐기한 것: `blueprint-exit-evidence.test.ts`(431줄). BLUEPRINT 본문에
+특정 문자열이 있는지 검사하던 **문서 모양 고정 테스트**였고 코드 동작은 0이었다.
+문서를 고치는 값만 비싸게 만들었다.
+
+무엇을 지을지는 이제 이렇게 정한다:
+
+1. **`PRODUCT.md`** — 약속·필수 능력·제약·원칙. 여기와 충돌하면 그쪽이 틀렸다.
+2. **`CONTEXT.md`** — 낱말. 새 개념 만들기 전에 먼저 읽는다.
+3. **창업자와 그 세션에서 정한 것** — 정하면 `docs/FINDINGS-<날짜>.md`에 기록.
+
+PR 본문 첫 줄의 `공정 N · 겨냥 퍼널 단계 X→Y` 규약도 함께 폐기한다.
+(그 번호를 검사하는 장치가 없어 2026-08-18에 커밋 8개가 존재하지 않는
+"공정 12"를 달고 통과했다. 지키지 않는 형식은 지킨다는 착각만 만든다.)
+
+**대신 PR 본문에 적는 것**: 이 변경이 `PRODUCT.md`의 어느 필수 능력·제약과
+닿는지 한 줄.
 
 ## Checklist: Adding a New Field to a Type
 
@@ -95,8 +125,9 @@ surface, pass it through one gate:
    — 강제하면 가장 지친 사용자가 이탈해 소유권이 0이 된다.
 2. **사용자가 누구인지에 대한 사용자향 판정 금지.** 미보정 점수·등급을 노출하지
    않는다. 그런 지표는 파이프라인 진단용일 뿐, 코칭을 라우팅하거나 프롬프트를
-   개인화하거나 자기인식이 되면 안 된다. 사용자에 대한 의미 언어는 BLUEPRINT
-   §9.8/E를 통과해야 한다 (출처 + 독립 사례 + 범위 + 반례 + 사용자 검토).
+   개인화하거나 자기인식이 되면 안 된다. 사용자에 대한 의미 언어는 **다섯을
+   전부** 갖춰야 한다: ①출처(어느 기록에서 나왔나) ②독립 사례(한 건이 아니다)
+   ③범위(어디까지 참인가) ④반례(반대 기록을 찾아봤나) ⑤사용자 검토(본인이 봤나).
    표본 수만으로는 허가가 아니다.
 
    > **TWIN 수정조항 (2026-08-06, 창업자 "모든 권한을 다 승인한다. 기획을 더
@@ -205,8 +236,9 @@ localStorage-first 아키텍처에서 UI는 로컬만 읽는다 — 서버에 �
 
 `docs/agent-skills/`에 선별된 외부 규칙집이 있다 — **Postgres/스키마/RLS/
 마이그레이션을 만지기 전에 `supabase-postgres-best-practices/SKILL.md`를 먼저
-읽는다.** React 성능 작업은 `vercel-react-best-practices/`. `.claude/skills/`에
-두면 안 된다 (플러그인 검증 게이트가 빈 디렉토리를 강제 — 사유는 그 폴더 README).
+읽는다.** React 성능 작업은 `vercel-react-best-practices/`.
+`.claude/skills/`에 두지 않는다 — 플러그인 검증 게이트가 그 경로의 빈 디렉토리를
+막기 때문이고, 지금 그 폴더는 아예 없다 (2026-08-18 확인).
 
 ## Principle: Defensive Data Access
 
@@ -256,7 +288,8 @@ SELECT column_name FROM information_schema.columns WHERE table_name = 'TABLE_NAM
 ## LLM Prompt Injection Guidelines
 
 - 파생 패턴 데이터는 **기본 제외**. "참고"라 불러도 영향력은 중화되지 않으며,
-  BLUEPRINT §9.8의 능동 스코프 승인이 필요하다. 승인된 기억도 부차적이고
+  위 Zero-Judgment Gate 2항의 다섯 조건을 통과한 능동 스코프 승인이 필요하다.
+  승인된 기억도 부차적이고
   `InfluenceTrace`를 남겨야 한다 (현재 작업 내용과 사용자 작성 제약이 1차).
 - `src/lib/epistemic/control-plane.ts`가 파생 기억의 유일한 권위 — 승인은 grant가
   아니고, scope·만료·철회·반례·`ask_once` 재사용을 거기서 검사한다. trace를
