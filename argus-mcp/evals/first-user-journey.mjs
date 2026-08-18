@@ -37,6 +37,8 @@ import { complete, completeJson } from './anthropic.mjs';
 // 모델에게 넘기는 채널의 정본. 여기 두 함수만이 "제품이 말한 것"과 "모델이 들은
 // 것" 사이에 있고, model-channel 게이트가 그 사이가 무손실인지 매번 검사한다.
 import { toolsForModel, resultForModel } from './model-channel.mjs';
+// 시계는 모델 없이도 재져야 한다 — 왜 별도 모듈인지는 그 파일 머리말.
+import { collectPlanDues, earliestPlanDue } from './plan-clock.mjs';
 
 const argOf = (flag, dflt) => (process.argv.includes(flag) ? process.argv[process.argv.indexOf(flag) + 1] : dflt);
 const VERSION = argOf('--version', '2.0.22');
@@ -527,27 +529,9 @@ say(`  세션1 종료. 재시작 전 원장의 식별자 ${preRestartIds.length}
 // 옮긴다 — 다른 것은 아무것도 바꾸지 않는다. 옮기지 않으면 이 대본의 마지막
 // 관문(plan_check)은 **측정 불가**이지 실패가 아니다.
 if (SCRIPT === 'plan') {
-  const dues = [];
-  (function scanPlans(dir) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const fp = path.join(dir, e.name);
-      if (e.isDirectory()) scanPlans(fp);
-      else if (e.name.endsWith('.jsonl')) {
-        for (const line of fs.readFileSync(fp, 'utf8').split('\n').filter(Boolean)) {
-          try {
-            const ev = JSON.parse(line);
-            if (ev.event === 'plan_adopt' && Array.isArray(ev.steps)) {
-              for (const st of ev.steps) if (st && typeof st.due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(st.due)) dues.push(st.due);
-            }
-          } catch { /* 파싱 불가 줄은 증거로 쓰지 않는다 */ }
-        }
-      }
-    }
-  })(ledgerDir);
-  if (dues.length) {
-    // 가장 이른 확인일. `due <= today` 가 도래 조건이므로 그날 당일이면 충분하고,
-    // 가장 이른 단계는 언제나 scheduled 다(예약은 이른 순 PLAN_MAX_SCHEDULED 개).
-    timeTravelTo = dues.sort()[0];
+  const dues = collectPlanDues(ledgerDir);
+  timeTravelTo = earliestPlanDue(ledgerDir);
+  if (timeTravelTo) {
     timeTravelNote = `채택된 계획의 가장 이른 확인일 ${timeTravelTo} 로 이동 (날짜 붙은 단계 ${dues.length}개)`;
     say(`  ⏱ 세션2의 오늘 = ${timeTravelTo} — ${timeTravelNote}`);
   } else {
