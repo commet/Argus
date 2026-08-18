@@ -64,6 +64,13 @@ export interface ContractEntry {
   /** 봉인된 예측에 대해 사용자가 표현한 확신도 (사이클 2) — 전제의 confidence와
    *  같은 어휘 한 벌, 다른 대상(전제 vs 예측). 정산 대조의 재료. */
   predicate_confidence?: 'confident' | 'uncertain' | 'contested';
+  /** 이 귀환이 남긴 규칙 한 줄 (CONTEXT.md 의 `Lesson`) — 사용자가 정산
+   *  확인창에 직접 타이핑한 문장 그대로. 모델 요약이 여기 오면 다음 결정으로
+   *  가는 것은 사용자의 기준이 아니라 모델의 요약이므로, 저자성은 채널로
+   *  확보한다(`lesson_elicited`). 규칙 없는 귀환이 정상이고 흔하다 — 없으면
+   *  키 자체가 없다(채워야 할 칸이 아니라 정직한 공백). */
+  lesson?: string;
+  lesson_elicited?: boolean;
   values?: string[];
   rejected_alternative?: { alternative: string; reason: string };
   load_bearing_assumption?: string;
@@ -337,6 +344,12 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         const settledTs = typeof ev['ts'] === 'string' ? ev['ts'] : typeof ev['at'] === 'string' ? ev['at'] : undefined;
         if (settledTs && settledTs.length >= 10) cur.settled_on = settledTs.slice(0, 10);
         if (typeof ev['broken_premise_id'] === 'string') cur.broken_premise_id = ev['broken_premise_id'];
+        // 규칙 한 줄. 첫 정산이 이기는 것은 위 status 와 같은 이유이고,
+        // settled 는 종결이라 두 번째 settle 자체가 상태기계에서 막힌다.
+        if (typeof ev['lesson'] === 'string' && ev['lesson'].trim()) {
+          cur.lesson = ev['lesson'];
+          if (ev['lesson_elicited'] === true) cur.lesson_elicited = true;
+        }
         // Buckets are NOT counted here — stats derive from the FOLDED STATE
         // after the loop (see below), so a duplicated or reordered settle line
         // in an externally-edited ledger cannot double-count a calibration.

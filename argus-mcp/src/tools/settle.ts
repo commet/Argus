@@ -118,7 +118,11 @@ export const settle: ToolModule = {
           },
         });
       }
+      // 이 호출에서 창이 이미 떴는지. 한 호출에 두 창은 수집이 아니라
+      // 잔소리다 (사이클 3 규율, 같은 장치).
+      let windowOpenedThisCall = false;
       if (!outcome && canElicit()) {
+        windowOpenedThisCall = true;
         // Localize the picker like every other elicitation (ambient-elicit does):
         // a bilingual "그렇게 됐다 (held)" mishmash showed to BOTH a Korean and an
         // English user. Voice follows the language the decision was sealed in.
@@ -349,6 +353,61 @@ export const settle: ToolModule = {
         brokenPremiseText = p.text;
       }
 
+      // ── 귀환이 남기는 규칙 한 줄 (CONTEXT.md 의 `Lesson`) ──────────────────
+      // 제품의 약속은 "결정 → 현실 → 사용자가 승인한 배움 → 더 나은 다음
+      // 판단"이다. MCP 에는 그 마지막 고리가 없었다 — 웹은 갖고 있었고
+      // (ContractSettlement.lesson) 재고 있는 여정은 전부 여기서 돈다.
+      //
+      // 왜 잠금 **밖**인가: 창은 사람 시간만큼 열려 있고, 원장 잠금을 쥔 채
+      // 사람을 기다리면 다른 세션이 그 시간만큼 막힌다. 그리고 창은 어떤
+      // 경우에도 정산을 실패시킬 수 없다 — 거절·무응답·빈 제출·예외 전부
+      // 규칙 없이 정산으로 흐른다(규칙 없는 귀환이 정상이고 흔하다).
+      //
+      // 왜 held 에는 안 묻는가: 현실이 예측과 같았던 귀환에 "규칙이
+      // 달라졌나요"를 물으면 아무것도 안 움직인 자리에 규칙을 제조하게 된다 —
+      // 거울 조항이 말하는 과발화다. 웹은 사용자가 "기준이 달라졌다"고 답한
+      // 귀환에서만 물었고, MCP 에는 그 질문이 없으므로 **현실이 예측에서
+      // 벗어난 정산**(missed·partial·avoided)을 그 자리로 삼는다. 이것은
+      // 사용자에 대한 판정이 아니라 기록된 예측과 기록된 결과의 대조다.
+      let lesson: string | undefined;
+      let lessonLine = '';
+      const divergent = outcome === 'missed' || outcome === 'partial' || outcome === 'avoided';
+      if (divergent && !windowOpenedThisCall && canElicit()) {
+        try {
+          const asked = await elicitDetailed(
+            locale === 'ko'
+              ? `기록했습니다: "${sanitizeLine(a['what_happened'] as string, 96)}"\n이번 일로 다음에 비슷한 결정을 할 때 지킬 규칙이 하나 생겼나요?\n생겼으면 당신의 말로 아래에 적고 Accept 하세요.\n(대부분의 귀환에는 규칙이 없습니다. 없으면 비워두고 Accept 하세요. 정산은 그대로 남습니다.)`
+              : `Recorded: "${sanitizeLine(a['what_happened'] as string, 96)}"\nDid this leave you a rule for next time you decide something like it?\nIf it did, write it below in your words, then Accept.\n(Most returns leave no rule. Leave it blank and Accept — the record stands either way.)`,
+            {
+              type: 'object',
+              properties: {
+                lesson: {
+                  type: 'string',
+                  title: locale === 'ko' ? '다음에 지킬 규칙' : 'The rule for next time',
+                  description: locale === 'ko'
+                    ? '이 귀환에서 당신이 얻은 규칙 한 줄, 당신의 표현으로.'
+                    : 'One rule this return left you, in your words.',
+                },
+              },
+            },
+          );
+          if (asked.kind === 'accepted') {
+            const typed = typeof asked.content['lesson'] === 'string' ? (asked.content['lesson'] as string).trim() : '';
+            // 400자 초과는 자르지 않는다 — 사용자가 타이핑한 문장을 몰래
+            // 줄이는 쪽이 안 남기는 쪽보다 나쁘다. 아래 data 로 되돌려준다.
+            if (typed && typed.length <= 400) lesson = typed;
+            else if (typed) lessonLine = '';
+          }
+        } catch {
+          // 1차 방어선은 여기가 아니라 elicit.ts 다 — 호스트가 던지면
+          // elicitDetailed 가 이미 no_answer 로 바꿔 준다(확인함). 이 catch 는
+          // 그 밖(문장 다듬기·표면 조립)에서 나는 예외까지 정산을 못 죽이게
+          // 하는 두 번째 벽이고, 그래서 주입 실험으로는 빨간불이 안 난다.
+          // 불변식 자체(창이 정산을 실패시킬 수 없다)는 settle-lesson.test.ts 가
+          // 거절·취소·빈 제출·호스트 예외 넷으로 잰다.
+        }
+      }
+
       // §9.4 두 기기 안전: the settle write is a read-check-append sequence —
       // re-guard UNDER the ledger lock so two concurrent sessions can't both
       // pass the check above and double-count the record (the loser sees
@@ -367,7 +426,7 @@ export const settle: ToolModule = {
         // from `fresh` so a concurrent defer is reflected on the receipt too.
         const deferCount = fresh.entry?.defer_count ?? 0;
         const originallyDue = fresh.entry?.defer_history?.[0]?.from;
-        const appended = await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
+        const appended = await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}), ...(lesson ? { lesson, lesson_elicited: true } : {}) }], now);
         return { v2Mirror: appended.v2_mirror, receipt: await writeSettleReceipt(dir, id, {
           what_happened: String(a['what_happened']), outcome, settled_at: now,
           ...(deferCount > 0 ? { deferred_times: deferCount, ...(originallyDue ? { originally_due: originallyDue } : {}) } : {}),
@@ -440,15 +499,26 @@ export const settle: ToolModule = {
           : `\nConfidence recorded at seal: '${sealedConfidence}'.`)
         : '';
 
+      // 규칙이 남았으면 그 사실만 말한다 — 문장을 재진술하지 않는다(사용자가
+      // 방금 쓴 것이고, 되풀이는 기계가 규칙의 저자인 척하는 쪽으로 읽힌다).
+      if (lesson) {
+        lessonLine = locale === 'ko'
+          ? `\n다음에 지킬 규칙도 당신의 말 그대로 남았습니다.`
+          : `\nThe rule you take forward is recorded in your words.`;
+      }
+
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed', echoPred) + confidenceLine + syncLine + connectionLine
+        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed', echoPred) + confidenceLine + lessonLine + syncLine + connectionLine
           + (firstReceipt ? `\n\n${receiptText}` : ''),
         next_actions: ['argus_patterns', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
           // 봉인 때의 확신도 병치 사실 (사이클 4) — 없으면 키 자체가 없다.
           ...(sealedConfidence ? { sealed_confidence: sealedConfidence } : {}),
+          // 귀환이 남긴 규칙. 없으면 키가 없다 — 규칙 없는 귀환은 채워야 할
+          // 칸이 아니라 정직한 공백이다.
+          ...(lesson ? { lesson, lesson_authored: 'user' as const, lesson_elicited: true } : {}),
           // For the MCP Apps settle card's done-view (echoes the user's OWN
           // words back; never model content) + its locale.
           what_happened_echo: a['what_happened'], locale,

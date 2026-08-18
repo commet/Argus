@@ -576,6 +576,139 @@ S.push({
 });
 
 
+// ── 계획 귀환 루프 (S47~S49) ────────────────────────────────────────────────
+// WHY THESE EXIST. 라이브 여정 하네스(first-user-journey)는 15바퀴를 돌면서
+// plan_check 를 한 번도 못 봤고, 그 원인을 "모델의 동사 선택"으로 적어 왔다.
+// 실제 원인은 계측기였다 — 하네스의 "재시작"은 프로세스 재시작이지 날짜
+// 이동이 아니라서, +7d 로 채택된 단계의 확인일이 **온 적이 없다.** 확인일이
+// 안 오면 check_in 은 옳게 침묵하고, 침묵하면 모델은 부를 계기가 없다.
+//
+// 그래서 여기 셋이 필요하다: 모델을 빼고 시계만 돌려서 **제품 쪽 호(弧)가
+// 실제로 도는지**를 먼저 확정한다. 이것이 초록이면 라이브 실행의 빨강은
+// 오직 모델의 라우팅이고, 이것이 빨강이면 모델 얘기를 할 자격이 없다.
+// 대조군 없는 라이브 측정은 원인을 못 가른다.
+S.push({
+  name: 'S47 계획 귀환 — 확인일 전에는 조용하고, 오면 먼저 말을 건다',
+  lang: 'ko',
+  steps: (d) => [
+    { tool: 'argus_capture', args: { argus_dir: d, action: 'open', id: 'queue', today_override: T0,
+      decision: '백그라운드 작업을 cron 에서 큐로 옮길지 이번 분기에 정한다',
+      stakes: 'moderate', reversibility: 'costly_to_reverse',
+      status_quo: '지금 cron 그대로 두고 실패하면 수동 재실행한다' } },
+    { tool: 'argus_capture', args: { argus_dir: d, action: 'plan', id: 'queue', today_override: T0,
+      plan_owner: 'user', adopted_quote: '그 계획대로 갑시다',
+      steps: [
+        { what: '현재 cron 잡의 실패율을 2주치 로그로 센다', due: '+7d' },
+        { what: '큐 후보 둘을 재시도·가시성 기준으로 비교한다', due: '+3w' },
+        { what: '가장 자주 깨지는 잡 하나만 큐로 옮겨 본다', due: '+6w' },
+      ] },
+      expect: (env) => (env.ok === true ? null : `plan adopt failed: ${JSON.stringify(env.error_code)}`) },
+    // 확인일 전 — 침묵이 옳다. 이 줄이 없으면 아래의 초록이 "항상 뜬다"와
+    // 구분되지 않는다.
+    { tool: 'argus_check_in', args: { argus_dir: d, today_override: '2026-07-05' },
+      expect: (env) => (env.data?.plan_due_count ? `not due yet but surfaced: ${env.data.plan_due_count}` : null) },
+    // 확인일 당일 — 여기서 제품이 **먼저** 말을 건다. 이 한 줄이 이 제품의
+    // 해자라고 기획안이 말한 그 순간이다.
+    { tool: 'argus_check_in', args: { argus_dir: d, today_override: '2026-07-09' },
+      expect: (env) => {
+        if (!env.data?.plan_due_count) return 'due date arrived but check_in stayed silent';
+        const first = (env.data.plan_due || [])[0];
+        if (!first || first.step !== 1) return `first due step should be ordinal 1, got ${JSON.stringify(first)}`;
+        if (!String(env.surface || '').includes('실패율')) return 'surface names a count but not the step itself';
+        return null;
+      } },
+    { tool: 'argus_capture', args: { argus_dir: d, action: 'plan_check', id: 'queue', step: 1, today_override: '2026-07-09',
+      note: '2주치 세어보니 실패율 3.1%였고, 대부분 한 잡에 몰려 있었다' },
+      expect: (env) => (env.ok === true ? null : `plan_check refused: ${JSON.stringify(env.error_code)}`) },
+    // 적은 단계는 다시 묻지 않는다 — 기록이 소비되는지의 증거.
+    { tool: 'argus_check_in', args: { argus_dir: d, today_override: '2026-07-09' },
+      expect: (env) => {
+        const steps = env.data?.plan_due || [];
+        return steps.some((s) => s.step === 1) ? 'checked step came back' : null;
+      } },
+    { tool: 'argus_patterns', args: { argus_dir: d, view: 'all', today_override: '2026-07-09' }, observe: true },
+  ],
+});
+S.push({
+  name: 'S48 계획 귀환 — 3개까지만 예약된다 (12단계가 12번 잔소리가 되지 않는다)',
+  lang: 'ko',
+  steps: (d) => [
+    { tool: 'argus_capture', args: { argus_dir: d, action: 'open', id: 'launch', today_override: T0,
+      decision: '신규 랜딩을 이번 달에 낼지 다음 달로 미룰지 정한다',
+      stakes: 'low', reversibility: 'easily_reversible', status_quo: '기존 랜딩을 그대로 둔다' } },
+    { tool: 'argus_capture', args: { argus_dir: d, action: 'plan', id: 'launch', today_override: T0,
+      plan_owner: 'user', adopted_quote: '이대로 진행하죠',
+      steps: [
+        { what: '카피 초안을 쓴다', due: '+2d' },
+        { what: '이미지를 고른다', due: '+3d' },
+        { what: '가격표를 확정한다', due: '+4d' },
+        { what: '베타 사용자 5명에게 보여준다', due: '+5d' },
+        { what: '분석 태그를 심는다', due: '+6d' },
+        { what: '배포한다', due: '+7d' },
+      ] } },
+    // 여섯 단계가 전부 지났는데 알림은 셋뿐이어야 한다 (PLAN_MAX_SCHEDULED).
+    { tool: 'argus_check_in', args: { argus_dir: d, today_override: '2026-07-20' },
+      expect: (env) => {
+        const n = env.data?.plan_due_count ?? 0;
+        return n === 3 ? null : `scheduled cap broken: expected 3 due, got ${n}`;
+      } },
+  ],
+});
+S.push({
+  name: 'S49 계획 귀환 — 정산으로 닫힌 결정은 단계를 더 묻지 않는다',
+  lang: 'ko',
+  steps: (d) => [
+    { tool: 'argus_predict', args: { argus_dir: d, id: 'migrate', predicate: '이주 후 야간 배치 실패가 절반으로 준다', check_by: '2026-07-08', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_capture', args: { argus_dir: d, action: 'plan', id: 'migrate', today_override: T0,
+      plan_owner: 'user', adopted_quote: '그렇게 갑시다',
+      steps: [{ what: '스테이징에서 하루 돌려본다', due: '+5d' }] } },
+    { tool: 'argus_resolve', args: { argus_dir: d, id: 'migrate', outcome: 'held', outcome_source: 'user_stated',
+      what_happened: '야간 실패가 12건에서 5건으로 줄었다', today_override: '2026-07-09' } },
+    // 닫힌 결정을 다시 여는 것은 과발화다 (거울 조항).
+    { tool: 'argus_check_in', args: { argus_dir: d, today_override: '2026-07-09' },
+      expect: (env) => (env.data?.plan_due_count ? 'settled decision still nags about its plan steps' : null) },
+  ],
+});
+S.push({
+  name: 'S50 귀환이 규칙 하나를 남긴다 — 빗나간 정산에서만 묻고, 사용자 말 그대로',
+  lang: 'ko',
+  respond: (p) => (pickerKind(p.requestedSchema) === 'lesson_input'
+    ? { action: 'accept', content: { lesson: '트래픽 가정은 마케팅 일정과 같이 봐야 한다 — 따로 보면 또 틀린다' } }
+    : { action: 'accept', content: {} }),
+  steps: (d) => [
+    { tool: 'argus_predict', args: { argus_dir: d, id: 'ret', predicate: '리텐션 개편 후 4주 잔존율이 40%를 넘는다', check_by: '2026-07-30', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_resolve', args: { argus_dir: d, id: 'ret', outcome: 'missed', outcome_source: 'user_stated',
+      what_happened: '34%에서 멈췄다. 유입이 늘면서 신규 비중이 커진 게 컸다', today_override: '2026-07-31' },
+      expect: (env) => {
+        if (env.data?.lesson !== '트래픽 가정은 마케팅 일정과 같이 봐야 한다 — 따로 보면 또 틀린다') return `lesson not recorded verbatim: ${JSON.stringify(env.data?.lesson)}`;
+        if (env.data?.lesson_authored !== 'user') return `authorship must be the user's: ${JSON.stringify(env.data?.lesson_authored)}`;
+        // 문장을 되풀이하지 않는다 — 방금 사용자가 쓴 것이고, 되읊으면
+        // 기계가 규칙의 저자인 척하는 쪽으로 읽힌다.
+        if (String(env.surface || '').includes('마케팅 일정과 같이')) return 'surface re-states the rule back at the user';
+        return null;
+      } },
+    { tool: 'argus_patterns', args: { argus_dir: d, view: 'receipt', id: 'ret', today_override: '2026-07-31' },
+      expect: (env) => (env.data?.lesson ? null : 'the rule is unreachable when the receipt is reopened') },
+  ],
+});
+let heldAskedForLesson = false;
+S.push({
+  name: 'S51 예측대로 된 정산에는 규칙을 묻지 않는다 (과발화 금지)',
+  lang: 'ko',
+  respond: (p) => {
+    // 이 시나리오에서 규칙 창이 뜨면 그 자체가 결함이다 — 아래 unknownPickers
+    // 대신 명시적으로 잡는다.
+    if (pickerKind(p.requestedSchema) === 'lesson_input') heldAskedForLesson = true;
+    return { action: 'accept', content: {} };
+  },
+  steps: (d) => [
+    { tool: 'argus_predict', args: { argus_dir: d, id: 'held1', predicate: '신규 온보딩으로 첫 주 이탈이 줄어든다', check_by: '2026-07-20', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_resolve', args: { argus_dir: d, id: 'held1', outcome: 'held', outcome_source: 'user_stated',
+      what_happened: '첫 주 이탈이 22%에서 15%로 줄었다', today_override: '2026-07-21' },
+      expect: () => (heldAskedForLesson ? 'held settle opened the rule window — nothing moved, so asking manufactures a rule' : null) },
+  ],
+});
+
 /**
  * Which ask is this? Routed by the SCHEMA, never by the prose (audit 2026-07-28).
  *
@@ -607,6 +740,9 @@ function pickerKind(schema) {
   // 다루지 않으면 content에 belief가 없어 서버는 left_blank 건너뛰기로
   // 처리한다 — 창 자체의 규율은 seal-belief-window.test.ts가 잰다.
   if (has('belief')) return 'belief_input';
+  // 정산 직후 규칙 직접 입력 (귀환의 마지막 고리). 같은 규율: 시나리오가
+  // 따로 답하지 않으면 content에 lesson이 없어 서버가 빈 제출로 흘린다.
+  if (has('lesson')) return 'lesson_input';
   return 'unknown';
 }
 

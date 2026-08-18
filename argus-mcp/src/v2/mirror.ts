@@ -244,6 +244,11 @@ function mirrorOne(ctx: V2Context, ev: LedgerEventInput, now: string, hints?: Mi
       settleV2(ctx, {
         decisionId: ev.id,
         outcome: { value: outcome as 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed', provenance: HOST },
+        // 규칙은 확인창을 거쳐 온 사용자 문장이므로 사다리의 최상위 등급을
+        // 받는다 (전제의 elicited → elicited_user 승격과 같은 규칙). 창을
+        // 안 거친 문장은 애초에 여기 오지 않는다 — settle.ts 가 elicit
+        // 채널로만 lesson 을 싣는다.
+        ...(str(ev.lesson) ? { lesson: { value: str(ev.lesson)!.slice(0, 400), provenance: (ev.lesson_elicited === true ? 'elicited_user' : HOST) as Provenance } } : {}),
         ...(str(ev.decision) ? { note: str(ev.decision) } : {}),
         idempotencyKey: key,
       });

@@ -13,8 +13,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { init } from '../tools/init-config.js';
 import { seal } from '../tools/seal.js';
+import { settle } from '../tools/settle.js';
 import { decide } from '../tools/public-tools.js';
 import { loadState } from './reducer.js';
+import { readLedger } from './ledger.js';
 import { setElicitor } from '../lib/elicit.js';
 import { resetSealSession } from '../tools/seal.js';
 
@@ -124,5 +126,26 @@ describe('인지 필드가 v2 거울을 유실 없이 건넌다', () => {
     expect(typed).toBeDefined();
     expect(typed.text.provenance).toBe('elicited_user'); // 모델 미경유 채널의 제 등급
     expect(typed.load_bearing).toBe(true);
+  });
+
+  it('귀환이 남긴 규칙도 유실 없이 건너고 elicited_user 등급을 받는다', async () => {
+    await call(init, { argus_dir: argusDir });
+    setElicitor(async () => ({ action: 'accept' as const, content: {} }), () => true);
+    const sealed = await call(seal, {
+      argus_dir: argusDir, id: 'cog-5',
+      predicate: 'the new pricing page lifts trial starts', check_by: '2026-07-10',
+      predicate_owner: 'user', today_override: '2026-07-01',
+    });
+    const repoId = sealed.v2_write!.repository_id!;
+    setElicitor(async () => ({ action: 'accept' as const, content: { lesson: 'pricing tests need two full weeks, not one' } }), () => true);
+    await call(settle, {
+      argus_dir: argusDir, id: 'cog-5', outcome: 'missed', outcome_source: 'user_stated',
+      what_happened: 'trial starts were flat', today_override: '2026-07-11',
+    });
+    const ev = readLedger(home, repoId).events.filter((e) => e.event === 'settle') as Array<{ lesson?: { value: string; provenance: string } }>;
+    expect(ev).toHaveLength(1);
+    // 계수되며 유실하는 거울을 막는다: 값과 등급이 둘 다 건너야 한다.
+    expect(ev[0]!.lesson?.value).toBe('pricing tests need two full weeks, not one');
+    expect(ev[0]!.lesson?.provenance).toBe('elicited_user');
   });
 });
