@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTranscript, splitSentences, extractCandidates, extractionSummary } from '../extract';
+import { parseTranscript, splitSentences, extractCandidates, extractionSummary, isAiWorded, authorLine } from '../extract';
 
 /** 실제 Claude Code 세션 로그 한 줄의 모양 (2026-08-18 실측 형식). */
 const humanLine = (text: string, at: string, uuid = 'u1') =>
@@ -112,13 +112,34 @@ describe('후보 뽑기 — 지어내지 않고, 사람 말을 앞세운다', ()
     );
     const r = extractCandidates(t, { perAxis: 5 });
     const quoted = r.byAxis.premises.find((c) => c.who === 'user');
-    expect(quoted?.quoted_from_ai).toBe(true);
+    expect(quoted?.quoted_from_ai).toBe('yes');
   });
 
-  it('사람이 처음 한 말은 인용이 아니다', () => {
+  it('AI 턴이 함께 있을 때, 사람이 처음 한 말은 인용이 아니다', () => {
+    const t = parseTranscript(
+      [
+        aiLine('전혀 다른 이야기를 하고 있습니다 그렇습니다', '2026-08-17T00:00:00Z', 'a1'),
+        humanLine('나는 이게 전제라고 생각해 정말로', '2026-08-17T00:01:00Z', 'u1'),
+      ].join('\n'),
+    );
+    const r = extractCandidates(t);
+    expect(r.aiComparisonPossible).toBe(true);
+    expect(r.byAxis.premises.find((c) => c.who === 'user')?.quoted_from_ai).toBe('no');
+  });
+
+  it('AI 턴이 하나도 없으면 대조 불가이므로 unknown 이다 — no 로 적지 않는다', () => {
     const t = parseTranscript(humanLine('나는 이게 전제라고 생각해 정말로', '2026-08-17T00:00:00Z'));
     const r = extractCandidates(t);
-    expect(r.byAxis.premises[0].quoted_from_ai).toBe(false);
+    expect(r.aiComparisonPossible).toBe(false);
+    expect(r.byAxis.premises[0].quoted_from_ai).toBe('unknown');
+  });
+
+  it('isAiWorded 는 unknown 을 AI 발원으로 몰지 않는다', () => {
+    const t = parseTranscript(humanLine('나는 이게 전제라고 생각해 정말로', '2026-08-17T00:00:00Z'));
+    const c = extractCandidates(t).byAxis.premises[0];
+    expect(c.quoted_from_ai).toBe('unknown');
+    expect(isAiWorded(c)).toBe(false);
+    expect(authorLine(c)).toContain('확인 못 함');
   });
 
   it('같은 문장이 여러 번 나와도 후보는 하나다', () => {

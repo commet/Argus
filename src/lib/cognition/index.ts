@@ -147,10 +147,26 @@ export {
   splitSentences,
   extractCandidates,
   extractionSummary,
+  turnsFromOwnWriting,
+  isAiWorded,
+  authorLine,
   type TranscriptTurn,
   type Candidate,
   type ExtractionResult,
 } from './extract';
+
+export {
+  SOURCES,
+  DEFAULT_SOURCE,
+  sourceSpec,
+  sourceReport,
+  turnsFromPluginCandidates,
+  turnsFromPastedWriting,
+  turnsFromTranscriptFile,
+  type SourceId,
+  type SourceSpec,
+  type PluginCandidateRow,
+} from './sources';
 
 export type {
   Authorship,

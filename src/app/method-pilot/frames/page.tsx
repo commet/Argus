@@ -13,6 +13,17 @@
 //      데이터에 없으면 화면은 둘을 같은 색으로 그린다 — 그래서 world 가 타입이다.
 //   3. **공백을 메우지 않는다.** 빈 축은 비었다고 적는다. AI가 채우면 이 도구가
 //      자기가 방어하려는 실패의 사례가 된다.
+//   4. **사용자에게 일을 시키지 않는다.** 입력은 마찰 오름차순이고 기본값은
+//      0클릭이다 — 플러그인이 이미 가져다 둔 것을 고르기만 한다. 파일을 직접
+//      고르는 경로는 맨 아래 최후 수단이다 (2026-08-18 정정: 그걸 1차로 냈던
+//      것은 이 저장소가 이미 가진 자동 수집보다 훨씬 나쁜 설계였다).
+//      소스 목록·순서·빈 목록 문구는 전부 `cognition/sources.ts` 가 소유한다.
+//      0클릭 경로의 실제 수집은 MIT 존이 한다 — 훅이 넘긴 경로가
+//      `argus-mcp/src/v2/capture-cli.ts` → `queue.ts` → `harvest.ts` →
+//      `candidate-capture.ts` 를 거쳐 민감정보 차단·인용 byte 대조를 통과한 뒤
+//      `push-webapp.js` 로 `plugin_decisions` 에 도착한다. 이 화면은 그것을
+//      **승인하는 자리**이지 수집하는 자리가 아니다. 읽기는 이미 있는
+//      `usePluginStore` 를 쓴다 (전용 API 라우트를 새로 만들지 않는다).
 //
 // 판정 로직은 전부 src/lib/cognition/ 의 순수 엔진에 있다. 이 파일은 입력을
 // 모아 엔진에 넘기고 결과를 그린다 — 화면에 판정을 두면 테스트가 닿지 못한다.
@@ -34,15 +45,26 @@ import {
   sealBlocks,
   sealFrame,
   settleFrame,
-  parseTranscript,
   extractCandidates,
   extractionSummary,
+  isAiWorded,
+  authorLine,
+  SOURCES,
+  DEFAULT_SOURCE,
+  sourceSpec,
+  sourceReport,
+  turnsFromPluginCandidates,
+  turnsFromPastedWriting,
+  turnsFromTranscriptFile,
   type AxisId,
   type Candidate,
   type CognitiveFrame,
   type ExtractionResult,
   type FrameElement,
+  type SourceId,
+  type TranscriptTurn,
 } from '@/lib/cognition';
+import { usePluginStore } from '@/stores/usePluginStore';
 
 const MAX_TEXT = 2000;
 const MAX_TITLE = 200;
@@ -97,10 +119,22 @@ export default function CognitiveFramesPilot() {
   const [hydrated, setHydrated] = useState(false);
   const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
   const [reading, setReading] = useState(false);
+  /** 지금 보고 있는 입력 경로. 기본값은 마찰 0 — 목록 순서에서 파생한다. */
+  const [source, setSource] = useState<SourceId>(DEFAULT_SOURCE);
+  const [sourceLines, setSourceLines] = useState<string[]>([]);
+  const [pasted, setPasted] = useState('');
 
   useEffect(() => {
     setFrames(loadFrames());
     setHydrated(true);
+  }, []);
+
+  // 0클릭의 뜻은 **누르지 않아도 와 있다**는 것이다. 탭을 눌러야 뜨면 그건 1클릭이다.
+  // 실패해도 화면은 산다 — loadAuto 가 예외를 밖으로 내보내지 않는다.
+  useEffect(() => {
+    void loadAuto();
+    // 최초 1회. loadAuto 는 ingest 에만 의존하고 ingest 는 안정적이다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const persist = useCallback((next: CognitiveFrame[]) => {
@@ -115,22 +149,66 @@ export default function CognitiveFramesPilot() {
   }, []);
 
   /**
-   * 대화 로그를 읽어 후보를 뽑는다. **자동으로 칸에 넣지 않는다** — 사람이 고른다.
-   * 넣는 순간 사용자의 판단이 기계가 고른 문장으로 대체되기 때문이다.
+   * 턴이 어디서 왔든 여기 한 곳으로 모인다.
+   *
+   * **자동으로 칸에 넣지 않는다** — 사람이 고른다. 넣는 순간 사용자의 판단이
+   * 기계가 고른 문장으로 대체되기 때문이다. 0건이어도 결과를 세팅한다:
+   * 빈 목록을 말없이 보여주는 대신 "못 찾았습니다"를 그릴 수 있어야 한다.
    */
-  const onPickLog = useCallback(async (file: File | undefined) => {
-    if (!file) return;
+  const ingest = useCallback((id: SourceId, turns: TranscriptTurn[]) => {
+    setSource(id);
+    setSourceLines(sourceReport(id, turns));
+    setExtraction(turns.length === 0 ? null : extractCandidates(turns, { perAxis: 4 }));
+  }, []);
+
+  /** 0클릭 경로 — 플러그인이 이미 가져다 둔 것. 실패해도 화면은 산다. */
+  const loadAuto = useCallback(async () => {
     setReading(true);
     try {
-      const text = await file.text();
-      const turns = parseTranscript(text, { maxTurns: 20000 });
-      setExtraction(extractCandidates(turns, { perAxis: 4 }));
-    } catch {
-      setNotice(['로그 파일을 읽지 못했습니다. Claude Code 세션의 .jsonl 파일이 맞는지 확인해 주세요.']);
+      await usePluginStore.getState().loadData();
+      const { decisions, loadError } = usePluginStore.getState();
+      if (loadError) {
+        setSource('plugin_auto');
+        setSourceLines([
+          '플러그인이 가져다 둔 것을 불러오지 못했습니다 (로그인 안 됐거나 연결이 끊겼습니다).',
+          '아래에 직접 붙여넣어도 됩니다.',
+        ]);
+        setExtraction(null);
+        return;
+      }
+      ingest(
+        'plugin_auto',
+        turnsFromPluginCandidates(
+          decisions.filter((d) => d.status === 'candidate' || d.status === 'sealed'),
+        ),
+      );
     } finally {
       setReading(false);
     }
-  }, []);
+  }, [ingest]);
+
+  /** 1클릭 경로 — 자기가 쓴 것. 설치도 로그인도 필요 없다. */
+  const loadPaste = useCallback(() => {
+    ingest('paste', turnsFromPastedWriting(pasted, new Date().toISOString()));
+  }, [ingest, pasted]);
+
+  /** 최후 수단 — 세션 파일 직접. 여기만 사람·AI 턴이 다 와서 인용 대조가 된다. */
+  const loadFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) return;
+      setReading(true);
+      try {
+        ingest('file', turnsFromTranscriptFile(await file.text(), { maxTurns: 20000 }));
+      } catch {
+        setSource('file');
+        setSourceLines(['이 파일을 읽지 못했습니다. Claude Code 세션의 .jsonl 파일이 맞는지 확인해 주세요.']);
+        setExtraction(null);
+      } finally {
+        setReading(false);
+      }
+    },
+    [ingest],
+  );
 
   /**
    * 후보를 칸에 넣는다. 저자는 **로그가 증명한다** — 사람 턴이면 사용자 문장이라
@@ -139,7 +217,9 @@ export default function CognitiveFramesPilot() {
    */
   const applyCandidate = useCallback(
     (c: Candidate) => {
-      const fromAi = c.who === 'ai' || c.quoted_from_ai;
+      // isAiWorded 를 쓴다 — quoted_from_ai 는 세 값이라 그냥 조건문에 넣으면
+      // 'no' 도 참이 되어 모든 후보가 AI 문장이 된다.
+      const fromAi = isAiWorded(c);
       setDraft(c.axis, {
         text: c.text,
         aiDraft: fromAi ? c.text : '',
@@ -267,23 +347,91 @@ export default function CognitiveFramesPilot() {
         </p>
       </section>
 
-      {/* 대화에서 불러오기 — 손으로 다 치지 않게 하는 자리 */}
+      {/* 어디서 가져올까 — 마찰 오름차순, 기본은 0클릭 */}
       <section className="mb-8 rounded-lg border border-[var(--border)] px-4 py-4">
-        <h2 className="text-sm font-semibold">대화에서 불러오기</h2>
+        <h2 className="text-sm font-semibold">문장 가져오기</h2>
         <p className="mt-1 text-xs leading-relaxed opacity-65">
-          Claude Code 세션 파일(.jsonl)을 넣으면 그 안에서 결정으로 보이는 문장을 찾아 보여줍니다. 문장은{' '}
-          <strong>그대로</strong> 가져오고, 요약하거나 다듬지 않습니다. 자동으로 채우지도 않습니다 — 맞는 것만
-          골라 넣으세요.
+          결정으로 보이는 문장을 찾아 보여줍니다. 문장은 <strong>그대로</strong> 가져오고 요약하거나 다듬지
+          않습니다. 자동으로 칸을 채우지도 않습니다 — 맞는 것만 골라 넣으세요.
         </p>
-        <input
-          type="file"
-          accept=".jsonl,application/json,text/plain"
-          onChange={(e) => onPickLog(e.target.files?.[0])}
-          className="mt-3 block w-full text-xs"
-        />
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {SOURCES.map((sp) => (
+            <button
+              key={sp.id}
+              type="button"
+              onClick={() => {
+                setSource(sp.id);
+                setSourceLines([]);
+                setExtraction(null);
+                if (sp.id === 'plugin_auto') void loadAuto();
+              }}
+              className={`rounded-full px-3 py-1 text-xs ${
+                source === sp.id
+                  ? 'bg-[var(--accent)]/[0.12] font-medium'
+                  : 'bg-[var(--accent)]/[0.04] opacity-70'
+              }`}
+            >
+              {sp.label}
+              {sp.clicks === 0 && <span className="ml-1 opacity-60">· 할 일 없음</span>}
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-3 text-xs leading-relaxed opacity-65">{sourceSpec(source).arrives}</p>
+
+        {source === 'plugin_auto' && (
+          <button
+            type="button"
+            onClick={() => void loadAuto()}
+            className="mt-3 rounded-md border border-[var(--border)] px-3 py-1.5 text-xs"
+          >
+            다시 확인하기
+          </button>
+        )}
+
+        {source === 'paste' && (
+          <>
+            <textarea
+              value={pasted}
+              maxLength={20000}
+              onChange={(e) => setPasted(e.target.value)}
+              rows={5}
+              placeholder="그 결정에 대해 자기가 쓴 글을 그대로 붙여넣으세요."
+              className="mt-3 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-xs leading-relaxed"
+            />
+            <button
+              type="button"
+              onClick={loadPaste}
+              disabled={pasted.trim().length === 0}
+              className="mt-2 rounded-md border border-[var(--border)] px-3 py-1.5 text-xs disabled:opacity-40"
+            >
+              여기서 찾기
+            </button>
+          </>
+        )}
+
+        {source === 'file' && (
+          <input
+            type="file"
+            accept=".jsonl,application/json,text/plain"
+            onChange={(e) => void loadFile(e.target.files?.[0])}
+            className="mt-3 block w-full text-xs"
+          />
+        )}
+
         {reading && <p className="mt-2 text-xs opacity-60">읽는 중…</p>}
-        {extraction && (
+
+        {/* 0건도 한 줄을 받는다 — 빈 목록을 말없이 보여주지 않는다. */}
+        {sourceLines.length > 0 && (
           <ul className="mt-3 space-y-1 text-xs opacity-75">
+            {sourceLines.map((line, i) => (
+              <li key={i}>· {line}</li>
+            ))}
+          </ul>
+        )}
+        {extraction && (
+          <ul className="mt-1 space-y-1 text-xs opacity-75">
             {extractionSummary(extraction).map((line, i) => (
               <li key={i}>· {line}</li>
             ))}
@@ -357,7 +505,7 @@ export default function CognitiveFramesPilot() {
                           >
                             <span className="opacity-90">{c.text}</span>
                             <span className="mt-1 block opacity-50">
-                              {c.quoted_from_ai ? 'AI 문장을 인용한 것' : c.who === 'user' ? '내가 한 말' : 'AI가 한 말'}
+                              {authorLine(c)}
                               {' · '}
                               {c.at.slice(5, 16).replace('T', ' ')}
                               {' · '}

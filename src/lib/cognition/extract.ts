@@ -245,8 +245,37 @@ export interface Candidate {
    * 이 제품이 재려는 것(저자가 누구인가)을 바로 그 자리에서 틀리게 된다.
    *
    * 판정은 추측이 아니라 **대조**다: 앞선 AI 턴 어딘가에 같은 문장이 있으면 인용.
+   *
+   * **세 값인 이유.** 어떤 입력 경로에는 AI 턴이 아예 오지 않는다 — 플러그인
+   * 수집기는 사람 턴만 읽고(`argus-mcp/src/v2/candidate-capture.ts` 의
+   * `readTranscriptTurns`), 붙여넣기에는 상대 말이 없다. 대조를 **못 한 것**을
+   * `'no'`(= 본인이 처음 한 말)로 적으면 그게 이 제품이 막으려는 조용한
+   * 메우기다. 그래서 못 했으면 `'unknown'` 이라고 적는다.
    */
-  quoted_from_ai: boolean;
+  quoted_from_ai: 'yes' | 'no' | 'unknown';
+}
+
+/**
+ * 이 후보를 **AI 발원으로 다뤄야 하는가.**
+ *
+ * `quoted_from_ai` 를 그냥 조건문에 넣으면 안 된다 — 세 값 전부 truthy 문자열이라
+ * `'no'` 도 참이 된다. (실제로 boolean 이던 시절의 호출부가 타입만 바뀐 채
+ * 조용히 살아남아 모든 후보를 AI 문장으로 취급했다. 명사만 타입하고 동사를
+ * 안 타입한 전형이다.) 그래서 판정을 함수로 고정한다.
+ *
+ * `'unknown'` 은 **AI 발원이 아니다** — 대조를 못 했다는 뜻이다. 모르는 것을
+ * AI 것으로 몰면 사용자 문장을 기계 문장으로 강등시킨다.
+ */
+export function isAiWorded(c: Candidate): boolean {
+  return c.who === 'ai' || c.quoted_from_ai === 'yes';
+}
+
+/** 저자를 사람 말 한 줄로. 모르면 모른다고 적는다. */
+export function authorLine(c: Candidate): string {
+  if (c.who === 'ai') return 'AI가 한 말';
+  if (c.quoted_from_ai === 'yes') return 'AI 문장을 인용한 것';
+  if (c.quoted_from_ai === 'unknown') return '내가 쓴 것 (AI 말을 옮긴 건지는 확인 못 함)';
+  return '내가 한 말';
 }
 
 export interface ExtractionResult {
@@ -256,6 +285,11 @@ export interface ExtractionResult {
   turns: { user: number; ai: number };
   /** 후보를 하나도 못 찾은 축들. 화면이 "못 찾았습니다"를 그릴 재료. */
   emptyAxes: AxisId[];
+  /**
+   * AI 턴이 함께 왔는가 = 인용 대조가 가능했는가.
+   * 화면은 이게 false 면 "본인이 처음 한 말"이라고 말하면 안 된다.
+   */
+  aiComparisonPossible: boolean;
 }
 
 const AXIS_IDS: AxisId[] = ['frame', 'values', 'premises', 'inference', 'confidence', 'alternatives', 'falsifier'];
@@ -282,6 +316,9 @@ export function extractCandidates(
 
   // 지금까지 AI가 한 말의 문장 집합. 사람 턴의 문장이 여기 있으면 인용이다.
   const saidByAi = new Set<string>();
+  // AI 턴이 하나라도 있어야 "인용인가"를 대조할 수 있다. 없으면 판정 불가이고,
+  // 판정 불가를 '아니오'로 적지 않는 것이 이 파일의 규율이다.
+  const hasAiTurns = (turns ?? []).some((t) => t.who === 'ai');
   const norm = (x: string) => x.replace(/\s+/g, ' ').trim();
 
   for (let i = 0; i < (turns ?? []).length; i += 1) {
@@ -299,7 +336,12 @@ export function extractCandidates(
     for (const sentence of sentences) {
       if (DIRECTIVE.test(sentence)) continue;
       // 사람 턴인데 앞서 AI가 한 말이면 인용 — 사람 말로 세지 않는다.
-      const quoted = t.who === 'user' && saidByAi.has(norm(sentence));
+      // AI 턴이 하나도 없으면 대조 자체가 불가능하다 — 'no' 가 아니라 'unknown'.
+      const quoted: Candidate['quoted_from_ai'] = !hasAiTurns
+        ? 'unknown'
+        : t.who === 'user' && saidByAi.has(norm(sentence))
+          ? 'yes'
+          : 'no';
 
       for (const axis of AXIS_IDS) {
         const hits = CUES[axis].filter((c) => c.re.test(sentence));
@@ -314,7 +356,7 @@ export function extractCandidates(
             why: hits[0].label,
             quoted_from_ai: quoted,
           },
-          score: scoreSentence(sentence, quoted ? 'ai' : t.who, i / total, hits.length),
+          score: scoreSentence(sentence, quoted === 'yes' ? 'ai' : t.who, i / total, hits.length),
         });
       }
     }
@@ -336,6 +378,7 @@ export function extractCandidates(
     byAxis,
     turns: { user: userTurns, ai: aiTurns },
     emptyAxes: AXIS_IDS.filter((a) => byAxis[a].length === 0),
+    aiComparisonPossible: hasAiTurns,
   };
 }
 
