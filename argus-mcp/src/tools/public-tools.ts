@@ -132,10 +132,17 @@ const decideSchema = z.discriminatedUnion('action', [
     finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.'),
     numeric_value: z.number().finite().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
     changed: z.boolean().describe('문장형 사실이 기준값에서 실질적으로 달라졌는지 표시합니다.').optional(),
-    // default user_stated: the runtime union validates BEFORE the handler-level
-    // default can apply, so a required source here made every real update_fact
-    // call fail with a baffling INVALID_INPUT (1.4.0 field finding).
-    source: z.enum(['url', 'user_stated', 'host_reported']).default('user_stated').describe('현재 사실을 확인한 출처입니다. 생략하면 user_stated입니다.'),
+    // 기본값이 필요한 이유: 런타임 union 이 핸들러의 default 보다 먼저 검사하므로
+    // 여기서 source 를 필수로 두면 실제 update_fact 호출이 전부 알 수 없는
+    // INVALID_INPUT 으로 죽는다 (1.4.0 필드 발견).
+    //
+    // 기본값이 `host_reported` 인 이유: 생략된 출처를 `user_stated` 로 채우면
+    // 모델이 조사한 것이 **사용자가 확인한 것으로** 기록된다. 표면이 그것을
+    // "당신이 확인함"이라고 사용자에게 읽어 주므로(recheck.ts:123) 저자성
+    // 위조가 화면까지 도달한다. 전제의 규율과 같다 — 사용자에게 문장을 귀속하는
+    // 것은 주장이고, 주장에는 증거가 필요하다. 증거 없이 기본값으로 귀속하지
+    // 않는다. 사용자가 확인했으면 모델이 `user_stated` 를 명시하면 된다.
+    source: z.enum(['url', 'user_stated', 'host_reported']).default('host_reported').describe('현재 사실을 확인한 출처입니다. 사용자가 직접 확인했다고 말한 경우에만 user_stated 를 쓰고, 당신이 조사한 것이면 host_reported 입니다. 생략하면 host_reported 로 기록됩니다. 사용자의 확인으로 둔갑시키지 않습니다.'),
     source_detail: z.string().max(1000).describe('출처 URL 또는 짧은 인용 정보입니다.').optional(),
     apply_to_matching: z.boolean().default(false).describe('같은 사실을 추적하는 다른 결정에도 이 확인 결과를 적용합니다.'),
   }),
@@ -489,8 +496,9 @@ export const decide: ToolModule = {
     }
     // recheck internally REQUIRES a source; the public update_fact schema never
     // surfaced it, so every real call died with a baffling "source: 값을 확인해
-    // 주세요". Default to user_stated — the user telling us what they verified.
-    if (action === 'update_fact') return runPublic('argus_capture', { ...a, source: a['source'] ?? 'user_stated' }, recheck.handler);
+    // 주세요". 기본값은 `host_reported` — 출처를 말하지 않은 확인을 사용자의
+    // 확인으로 기록하는 것이 저자성 위조이기 때문이다(위 스키마 주석).
+    if (action === 'update_fact') return runPublic('argus_capture', { ...a, source: a['source'] ?? 'host_reported' }, recheck.handler);
     if (action === 'change_prediction') return runPublic('argus_capture', a, amend.handler);
     // 계획: 미끼가 해자로 이어지는 연결 (PRODUCT-PLAN §3). 날짜 붙은 단계는
     // check_in의 귀환이 된다 — 돌아보기를 따로 약속받을 필요가 없어진다.

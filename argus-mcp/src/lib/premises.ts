@@ -82,6 +82,10 @@ export interface DuePremise {
    *  never-checked due line AGE honestly instead of repeating verbatim (the
    *  75-day life loop measured a 20-day byte-identical streak → wallpaper). */
   days_since_add: number | null;
+  /** 이 전제가 틀리면 결정에서 무엇이 달라지는지 — 기록될 때 적힌 한 줄.
+   *  재확인 순간이 대조할 것을 갖게 하는 유일한 자리다. 공개 스키마가 이것을
+   *  약속하고도 소비처가 0이었다(2026-08-18 수리). 없으면 키가 없다. */
+  if_false_changes?: string;
 }
 
 export interface DueOpenQuestion {
@@ -142,6 +146,7 @@ export function duePremises(state: LedgerState): DuePremise[] {
         premise_id: p.premise_id,
         text: p.text,
         last_checked: last,
+        ...(p.if_false_changes ? { if_false_changes: p.if_false_changes } : {}),
         days_stale: last ? daysBetween(last, state.today) : null,
         days_since_add: added ? daysBetween(added, state.today) : null,
       });
