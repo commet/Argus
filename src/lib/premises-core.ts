@@ -1,4 +1,4 @@
-import type { MaterialityRule } from './numeric-drift';
+import type { MaterialityRule, WatchAnswers } from './numeric-drift';
 
 /**
  * Living premises — PURE domain core (plan v5). The ledger-free half of the
@@ -168,6 +168,17 @@ export interface PremiseState {
   auto_watch?: boolean;
   /** Optional refined web-search query for the watcher; falls back to `text`. */
   watch_query?: string;
+  /** 사람의 네 답으로 세운 감시 (2026-08-18, 재정초 §6 봉인 시공).
+   *
+   *  **이 블록이 임계의 단일 정본이다.** 사람이 읽는 문장, 계열 사전믿음
+   *  (`deriveCusumPrior`), 스냅샷 규칙(`deriveMaterialityRule`) 셋이 전부
+   *  여기서 유도된다 — 셋을 따로 저장하면 독립 편집이 가능해지고, 그 순간
+   *  같은 전제가 판정마다 다른 임계를 쓰게 된다.
+   *
+   *  `materiality_rule` 과의 관계: 그쪽이 비어 있으면 fold 가 이 답에서
+   *  파생해 채운다(이중 저장 금지). 사용자가 규칙을 직접 준 경우는 그것이 이긴다.
+   *  jsonb-nested, 마이그레이션 없음 — auto_watch 선례와 같다. */
+  watch?: WatchAnswers;
   status: PremiseStatus;
   amend_history: Array<{ action: PremiseAmendAction; from?: string; to?: string; note?: string; ts?: string }>;
   /** Latest re-check only — full history lives in the ledger (fold stays small). */

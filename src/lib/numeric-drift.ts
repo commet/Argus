@@ -476,3 +476,182 @@ function numParam(v: unknown, fallback: number): number {
 function isNearZero(prev: number, mod: RuleModifiers | undefined, resolution: number): boolean {
   return Math.abs(prev) < nearZeroCut(prev, mod, resolution);
 }
+
+// ── 감시 4문답 → 임계·사전믿음 (2026-08-18, 재정초 §6 봉인 시공 PR-A2) ──────
+//
+// 왜 여기에 사는가. 이 파일은 두 스냅샷(prev, next)만 보고 "이 한 걸음이
+// 실질적 변화인가"를 판정한다. 그런데 `stateful` 분기가 스스로 적어둔 대로,
+// 경로·변동성은 두 점으로 판정할 수 없고 **관측 이력이 필요하다**. 아래가
+// 그 이력 위의 판정(CUSUM, Page 1954)이고, 같은 파일에 두는 이유는 임계가
+// 두 판정 사이에서 갈라지면 안 되기 때문이다 — 사용자의 답 하나에서
+// 스냅샷 규칙과 계열 사전믿음이 **함께** 유도된다.
+//
+// 왜 사람에게 네 가지만 묻는가. CUSUM 은 target·slack·decisionInterval 을
+// 요구하는데 그건 도구가 아니라 시험지다. 그렇다고 기계가 기본 임계를 몰래
+// 정하면 그 순간 이 설계가 거짓말이 된다(임계는 검증 불가능한 사전 믿음이다).
+// 그래서 묻는 말을 바꾼다 — 사람이 실제로 아는 것만 묻고, 관례는 상수로
+// 이름 붙여 근거 문장에 그대로 남긴다.
+//
+// 숫자는 **명시 값만** 받는다. 이 파일 머리의 규율 그대로다: 산문에서
+// 정규식으로 뽑으면 "2026년 기준금리 3.5%"를 2026 으로 읽어 가짜 drift 를
+// 제조한다. 호출자가 숫자를 지목하고, 여기는 비교만 한다.
+//
+// 출처: `src/lib/cognition/watch.ts`(4문답·거절 규칙)와
+// `src/lib/cognition/detect.ts`(CUSUM)의 순수 로직을 이 핀된 쌍으로 옮긴 것.
+// 그쪽은 앱 전용 타입에 묶여 있어 byte-사본이 될 수 없다.
+//
+// 그리고 **이 파일이 그 로직의 정본이다.** 원본은 소비자 0인 라이브러리로,
+// 봉인된 §6 결정 ③("엔진 편입 + 화면 철거")이 이리로 오게 한 것 — 이 이전이
+// 그 편입의 첫 걸음이다. 두 곳에 파일-대조 핀을 걸지 않는 이유가 여기 있다:
+// 핀은 은퇴시키기로 한 파일을 두 번째 권위로 만들고, 그러면 같은 4답이
+// 두 임계를 갖는다(이 파일이 막으려는 바로 그 일). 원본의 중복 로직 제거는
+// 앱 존 PR 몫이고, 그 전까지 중복 재출현은 능력 중복 검사기가 본다.
+
+/** 여유 k = 탐지하려는 이동폭의 절반. 표준 tabular CUSUM 관례. */
+export const SLACK_RATIO = 0.5;
+/** 결정 구간 h = 4σ. 관례의 아래끝(4~5σ) — 데이터에서 나온 값이 아니라 고른 값. */
+export const DECISION_SIGMA = 4;
+/** 계열 판정이 시작되는 최소 판독 수. 그 아래는 "아직 모른다"이지 "괜찮다"가 아니다. */
+export const MIN_READINGS = 3;
+
+/** 사람이 답할 수 있는 네 가지 + 어디서 보는지. 숫자는 전부 명시 값. */
+export interface WatchAnswers {
+  /** 무엇을 보나 ("전환율"). */
+  what: string;
+  /** 어디서 보나 ("대시보드 A"). */
+  where: string;
+  /** 평소 값. */
+  normal: number;
+  /** 평소에도 이만큼은 왔다갔다 한다 (σ). */
+  wobble: number;
+  /** 이 값이면 전제가 깨진 것. */
+  broken: number;
+  /** 왜 그 값인가. 근거 없는 임계는 나중에 검토될 수 없다. */
+  why: string;
+  /** 표시용 단위 ("%", "원"). 판정에는 쓰지 않는다. */
+  unit?: string;
+}
+
+/**
+ * 감시를 만들 수 없는 이유를 **전부** 돌려준다. 하나만 주면 사용자가 한 번에
+ * 하나씩 고치며 여러 번 튕긴다.
+ *
+ * 가장 중요한 거절: **깨진 값이 평소 출렁임 안에 있으면 만들지 않는다.**
+ * δ ≤ σ 면 그 임계는 소음과 구별되지 않아 영영 의미 있게 울리지 않거나 아무
+ * 때나 운다. 만들어 주면 사용자는 "지켜보는 중"이라 믿지만 실제로는 아무것도
+ * 안 지켜진다 — 조용한 실패를 제조하는 셈이다.
+ */
+export function watchAnswerBlocks(w: WatchAnswers): string[] {
+  const out: string[] = [];
+  if (!(w.what || '').trim()) out.push('무엇을 볼지 적어주세요.');
+  if (!(w.where || '').trim()) out.push('그 숫자를 어디서 보는지 적어주세요.');
+  if (!Number.isFinite(w.normal)) out.push('평소 값이 숫자가 아닙니다.');
+  if (!Number.isFinite(w.wobble)) out.push('평소 출렁임이 숫자가 아닙니다.');
+  if (!Number.isFinite(w.broken)) out.push('깨진 값이 숫자가 아닙니다.');
+  if (Number.isFinite(w.wobble) && w.wobble <= 0) {
+    out.push('평소 출렁임은 0보다 커야 합니다. 전혀 안 움직이는 숫자는 없습니다.');
+  }
+  if (Number.isFinite(w.normal) && Number.isFinite(w.broken) && Number.isFinite(w.wobble) && w.wobble > 0) {
+    const delta = Math.abs(w.normal - w.broken);
+    if (delta === 0) {
+      out.push('평소 값과 깨진 값이 같습니다. 이러면 언제 깨진 건지 알 수가 없습니다.');
+    } else if (delta <= w.wobble) {
+      out.push('깨진 값이 평소 출렁임 안에 있습니다. 이대로 만들면 그냥 흔들린 것과 진짜 깨진 것을 구분할 수 없습니다.');
+    }
+  }
+  if (!(w.why || '').trim()) out.push('왜 그 값이면 깨진 건지 한 줄 적어주세요. 나중에 이 기준을 다시 볼 때 필요합니다.');
+  return out;
+}
+
+/** CUSUM 사전 믿음. 막힌 게 하나라도 있으면 null — 반쯤 맞는 임계를 만들지 않는다. */
+export function deriveCusumPrior(w: WatchAnswers): { target: number; slack: number; decisionInterval: number; rationale: string } | null {
+  if (watchAnswerBlocks(w).length > 0) return null;
+  const delta = Math.abs(w.normal - w.broken);
+  return {
+    target: w.normal,
+    slack: delta * SLACK_RATIO,
+    decisionInterval: w.wobble * DECISION_SIGMA,
+    rationale: `${w.why.trim()} (평소 ${w.normal}, 출렁임 ${w.wobble}, ${w.broken}이면 깨진 것.) `
+      + `여유 k 는 이동폭의 ${SLACK_RATIO}배, 결정 구간 h 는 출렁임의 ${DECISION_SIGMA}배 (문헌 관례이지 이 데이터에서 나온 값이 아님).`,
+  };
+}
+
+/**
+ * 같은 답에서 스냅샷 규칙도 유도한다 — `broken` 하나가 단일 정본이고,
+ * 사람이 읽는 문장·계열 사전믿음·이 규칙이 전부 거기서 나온다. 셋을 따로
+ * 저장하면 독립 편집이 가능해지고, 그 순간 조용한 불일치가 시작된다.
+ *
+ * `direction` 은 사용자의 두 숫자에서 나온다 — `broken` 이 `normal` 아래면
+ * 아래로 내려가는 것이 깨지는 것이다. 기본값 `'cross'` 로 두면 안 되는 이유가
+ * 있다: `'cross'` 분기는 `boundary` 를 **아예 안 읽는다**(위 threshold 분기의
+ * `direction !== 'cross'` 게이트). 그러면 `boundary:'inclusive'` 는 저장은 되고
+ * 판정엔 영향이 없는 장식이 되고, 선에 정확히 닿는 값의 운명이 선언이 아니라
+ * `Math.sign(0)` 이라는 우연에 걸린다. 방향을 명시해야 경계 선언이 하중을 받는다.
+ */
+export function deriveMaterialityRule(w: WatchAnswers): MaterialityRule | null {
+  if (watchAnswerBlocks(w).length > 0) return null;
+  return {
+    type: 'threshold',
+    params: { line: w.broken, direction: w.broken < w.normal ? 'below' : 'above' },
+    modifiers: { boundary: 'inclusive' },
+  };
+}
+
+/** 계열 판정 결과. `insufficient` 는 "괜찮다"가 아니라 "아직 모른다"이다. */
+export interface SeriesVerdict {
+  status: 'alert' | 'holds' | 'insufficient';
+  /** 사람이 읽는 한 줄. 사실 진술만 — 권고·평가 어휘 금지. */
+  statement: string;
+  /** 누적합의 최고점. 결정 구간과 비교할 수 있게 함께 준다. */
+  statistic: number;
+  /** 경보가 처음 성립한 판독 번호 (1부터). 없으면 -1. */
+  alert_at_index: number;
+  sample: number;
+}
+
+/**
+ * 누적합 관리도 (Page 1954). 양방향 — 위로 새는 것과 아래로 새는 것을 함께 본다.
+ *
+ * 한 걸음이 임계를 안 넘어도 **같은 방향으로 조금씩 계속 새면** 누적합이
+ * 결정 구간을 넘는다. 이것이 스냅샷 판정(evaluateMateriality)이 원리적으로
+ * 못 보는 것이고, `stateful` 분기가 "관측 이력이 필요하다"고 적어둔 자리다.
+ */
+export function cusumSeries(
+  values: readonly number[],
+  prior: { target: number; slack: number; decisionInterval: number },
+): SeriesVerdict {
+  const vs = (values ?? []).filter((v) => Number.isFinite(v));
+  if (vs.length < MIN_READINGS) {
+    return {
+      status: 'insufficient',
+      statement: `수치 판독이 ${vs.length}건입니다 (최소 ${MIN_READINGS}건). 아직 판정하지 않습니다. "괜찮다"가 아니라 "아직 모른다"입니다.`,
+      statistic: 0,
+      alert_at_index: -1,
+      sample: vs.length,
+    };
+  }
+  let hi = 0;
+  let lo = 0;
+  let peak = 0;
+  let alarmAt = -1;
+  for (let i = 0; i < vs.length; i += 1) {
+    const d = vs[i]! - prior.target;
+    hi = Math.max(0, hi + d - prior.slack);
+    lo = Math.max(0, lo - d - prior.slack);
+    const worst = Math.max(hi, lo);
+    if (worst > peak) peak = worst;
+    if (alarmAt < 0 && worst > prior.decisionInterval) alarmAt = i + 1;
+  }
+  const stat = Math.round(peak * 1e4) / 1e4;
+  return alarmAt > 0
+    ? {
+        status: 'alert',
+        statement: `판독 ${vs.length}건의 누적합이 ${alarmAt}번째에서 결정 구간(${prior.decisionInterval})을 넘었습니다. 최고 ${stat}.`,
+        statistic: stat, alert_at_index: alarmAt, sample: vs.length,
+      }
+    : {
+        status: 'holds',
+        statement: `판독 ${vs.length}건에서 누적합이 결정 구간(${prior.decisionInterval}) 안에 있습니다. 최고 ${stat}.`,
+        statistic: stat, alert_at_index: -1, sample: vs.length,
+      };
+}
