@@ -156,9 +156,13 @@ for P in 3 8; do
 done
 # 창업자 배역 (11차에서 가장 아팠던 프로필)
 node evals/first-user-journey.mjs --local --script plan --persona 8 \
-  --traits blunt,terse,casual,low,confronting,directive \
+  --traits cog_directness=Blunt,cog_verbosity=Terse,cog_formality=Casual,cog_patience=Low,cog_conflict_approach=Confronting,decision_style=Directive \
   --out /tmp/journey-plan-founder
 ```
+
+`--traits` 는 **`축id=값` 쌍**이다 (`persona-sampling.mjs` 의 `AXES`). 축 이름이나
+값 하나만 틀려도 하네스가 유효 목록을 찍고 `exit 2` 한다 — 이 문서의 첫 판이
+바로 그 형태로 틀려 있었고, 명령이 안 도는 계획은 계획이 아니다.
 
 **먼저 확인할 것** — `summary.json` 의 `time_travel.session2_today` 가 `null` 이
 아니어야 한다. `null` 이면 계획이 날짜 없이 채택된 것이고, 그 실행은 `plan_check`
@@ -208,9 +212,13 @@ node evals/first-user-journey.mjs --local --script plan --persona 8 \
    단계여야 한다.
 3. **이틀 뒤** — 아무것도 준비하지 않고 터미널을 연다. 평소처럼 일을 시작한다.
 4. 그 자리에서 **제품이 먼저 말을 거는지** 본다. 걸면 결과를 말한다.
-5. 원장을 눈으로 대조한다:
+5. 원장을 눈으로 대조한다. 원장 위치는 **git 저장소 안이면 그 프로젝트의
+   `.argus/`, 아니면 `~/.argus/`** 다 (`argus-dir.ts` 의 해석 순서):
    ```bash
-   grep -c plan_check ~/.argus/ledger/ledger.jsonl   # 또는 프로젝트의 .argus
+   L="$(git rev-parse --show-toplevel 2>/dev/null)/.argus/ledger/ledger.jsonl"
+   [ -f "$L" ] || L="$HOME/.argus/ledger/ledger.jsonl"
+   grep -c '"event":"plan_check"' "$L"   # 0 이면 그 자리에서 안 적힌 것
+   grep -c '"lesson"'            "$L"   # 규칙이 남았나
    ```
 
 **무엇을 적는가** (셋 다 결과다): ① 제품이 먼저 말을 걸었나 ② 그 자리에서
