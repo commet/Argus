@@ -1,6 +1,7 @@
 import { allInsufficient, anyAlert, detectAll, toNumericSeries, type AdwinPrior, type CusumPrior, type DetectionResult } from './detect';
 import { disagreement, runPortfolio, type PortfolioPrior, type PortfolioResult } from './portfolio';
 import type { CognitiveFrame, SignalBinding, SignalReading } from './types';
+import { normalizePremiseText } from '../premises-core';
 
 /**
  * 지속하는 전제 — **기록을 시스템으로 만드는 조각.**
@@ -28,6 +29,21 @@ import type { CognitiveFrame, SignalBinding, SignalReading } from './types';
  *
  * 셋을 하나의 초록/빨강으로 합치면 사용자는 **자기 사전 믿음이 결과를 얼마나
  * 좌우했는지** 볼 기회를 잃는다. 그래서 엇갈림을 감추지 않고 그대로 낸다.
+ *
+ * ── 이미 있는 것과의 관계 (능력 중복 검사 통과 기록) ─────────────────
+ *
+ * 전제 모델의 정본은 `src/lib/premises-core.ts` 다 (결정 단위 5개 캡, 재점검
+ * 주기, due 계산). **그대로 쓰지 않은 이유는 하나뿐이다**: 거기 `premiseId()`
+ * 는 `decisionId` 를 키에 넣는다 — 같은 문장도 결정이 다르면 다른 전제다.
+ * 그래서 M2·M3(프레임을 건너뛴 재사용·생존)이 원리적으로 셀 수 없었다.
+ * 라이브 데이터가 그 id 체계에 묶여 있어 바꾸면 저장된 전제가 전부 고아가 된다.
+ *
+ * **대신 "같은 전제인가"의 판정은 빌려온다** — `normalizePremiseText()`.
+ * 그 함수의 주석이 이미 *"groupable by normalized text"* 라고 적어둔,
+ * 원래 의도된 다리다. 두 모델이 동일성 판정에서 갈라지면 한쪽이 조용히 틀린다.
+ * append-only 원장(`argus-mcp/src/v2/ledger.ts`, `method-harness/ledger.ts`)은
+ * 각각 MIT 존·Track R 존 소유라 존 순수성상 import 할 수 없다 — 여기 판독
+ * 원장은 앱 존 Supabase 행이고, 불변성은 seal 후 UPDATE 금지 트리거가 건다.
  */
 
 export type PremiseStance =
@@ -39,6 +55,20 @@ export type PremiseStance =
   | 'contested'
   /** 둘 다 흔들렸다고 말한다. */
   | 'shaken';
+
+/**
+ * 두 전제가 같은 전제인가 — 동일성의 **단일 정본**.
+ * `premises-core` 의 정규화를 그대로 쓴다. 여기서 자체 규칙을 만들면 결정
+ * 단위 모델과 지속 모델이 서로 다른 답을 내고, 그 순간 M2 는 조용히 틀린다.
+ */
+export function premiseIdentityKey(text: string): string {
+  return normalizePremiseText(text || '');
+}
+
+/** 같은 전제를 가리키는가 (프레임·결정 경계를 건너뛰어). */
+export function isSamePremiseText(a: string, b: string): boolean {
+  return premiseIdentityKey(a) === premiseIdentityKey(b);
+}
 
 export interface DurablePremise {
   id: string;

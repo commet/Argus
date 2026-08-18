@@ -31,6 +31,11 @@ import type {
  *      자신의 소급 측정에서 기계가 검사하지 않는 규약의 준수율이 90%였다.
  *   3. **거부는 시끄럽다.** `SealResult` 는 사유를 기계 가독으로 돌려준다.
  *      조용히 부분 성공하는 경로가 없다 (P5).
+ *
+ * ── 이미 있는 것과의 관계 ───────────────────────────────────────────
+ * 저자성 판정의 정본은 `src/lib/judgment-authorship.ts` 이고 `./authorship.ts`
+ * 가 그것을 부른다 — 여기서 다시 판정하지 않는다. 전제의 지속 모델은
+ * `src/lib/premises-core.ts` + `./premise.ts` 이고 프레임은 참조만 한다.
  */
 
 const nowIso = (now: number): string => new Date(now).toISOString();

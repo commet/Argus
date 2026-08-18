@@ -36,6 +36,10 @@ import type { CognitiveFrame, FrameElement } from './types';
  *
  * 비어 있는 축을 AI가 채우지 않고 **비었다고 적는다.** 채우면 그 순간 이
  * 도구는 자기가 방어하려는 실패(그럴듯함이 맞음으로 위장)의 사례가 된다.
+ *
+ * ── 이미 있는 것과의 관계 ───────────────────────────────────────────
+ * 저자성 판정의 정본은 `src/lib/judgment-authorship.ts` (`./authorship.ts` 경유).
+ * 거울은 판정하지 않고 이미 판정된 것을 세어 보여줄 뿐이다.
  */
 
 export interface AxisReflection {

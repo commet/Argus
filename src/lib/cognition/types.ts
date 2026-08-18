@@ -25,6 +25,13 @@ import type { AxisId } from './axes';
  *
  * 주의: `in_frame` 은 열등한 상태가 아니다. 대부분의 사고는 거기서 일어나고
  * 일어나야 한다. 판정하지 않는다 — **위치를 표시할 뿐이다.**
+ *
+ * ── 이미 있는 것과의 관계 ───────────────────────────────────────────
+ * 전제 모델의 정본은 `src/lib/premises-core.ts`, 동일성 판정은 그 곳의
+ * `normalizePremiseText()` 를 `premise.ts` 가 빌려 쓴다 (여기 타입은 그 위의
+ * 지속 계층). append-only 원장 `argus-mcp/src/v2/ledger.ts` ·
+ * `method-harness/ledger.ts` 는 다른 존 소유라 import 하지 않는다 — 앱 존의
+ * 불변성은 seal 후 UPDATE 금지 DB 트리거가 건다.
  */
 export type ElementWorld = 'in_frame' | 'reality_contact';
 

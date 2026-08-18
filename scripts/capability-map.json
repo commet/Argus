@@ -1,0 +1,152 @@
+{
+  "_why": "짓기 전에 이미 있는지 훑게 만드는 기계적 단계. 2026-08-18 사고: 대화 수집·후보 추출을 앱 존에 새로 지었는데 argus-mcp/src/v2/ 에 훅 자동발견·큐·게이트·민감정보 차단·byte 검증까지 이미 있었다. 결심으로는 재발을 못 막으므로 검사기로 만든다.",
+  "_rule": "새 파일이 어떤 능력을 **주제로** 다루면(그 능력의 서로 다른 키워드 2개 이상, 또는 한 키워드가 4번 이상), 그 능력이 이미 사는 곳을 파일 안에서 한 번은 언급해야 한다(import 든 주석이든). 언급이 없으면 '안 보고 지었다'로 보고 크게 실패시킨다. 스침(키워드 1개가 1~3번)은 통과 — 시끄러우면 아무도 안 본다.",
+  "capabilities": [
+    {
+      "id": "transcript-capture",
+      "label": "대화 로그 수집",
+      "keywords": [
+        "transcript",
+        "세션 로그",
+        "대화 로그",
+        "jsonl"
+      ],
+      "lives_at": [
+        "argus-mcp/src/v2/candidate-capture.ts",
+        "argus-mcp/src/v2/capture-cli.ts",
+        "argus-mcp/src/v2/harvest.ts"
+      ],
+      "strong_keywords": [
+        "readTranscriptTurns",
+        "TranscriptTurn",
+        "세션 로그",
+        "대화 로그"
+      ]
+    },
+    {
+      "id": "candidate-extraction",
+      "label": "후보 추출",
+      "keywords": [
+        "candidate",
+        "후보 추출",
+        "extractCandidates"
+      ],
+      "lives_at": [
+        "argus-mcp/src/v2/candidate-capture.ts"
+      ],
+      "strong_keywords": [
+        "CandidateExtractorPort",
+        "ExtractedCandidate",
+        "stableCandidateIdentity",
+        "후보 추출"
+      ]
+    },
+    {
+      "id": "sensitive-blocking",
+      "label": "민감정보 차단",
+      "keywords": [
+        "sensitive",
+        "민감정보",
+        "api key",
+        "secret"
+      ],
+      "lives_at": [
+        "argus-mcp/src/v2/sanitize.ts",
+        "argus-mcp/src/v2/candidate-capture.ts"
+      ],
+      "strong_keywords": [
+        "sensitiveCategories",
+        "민감정보"
+      ]
+    },
+    {
+      "id": "work-queue",
+      "label": "작업 큐",
+      "keywords": [
+        "queue",
+        "큐",
+        "claim",
+        "lease"
+      ],
+      "lives_at": [
+        "argus-mcp/src/v2/queue.ts"
+      ],
+      "strong_keywords": [
+        "QueueItem",
+        "QueueState"
+      ]
+    },
+    {
+      "id": "authorship-verdict",
+      "label": "저자성 판정",
+      "keywords": [
+        "authorship",
+        "저자성",
+        "wording_source",
+        "ai_surfaced"
+      ],
+      "lives_at": [
+        "src/lib/judgment-authorship.ts"
+      ],
+      "strong_keywords": [
+        "wording_source",
+        "ai_surfaced",
+        "ClosingJudgmentAuthorship"
+      ]
+    },
+    {
+      "id": "premise-core",
+      "label": "전제 모델",
+      "keywords": [
+        "premise",
+        "전제"
+      ],
+      "lives_at": [
+        "src/lib/premises-core.ts",
+        "argus-mcp/src/lib/premises-core.ts"
+      ],
+      "strong_keywords": [
+        "PremiseState",
+        "normalizePremiseText",
+        "premiseId"
+      ]
+    },
+    {
+      "id": "append-ledger",
+      "label": "append-only 원장",
+      "keywords": [
+        "ledger",
+        "원장",
+        "append-only"
+      ],
+      "lives_at": [
+        "method-harness/ledger.ts",
+        "argus-mcp/src/v2/ledger.ts"
+      ],
+      "strong_keywords": [
+        "appendEvent",
+        "ledgerPath",
+        "append-only 원장"
+      ]
+    },
+    {
+      "id": "prompt-brain",
+      "label": "시스템 프롬프트",
+      "keywords": [
+        "SYSTEM_PROMPT",
+        "systemPrompt",
+        "시스템 프롬프트"
+      ],
+      "lives_at": [
+        "src/lib/reframe-core.ts",
+        "src/lib/persona-prompt.ts"
+      ],
+      "strong_keywords": [
+        "systemPrompt",
+        "시스템 프롬프트"
+      ]
+    }
+  ],
+  "_scope": "검사 대상은 제품 코드(src/, argus-mcp/src/, argus-plugin-v2/src/, method-harness/)뿐. docs/receipts/ 의 일회성 실측 스크립트는 아키텍처가 아니므로 제외한다.",
+  "_strong_rule": "strong_keywords 는 **정본 파일이 실제로 쓰는 이름**이어야 한다. 새 파일에 그 이름이 나오면 같은 것을 다시 짓고 있다는 강한 신호다. 지어낸 이름을 여기 적으면 검사기가 엉뚱한 파일을 잡거나 아무것도 못 잡는다 — capability-map.test.ts 가 실존을 강제한다."
+}

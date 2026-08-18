@@ -43,12 +43,37 @@ import type { AxisId } from './axes';
  * **비면 비었다고 말한다.** 채우지 않는다. 못 찾은 것을 지어내는 순간 이 도구는
  * 쓸모가 아니라 위험이 된다.
  *
+ * ── 이 모듈이 아키텍처에서 앉는 자리 (2026-08-18 정정) ───────────────
+ *
+ * 처음에 이걸 "파일 업로드 화면"으로 지었다. **그건 틀렸다.** 이 저장소에는
+ * 이미 자동 수집 파이프라인이 있다 (`argus-mcp/src/v2/`):
+ *
+ *   Claude Code 훅 (opt-in) → 큐 → runHarvestSweep → CandidateExtractorPort
+ *                                                   → byte 검증 → 후보 → 원장
+ *
+ * 훅은 Claude Code 로부터 transcript 경로를 **자동으로 받는다**(`--transcript`).
+ * 사용자가 파일을 고를 일이 없다. 민감정보 차단·인용 byte 대조·주 2건 캡·
+ * 1일 1회 제한도 이미 거기 있다.
+ *
+ * 그러므로 이 모듈은 **입력 경로가 아니라 추출기**다. 갈 자리는
+ * `CandidateExtractorPort` 의 새 구현이고, 기존 `deterministicCandidateExtractor`
+ * 가 턴당 후보 하나(`{quote, typed_span}`)를 내는 것을 **일곱 축 + 저자 증명**으로
+ * 넓힌다. 그 배선은 MIT 존 PR 이다 (한 PR 한 존 규약).
+ *
+ * 소스는 갈아끼울 수 있어야 한다 — 이 함수들은 `TranscriptTurn[]` 만 받고
+ * 파일도, 경로도, 네트워크도 모른다. 그래서 훅이 주든 붙여넣기가 주든 같다.
+ *
  * ── 규율 ─────────────────────────────────────────────────────────────
  *
  * 1. 순수·결정론. 같은 로그 = 같은 후보. LLM 호출 없음.
  * 2. 문장은 **글자 그대로**. 다듬지 않는다.
  * 3. 후보는 후보다. 자동으로 칸에 들어가지 않고 사람이 고른다.
  * 4. 못 찾으면 빈 배열. 그럴듯한 문장을 만들지 않는다.
+ * 5. 소스를 모른다. 파일·훅·붙여넣기 어디서 와도 같은 함수가 돈다.
+ *
+ * 전제 모델의 정본은 `src/lib/premises-core.ts` (`normalizePremiseText`·`premiseId`)
+ * 이고 지속 계층은 `./premise.ts` 다. 여기서는 전제 **문장을 뽑기만** 하고
+ * 전제 객체를 만들거나 동일성을 판정하지 않는다.
  */
 
 export interface TranscriptTurn {
@@ -117,6 +142,24 @@ export function parseTranscript(jsonl: string, opts?: { maxTurns?: number }): Tr
     }
   }
   return out;
+}
+
+/**
+ * 사용자가 자기 말을 붙여넣거나 그냥 쓴 것을 턴 하나로 만든다.
+ *
+ * **왜 이게 필요한가**: 로그가 아예 없는 사람이 있고, 있어도 열지 않을 사람이
+ * 있다. 그 사람들에게 일곱 칸을 내밀면 아무도 안 쓴다. 대신 한 칸에 편하게
+ * 쓰게 하고, 거기서 일곱 축을 뽑아 보여준다.
+ *
+ * 저자성은 정직하게 처리된다: 사용자가 자기 손으로 넣은 글이므로 `user` 다.
+ * 로그처럼 기계가 증명하는 게 아니라 **사용자의 주장**이지만, 그 주장은
+ * 사용자 자신에 대한 것이라 받아들이는 게 맞다. (반대로 대화 전체를 붙여넣으면
+ * 누가 무슨 말을 했는지 갈라낼 수 없으므로, 그건 파일·훅 경로로 보내야 한다.)
+ */
+export function turnsFromOwnWriting(text: string, at: string): TranscriptTurn[] {
+  const t = (text || '').trim();
+  if (!t) return [];
+  return [{ who: 'user', text: t, at, id: `own:${at}` }];
 }
 
 /**

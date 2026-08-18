@@ -33,6 +33,10 @@ import type { CognitiveFrame, Crossing, SignalReading } from './types';
  * 일어나선 안 될 일이 안 일어나는가).
  *
  * 결정론: `Date.now()`·난수 없음. 기준 시각과 시드에서 전부 파생된다.
+ *
+ * ── 이미 있는 것과의 관계 ───────────────────────────────────────────
+ * 전제 모델 정본은 `src/lib/premises-core.ts` + `./premise.ts`. 하네스는 그것을
+ * 호출할 뿐 자체 전제 표현을 만들지 않는다.
  */
 
 const CUSUM_PRIOR: CusumPrior = {
