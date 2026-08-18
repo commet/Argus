@@ -52,12 +52,20 @@ describe('호스트-대면 표면에 내부 이름 누수 없음', () => {
   });
 
   it('keeps the full MCP harness within a deterministic context budget', () => {
-    // 18,700 = 2026-08-15 인지 수집 사이클 1+2(열기: 질문·가치·버린 대안·전제 확신도 / 봉인: 질문·확신도) 표면
-    // 비용을 지불하며 상향(구 17,000 ← 16,000; 실측 18,023 + CI 직렬화 편차 ~22B + 여유). 창업자 지시("입력 깊이
-    // 10/100 — 체계적 의사결정·인지작용의 구조적 수집")의 시공분으로, 성장은
-    // 구조 + 저자성 규율 설명("사용자가 말한 것만·추측 금지") 4건이다.
+    // 18,800 = 2026-08-18 재정초 §6 봉인 후 배선 수리(PR-A1)로 상향
+    // (구 18,700 ← 17,000 ← 16,000; 실측 18,747 + CI 직렬화 편차 ~22B + 여유).
+    // 산 것: `assumption_external` 한 필드. 이것이 없으면 승격된
+    // unverified_assumption 은 `external:false` 로 고정돼 isMonitored 를 영영
+    // 통과하지 못하고, 사용자는 "가정을 남겼다"고 알지만 그 가정은 재확인
+    // 궤도에 오르지 않는다 — 이 저장소가 이름 붙인 조용한 실패 그대로다.
+    //
+    // 지불의 위험도 함께 적는다: 바로 위 seal.ts 의 `confirm_draft` 주석이
+    // "665 SERVED BYTES 를 냈는데 다섯 번의 여정에서 어시스턴트가 한 번도
+    // 이 플래그를 넘기지 않았다"고 기록했다. 모델이 넘기는 플래그는 안 넘겨질
+    // 수 있다. 그래서 이 필드는 3단계 실주행의 관측 대상이고, 실측에서
+    // 안 넘겨지면 A3 에서 확인창 질문으로 교체하고 이 바이트를 돌려받는다.
     // CI가 로컬보다 ~22B 크게 직렬화하므로 여유를 남긴다.
-    expect(Buffer.byteLength(JSON.stringify(servedPublicTools()), 'utf8')).toBeLessThanOrEqual(18_700);
+    expect(Buffer.byteLength(JSON.stringify(servedPublicTools()), 'utf8')).toBeLessThanOrEqual(18_800);
     expect(Buffer.byteLength(SERVER_INSTRUCTIONS, 'utf8')).toBeLessThanOrEqual(2_000);
   });
 
