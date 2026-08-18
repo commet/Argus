@@ -24,6 +24,13 @@
 //      `push-webapp.js` 로 `plugin_decisions` 에 도착한다. 이 화면은 그것을
 //      **승인하는 자리**이지 수집하는 자리가 아니다. 읽기는 이미 있는
 //      `usePluginStore` 를 쓴다 (전용 API 라우트를 새로 만들지 않는다).
+//   5. **인트로에서 끝나지 않는다.** 봉인한 판단의 전제는 프레임 밖으로 나가
+//      살아남고, 그 전제가 흔들리면 그것을 참조한 판단들이 한꺼번에 다시
+//      올라온다. 이 되돌아오는 절반이 없으면 이 도구는 기록장일 뿐이다.
+//
+// 저자성 판정(`wording_source` 등)의 정본은 `src/lib/judgment-authorship.ts`
+// 이고 `cognition/authorship.ts` 가 그것을 부른다 — 이 화면은 판정하지 않고
+// 이미 판정된 것을 그리기만 한다.
 //
 // 판정 로직은 전부 src/lib/cognition/ 의 순수 엔진에 있다. 이 파일은 입력을
 // 모아 엔진에 넘기고 결과를 그린다 — 화면에 판정을 두면 테스트가 닿지 못한다.
@@ -63,6 +70,20 @@ import {
   type FrameElement,
   type SourceId,
   type TranscriptTurn,
+  makePremise,
+  appendReading,
+  referenceFrom,
+  assessPremise,
+  returnTriggers,
+  premiseIdentityKey,
+  watchBlocks,
+  watchToBinding,
+  watchToCusumPrior,
+  watchToPortfolioPrior,
+  readingFrom,
+  watchStatus,
+  type DurablePremise,
+  type WatchSetup,
 } from '@/lib/cognition';
 import { usePluginStore } from '@/stores/usePluginStore';
 
@@ -91,6 +112,13 @@ const PILOT_DRAFTS: Partial<Record<AxisId, string>> = {
   inference: '전제가 유지되면 지금 속도로 목표에 닿는다',
   alternatives: '더 기다렸다가 신호를 더 모으는 길을 버렸다',
 };
+
+function loadPremises(): DurablePremise[] {
+  const raw = getStorage<DurablePremise[]>(STORAGE_KEYS.COGNITIVE_PREMISES, []);
+  return Array.isArray(raw) ? raw : [];
+}
+
+const emptyWatch = (): WatchSetup => ({ what: '', where: '', normal: '', wobble: '', broken: '', why: '' });
 
 function loadFrames(): CognitiveFrame[] {
   // getStorage 가 파싱·fallback·손상 가드를 이미 한다 — 여기서 다시 JSON.parse 하면
@@ -123,9 +151,16 @@ export default function CognitiveFramesPilot() {
   const [source, setSource] = useState<SourceId>(DEFAULT_SOURCE);
   const [sourceLines, setSourceLines] = useState<string[]>([]);
   const [pasted, setPasted] = useState('');
+  /** 프레임 밖에 사는 전제들. 여러 판단이 같은 전제를 참조한다. */
+  const [premises, setPremises] = useState<DurablePremise[]>([]);
+  /** 감시 설정 중인 전제 id → 사람이 답하는 다섯 칸. */
+  const [watchDraft, setWatchDraft] = useState<Record<string, WatchSetup>>({});
+  /** 오늘 본 값 입력 (전제 id → 값). */
+  const [readingDraft, setReadingDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setFrames(loadFrames());
+    setPremises(loadPremises());
     setHydrated(true);
   }, []);
 
@@ -140,6 +175,11 @@ export default function CognitiveFramesPilot() {
   const persist = useCallback((next: CognitiveFrame[]) => {
     setFrames(next);
     setStorage(STORAGE_KEYS.COGNITIVE_FRAMES, next);
+  }, []);
+
+  const persistPremises = useCallback((next: DurablePremise[]) => {
+    setPremises(next);
+    setStorage(STORAGE_KEYS.COGNITIVE_PREMISES, next);
   }, []);
 
   const draftFor = useCallback((axis: AxisId): AxisDraft => drafts[axis] ?? emptyDraft(), [drafts]);
@@ -301,7 +341,100 @@ export default function CognitiveFramesPilot() {
     setTitle('');
     setDrafts({});
     persist([res.frame, ...frames]);
-  }, [title, draftFor, frames, persist]);
+
+    // 봉인한 판단의 전제를 **프레임 밖으로** 꺼낸다. 이게 있어야 같은 전제를
+    // 쓴 다른 판단이 무엇인지 알 수 있고, 그 전제가 흔들렸을 때 그것들이
+    // 한꺼번에 깨어난다. 같은 문장인지의 판정은 premises-core 의 정규화를
+    // 그대로 쓴다 — 두 곳이 갈라지면 이 연결이 조용히 끊긴다.
+    let nextPremises = premises;
+    for (const el of res.frame.elements) {
+      if (el.axis !== 'premises' || !el.text.trim()) continue;
+      const key = premiseIdentityKey(el.text);
+      const existing = nextPremises.find((x) => premiseIdentityKey(x.text) === key);
+      if (existing) {
+        nextPremises = nextPremises.map((x) =>
+          x.id === existing.id ? referenceFrom(x, res.frame.id, now) : x,
+        );
+      } else {
+        nextPremises = [
+          referenceFrom(
+            makePremise({ id: `premise_${now.toString(36)}_${el.id}`, userId: null, text: el.text, now }),
+            res.frame.id,
+            now,
+          ),
+          ...nextPremises,
+        ];
+      }
+    }
+    persistPremises(nextPremises);
+  }, [title, draftFor, frames, persist, premises, persistPremises]);
+
+  /**
+   * 이 전제의 감시 설정. 편집 중이면 그 초안, 아니면 이미 걸린 감시에서 되살린다.
+   * 되살리지 않으면 새로고침 후 판독을 남길 수 없다 — 저장은 됐는데 이어서
+   * 못 쓰는 것이 이 저장소가 반복해서 겪은 조용한 실패다.
+   */
+  const watchFor = useCallback(
+    (p: DurablePremise): WatchSetup => {
+      const draft = watchDraft[p.id];
+      if (draft) return draft;
+      const b = p.bindings[0];
+      if (!b) return emptyWatch();
+      return { what: b.kind, where: b.target, normal: '', wobble: '', broken: '', why: b.threshold_rationale };
+    },
+    [watchDraft],
+  );
+
+  /** 감시를 건다 — 사람이 답한 다섯 칸이 전부 통과했을 때만. */
+  const onArmWatch = useCallback(
+    (premiseId: string) => {
+      const w = watchDraft[premiseId];
+      if (!w || watchBlocks(w).length > 0) return;
+      const now = Date.now();
+      persistPremises(
+        premises.map((p) =>
+          p.id !== premiseId
+            ? p
+            : {
+                ...p,
+                bindings: [watchToBinding(w)],
+                cusum_prior: watchToCusumPrior(w),
+                portfolio_prior: watchToPortfolioPrior(w),
+                updated_at: new Date(now).toISOString(),
+              },
+        ),
+      );
+      setWatchDraft((prev) => ({ ...prev, [premiseId]: w }));
+    },
+    [watchDraft, premises, persistPremises],
+  );
+
+  /** 오늘 본 값을 원장에 append 한다. 덮어쓰지 않는다. */
+  const onAddReading = useCallback(
+    (premiseId: string) => {
+      const p = premises.find((x) => x.id === premiseId);
+      if (!p) return;
+      const w = watchFor(p);
+      const now = Date.now();
+      persistPremises(
+        premises.map((x) =>
+          x.id !== premiseId
+            ? x
+            : appendReading(
+                x,
+                readingFrom(w, {
+                  value: readingDraft[premiseId] ?? '',
+                  unreadReason: '값을 적지 않았습니다.',
+                  observedAt: new Date(now).toISOString(),
+                }),
+                now,
+              ),
+        ),
+      );
+      setReadingDraft((prev) => ({ ...prev, [premiseId]: '' }));
+    },
+    [premises, watchFor, readingDraft, persistPremises],
+  );
 
   const onSettle = useCallback(
     (frameId: string, observed: boolean) => {
@@ -324,6 +457,12 @@ export default function CognitiveFramesPilot() {
     },
     [frames, persist],
   );
+
+  /**
+   * 흔들린 전제가 깨우는 판단들. **엔진이 정하고 화면은 그리기만 한다** —
+   * 여기에 조건을 더 얹으면 테스트가 닿지 못하는 판정이 화면에 생긴다.
+   */
+  const triggers = useMemo(() => returnTriggers(premises, frames), [premises, frames]);
 
   if (!hydrated) return <main className="mx-auto max-w-3xl px-5 py-10 text-sm opacity-60">불러오는 중…</main>;
 
@@ -626,6 +765,141 @@ export default function CognitiveFramesPilot() {
         잠그면 문장이 더 이상 바뀌지 않습니다. 나중에 생각이 바뀌면 새로 적으면 됩니다. 지금 쓴 말을 그대로 남겨두는
         게 나중에 자기를 속이지 않는 유일한 방법이라서요.
       </p>
+
+      {/* 지금 흔들린 것 — 이 도구가 인트로에서 끝나지 않는 이유 */}
+      {triggers.length > 0 && (
+        <section className="mt-10 rounded-lg bg-[var(--accent)]/[0.06] px-4 py-4">
+          <h2 className="text-sm font-semibold">지금 흔들린 것</h2>
+          <p className="mt-1 text-xs leading-relaxed opacity-70">
+            아래 전제가 흔들렸습니다. 이 전제 위에 세운 판단들이 그래서 다시 올라왔습니다. 고치라는 말이 아니라,
+            지금 다시 볼지는 직접 정하시라는 뜻입니다.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {triggers.map((t) => (
+              <li key={t.premise_id} className="text-xs leading-relaxed">
+                <p className="font-medium">{t.premise_text}</p>
+                <p className="mt-0.5 opacity-70">{t.reason}</p>
+                <p className="mt-1 opacity-80">
+                  다시 볼 판단 {t.wake_frame_ids.length}개
+                  {t.wake_frame_ids.length > 0 && (
+                    <>
+                      {': '}
+                      {t.wake_frame_ids
+                        .map((id) => frames.find((f) => f.id === id)?.title || id)
+                        .join(' · ')}
+                    </>
+                  )}
+                </p>
+                {t.already_settled_ids.length > 0 && (
+                  <p className="mt-0.5 opacity-55">
+                    이미 결과를 적은 판단 {t.already_settled_ids.length}개는 깨우지 않았습니다.
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* 지켜보는 것 — 전제를 현실에 묶는 자리 */}
+      {premises.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-sm font-semibold">지켜보는 것 {premises.length}개</h2>
+          <p className="mt-1 text-xs leading-relaxed opacity-65">
+            봉인한 판단에서 꺼낸 전제들입니다. 무엇을 보면 이 전제가 깨진 걸 알 수 있는지 정해두면, 그 숫자가
+            움직였을 때 이 전제 위에 세운 판단들이 다시 올라옵니다. 정하지 않으면 아무 일도 일어나지 않습니다 —
+            저희가 대신 기준을 정하지는 않습니다.
+          </p>
+
+          <ul className="mt-4 space-y-4">
+            {premises.map((p) => {
+              const w = watchFor(p);
+              const armed = !!p.cusum_prior;
+              const blocks = watchBlocks(w);
+              const a = assessPremise(p);
+              return (
+                <li key={p.id} className="rounded-lg border border-[var(--border)] px-4 py-3">
+                  <p className="text-xs font-medium leading-relaxed">{p.text}</p>
+                  <p className="mt-1 text-xs opacity-55">
+                    이 전제를 쓴 판단 {p.referenced_by.length}개 · {watchStatus(p.readings.length)}
+                  </p>
+
+                  {armed ? (
+                    <>
+                      <p className="mt-2 rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2 text-xs leading-relaxed opacity-80">
+                        {a.statement}
+                      </p>
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          value={readingDraft[p.id] ?? ''}
+                          maxLength={200}
+                          onChange={(e) => setReadingDraft((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                          placeholder={`오늘 ${p.bindings[0]?.kind || '그 숫자'}는 얼마였나요`}
+                          className="flex-1 rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => onAddReading(p.id)}
+                          className="rounded-md border border-[var(--border)] px-3 py-2 text-xs"
+                        >
+                          적기
+                        </button>
+                      </div>
+                      <p className="mt-1 text-xs opacity-50">
+                        못 봤으면 비워둔 채로 눌러주세요. 안 본 것을 본 것처럼 적지 않습니다.
+                      </p>
+                    </>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {(
+                        [
+                          ['what', '무엇을 보면 되나요', '예: 전환율'],
+                          ['where', '어디서 보나요', '예: 대시보드 A'],
+                          ['normal', '평소엔 얼마인가요', '예: 3%'],
+                          ['wobble', '평소에도 이만큼은 왔다갔다 해요', '예: 0.2%p'],
+                          ['broken', '얼마가 되면 이 전제가 틀린 건가요', '예: 2%'],
+                          ['why', '왜 그 값인가요', '예: 그 아래면 광고비가 안 빠집니다'],
+                        ] as const
+                      ).map(([field, label, ph]) => (
+                        <label key={field} className="block text-xs">
+                          <span className="opacity-70">{label}</span>
+                          <input
+                            value={w[field]}
+                            maxLength={MAX_TEXT}
+                            onChange={(e) =>
+                              setWatchDraft((prev) => ({
+                                ...prev,
+                                [p.id]: { ...(prev[p.id] ?? emptyWatch()), [field]: e.target.value },
+                              }))
+                            }
+                            placeholder={ph}
+                            className="mt-1 w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-1.5"
+                          />
+                        </label>
+                      ))}
+                      {blocks.length > 0 && (
+                        <ul className="space-y-1 text-xs opacity-70">
+                          {blocks.map((b, i) => (
+                            <li key={i}>· {b}</li>
+                          ))}
+                        </ul>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onArmWatch(p.id)}
+                        disabled={blocks.length > 0}
+                        className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs disabled:opacity-40"
+                      >
+                        지켜보기 시작
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {frames.length > 0 && (
         <section className="mt-12">

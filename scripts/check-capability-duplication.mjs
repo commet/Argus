@@ -15,7 +15,8 @@
  *
  * ── 무엇을 검사하나 ──────────────────────────────────────────────────
  *
- * 1. 이 브랜치에서 **새로 추가된** 제품 소스 파일을 git 에서 찾는다.
+ * 1. 이 브랜치에서 **새로 추가된** 제품 소스 파일을 git 에서 찾는다 —
+ *    커밋된 것과 **아직 커밋 안 한 것 둘 다.**
  *    (docs/receipts/ 의 일회성 실측 스크립트는 아키텍처가 아니라 제외.)
  * 2. 각 파일이 어떤 능력을 **주제로** 다루는지 본다 — 스침이 아니라 주제여야
  *    한다: 서로 다른 키워드 2개 이상, 또는 한 키워드 4번 이상, 또는 강한
@@ -79,7 +80,11 @@ function mentions(body, loc) {
   const base = loc.split('/').pop();
   const stem = base.replace(/\.[^.]+$/, '');
   const dir = loc.slice(0, loc.length - base.length);
-  return body.includes(loc) || body.includes(base) || body.includes(stem) || (dir.length > 0 && body.includes(dir));
+  // 디렉토리 언급은 그 디렉토리가 **구체적일 때만** 인정한다. `argus-mcp/src/v2/`
+  // 는 그 능력이 사는 곳을 가리키지만 `src/lib/` 는 저장소 절반이라 아무 말도
+  // 안 한 것과 같다. 세 칸 이상일 때만 증거로 친다.
+  const dirSpecific = dir.split('/').filter(Boolean).length >= 3;
+  return body.includes(loc) || body.includes(base) || body.includes(stem) || (dirSpecific && body.includes(dir));
 }
 
 /**
@@ -112,7 +117,13 @@ if (diff === null) {
   process.exit(2);
 }
 
-const added = diff
+// 아직 커밋 안 한 새 파일도 본다. 이걸 빼면 **짓는 동안에는 검사기가
+// 조용하고**, 커밋한 뒤에야 말한다 — 물어야 할 때를 정확히 놓친다.
+const untracked = sh('git ls-files --others --exclude-standard') ?? '';
+
+const added = [diff, untracked]
+  .filter(Boolean)
+  .join('\n')
   .split('\n')
   .filter(Boolean)
   .filter((f) => /\.(ts|tsx|mjs|js)$/.test(f))

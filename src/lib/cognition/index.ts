@@ -120,6 +120,8 @@ export {
   referenceFrom,
   assessPremise,
   returnTriggers,
+  premiseIdentityKey,
+  isSamePremiseText,
   measureM2,
   measureM3,
   type DurablePremise,
@@ -141,6 +143,22 @@ export {
   type OutcomeAttribution,
   type PreregisteredAttribution,
 } from './attribution';
+
+export {
+  MIN_READINGS,
+  SLACK_RATIO,
+  DECISION_SIGMA,
+  LEARNING_RATE,
+  SHARE_RATE,
+  readNumber,
+  readingFrom,
+  watchBlocks,
+  watchStatus,
+  watchToBinding,
+  watchToCusumPrior,
+  watchToPortfolioPrior,
+  type WatchSetup,
+} from './watch';
 
 export {
   parseTranscript,
