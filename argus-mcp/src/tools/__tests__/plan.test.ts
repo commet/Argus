@@ -100,6 +100,57 @@ describe('argus_capture action=plan — 채택', () => {
     expect(body(r)['error_code']).toBe('BAD_STEP_DATE');
     expect(String(body(r)['recovery'])).toContain(T0);
   });
+
+  /**
+   * 창업자 실주행(완성 계획 4걸음)이 며칠 걸리는지를 정하는 것은 이 두 줄이다.
+   * 문서가 "하루"라고 적으려면 코드가 하루여야 하고, 그 사실이 조용히 바뀌면
+   * 문서는 창업자에게 없는 대기를 시킨다. 그래서 여기에 못을 박는다.
+   *
+   *   plan.ts:127      isFutureDate(due, today)  →  due > today   (오늘 거절)
+   *   check-in.ts:321  s.due <= today            →  내일 기한은 내일 발화
+   *
+   * 곱하면 가능한 최단 왕복은 +1d 다. +2d 가 아니다.
+   * (2026-08-19: 계획 문서가 근거 없이 +2d 라 적고 있었고, 그 한 줄이
+   *  창업자에게 하루를 더 기다리게 하고 있었다.)
+   */
+  it('오늘 기한은 거절하고 내일 기한은 받는다 — 최단 왕복이 하루인 이유', async () => {
+    const dirToday = tmpArgusDir();
+    await openDecision(dirToday);
+    const today = await decide.handler({
+      argus_dir: dirToday, action: 'plan', id: 'vendor',
+      steps: [{ what: 'x', due: T0 }], today_override: T0,
+    });
+    expect(isError(today)).toBe(true);
+    expect(body(today)['error_code']).toBe('BAD_STEP_DATE');
+
+    const dir = tmpArgusDir();
+    await openDecision(dir);
+    const tomorrow = await decide.handler({
+      argus_dir: dir, action: 'plan', id: 'vendor',
+      steps: [{ what: '공고 초안을 본다', due: '+1d' }], today_override: T0,
+    });
+    expect(isError(tomorrow)).toBe(false);
+  });
+
+  it('내일 심은 기한은 내일 아침 check_in 에서 제품이 먼저 말을 건다', async () => {
+    const dir = tmpArgusDir();
+    await openDecision(dir);
+    await decide.handler({
+      argus_dir: dir, action: 'plan', id: 'vendor',
+      steps: [{ what: '공고 초안을 본다', due: '+1d' }], today_override: T0,
+    });
+
+    // 심은 당일에는 조용하다. 마감 전이니까.
+    const sameDay = await checkIn.handler({ argus_dir: dir, today_override: T0 });
+    expect((body(sameDay)['data'] as Record<string, unknown>)['plan_due']).toBeUndefined();
+
+    // 다음 날 아침 — 여기서 말을 걸어야 한다. 이것이 4걸음이 재는 전부다.
+    const nextDay = await checkIn.handler({ argus_dir: dir, today_override: '2026-07-02' });
+    const planDue = (body(nextDay)['data'] as Record<string, unknown>)['plan_due'] as Array<Record<string, unknown>>;
+    expect(Array.isArray(planDue)).toBe(true);
+    expect(planDue).toHaveLength(1);
+    expect(planDue[0]['what']).toBe('공고 초안을 본다');
+  });
 });
 
 describe('argus_capture action=plan_check — 결과 기록', () => {
