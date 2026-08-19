@@ -17,11 +17,19 @@
  * appears only as the small hairline accent, the offer rim, and the primary
  * action. Never a left accent bar, never a big gold fill.
  *
- * Ending is symmetric: the 남기기 moment asks PERMISSION TO RETURN (one flowing
- * sentence continuing the mirror — never a sentence to approve), and accepting
- * records through the EXISTING decision-contract machinery (projects store →
- * decision_contract → the same return loop as every seal). Declining closes in
- * one line and never re-asks. Declining is also completion.
+ * Ending is symmetric: the 남기기 moment asks PERMISSION TO RETURN in one
+ * flowing sentence continuing the mirror, and shows THE EXACT LINE that will be
+ * kept — tagged as the machine's wording and editable right there. Accepting
+ * adopts that visible line and records through the EXISTING decision-contract
+ * machinery (projects store → decision_contract → the same return loop as every
+ * seal). Declining closes in one line and never re-asks; declining is also
+ * completion.
+ *
+ * This screen used to hide the line: permission to be reminded silently sealed
+ * a sentence the user had never read, with honest `ai_surfaced` provenance on
+ * it. The 2026-08-10 loop audit named that (DLP-2) — a provenance tag is not
+ * adoption. Showing it costs no extra step, and the escape hatches stay: keep
+ * as is, fix it, or just go.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -136,9 +144,16 @@ export function LightFlow({
   const [qas, setQas] = useState<LightQA[]>([]);
   const [screen, setScreen] = useState<Screen>({ kind: 'turn', mirror: opening.mirror, question: opening.question });
   const [input, setInput] = useState('');
-  // After-accept receipt edit (고쳐도 돼요) — the only place the sentence is edited.
+  // After-accept receipt edit (고쳐도 돼요).
   const [editingReceipt, setEditingReceipt] = useState(false);
   const [receiptEdit, setReceiptEdit] = useState('');
+  // The line the user is about to adopt, shown BEFORE anything is stored, and
+  // editable there (감사 DLP-2). `offerEdited` carries into the seal so the
+  // record says who phrased it.
+  const [offerSentence, setOfferSentence] = useState('');
+  const [offerEdited, setOfferEdited] = useState(false);
+  const [editingOffer, setEditingOffer] = useState(false);
+  const [offerEdit, setOfferEdit] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [recordOpen, setRecordOpen] = useState(true);
@@ -185,6 +200,9 @@ export function LightFlow({
         setScreen({ kind: 'turn', mirror: turn.mirror, question: turn.question });
       } else if (turn.action === 'offer' && turn.offer) {
         setScreen({ kind: 'offer', mirror: turn.mirror, offer: turn.offer });
+        setOfferSentence((turn.offer.sentence || '').trim());
+        setOfferEdited(false);
+        setEditingOffer(false);
         track('light_seal_offered');
       } else if (turn.action === 'escalate' && turn.escalate) {
         setScreen({ kind: 'escalate', mirror: turn.mirror, biggerQuestion: turn.escalate.bigger_question });
@@ -211,12 +229,24 @@ export function LightFlow({
   // 처음 생각 → 남긴 판단 → 현실.
   const firstThought = firstThoughtFromQas(qas);
 
-  // Accepting is PERMISSION TO RETURN — the sentence (offer.sentence) seals as
-  // the machine's wording (honest ai_surfaced provenance) and only appears on
-  // the receipt afterwards, where 고쳐도 돼요 can still make it the user's own.
+  /** 고치기 — adopt the machine's line in the user's own words, before it is
+   *  stored. Provenance follows the wording (user_reworded at seal time). */
+  const saveOfferEdit = () => {
+    const next = offerEdit.trim();
+    if (!next) return;
+    setEditingOffer(false);
+    if (next === offerSentence) return; // unchanged — authorship unchanged too
+    setOfferSentence(next);
+    setOfferEdited(true);
+  };
+
+  // Accepting adopts THE LINE THE USER JUST READ and permits the return. The
+  // sentence is on screen above this button, tagged as the machine's wording
+  // and editable there — an ai_surfaced provenance tag is not adoption, so a
+  // line nobody saw must never become the record (감사 DLP-2).
   const acceptOffer = async () => {
     if (busy || screen.kind !== 'offer') return;
-    const sentence = screen.offer.sentence.trim();
+    const sentence = (offerSentence || screen.offer.sentence).trim();
     if (!sentence) return;
     setBusy(true);
     setErr(null);
@@ -233,14 +263,14 @@ export function LightFlow({
       const pid = store.createProject(title || sentence);
       const contract = buildLightSealContract(
         pid,
-        { sentence, edited: false, when: screen.offer.when, days: screen.offer.days, problemText, firstThought },
+        { sentence, edited: offerEdited, when: screen.offer.when, days: screen.offer.days, problemText, firstThought },
         now,
       );
       if (contract) store.updateProject(pid, { decision_contract: contract });
       // Stay on the light close screen: createProject selects the new project,
       // which would swap the whole workspace out from under this surface.
       store.setCurrentProjectId(null);
-      track('light_seal_accepted', { edited: false });
+      track('light_seal_accepted', { edited: offerEdited });
       setScreen({
         kind: 'closed',
         variant: 'accepted',
@@ -406,11 +436,10 @@ export function LightFlow({
               {mirrorBlock(screen.mirror)}
               {screen.mirror ? <GoldHairline /> : null}
               {/* Permission to return — ONE flowing sentence continuing the
-                  mirror, and this screen's serif headline. The falsifiable line
-                  (offer.sentence) is deliberately NOT shown here; it appears on
-                  the receipt only after the user says yes. Fallback composes
+                  mirror, and this screen's serif headline. Fallback composes
                   mechanically from the when label (known slots only — never
-                  invented content). */}
+                  invented content). The line that will be stored sits right
+                  below it, visible and editable BEFORE anything is written. */}
               <motion.h2
                 {...fadeUp(0.08)}
                 className="text-[17px] md:text-[19px] font-bold text-[var(--text-primary)] leading-[1.5] tracking-tight whitespace-pre-wrap break-keep break-words"
@@ -421,11 +450,61 @@ export function LightFlow({
                   `Want me to ask once ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)} how it actually went?`,
                 )}
               </motion.h2>
+              {/* 남길 문장 — 저장되기 전에 보이고, 여기서 고칠 수 있다.
+                  기계가 고른 말이 사용자가 못 본 채 그의 기록이 되면, 출처를
+                  정직하게 태그해도 그것은 채택이 아니다 (감사 DLP-2). */}
+              {offerSentence && (
+                <motion.div {...fadeUp(0.14)} className="mt-4 rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+                  <p className="text-[12px] leading-5 text-[var(--text-tertiary)] break-keep">
+                    {offerEdited
+                      ? L('당신이 고친 문장이에요 · 이대로 남길게요', 'Your wording — this is what gets kept')
+                      : L('이렇게 적어 둘게요 · 제 말이니 고쳐도 돼요', "My wording — keep it, or make it yours")}
+                  </p>
+                  {editingOffer ? (
+                    <div className="mt-2">
+                      <textarea
+                        value={offerEdit}
+                        onChange={(e) => setOfferEdit(e.target.value)}
+                        rows={2}
+                        maxLength={MAX_SENTENCE}
+                        autoFocus
+                        aria-label={L('남길 한 줄', 'The line to keep')}
+                        className="w-full resize-none bg-transparent text-[15px] leading-[1.65] text-[var(--text-primary)] focus:outline-none"
+                        style={{ fontFamily: 'var(--font-voice, serif)' }}
+                      />
+                      <div className="mt-1 flex gap-2">
+                        <Button variant="secondary" size="sm" onClick={saveOfferEdit} disabled={!offerEdit.trim()}>
+                          {L('저장', 'Save')}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingOffer(false)}>
+                          {L('취소', 'Cancel')}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p
+                        className="mt-1.5 text-[15px] md:text-[16px] leading-[1.65] text-[var(--text-primary)] break-keep break-words"
+                        style={{ fontFamily: 'var(--font-voice, serif)' }}
+                      >
+                        {offerSentence}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => { setOfferEdit(offerSentence); setEditingOffer(true); }}
+                        className="mt-1 -mb-1 inline-flex min-h-11 items-center pr-3 text-[12px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                      >
+                        {L('고쳐도 돼요', 'You can fix it')}
+                      </button>
+                    </>
+                  )}
+                </motion.div>
+              )}
               <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-2">
-                <Button variant="accent" size="md" onClick={() => void acceptOffer()} disabled={busy}>
+                <Button variant="accent" size="md" onClick={() => void acceptOffer()} disabled={busy || editingOffer}>
                   {L(
-                    `${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}에 물어봐 주세요`,
-                    `Ask me ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}`,
+                    `이대로 남기고, ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}에 물어봐 주세요`,
+                    `Keep this and ask me ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}`,
                   )}
                 </Button>
                 <Button variant="ghost" size="md" onClick={declineOffer} disabled={busy}>

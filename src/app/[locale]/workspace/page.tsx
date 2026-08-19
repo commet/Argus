@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, Suspense } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useWorkspaceStore, type StepId } from '@/stores/useWorkspaceStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -16,6 +16,7 @@ import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
+import { withLocale } from '@/lib/locale-path';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
 import { recordCompactLine } from '@/lib/record-summary';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
@@ -351,6 +352,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const router = useRouter();
   const [phase, setPhase] = useState<HeroPhase>('idle');
   const demoScenarios = getDemoScenarios(locale);
   const [demoScenario, setDemoScenario] = useState<DemoScenario | null>(null);
@@ -759,6 +761,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
         <div className="relative">
           <RetroSeal
             onExit={() => setPhase('idle')}
+            onViewRecord={(projectId) => {
+              // 정산을 끝낸 사람이 "기록 보기"를 누르면 그 결정의 기록으로 간다.
+              // 예전에는 빈 워크스페이스로 돌아왔고, 방금 남긴 것이 어디에도
+              // 없어 보였다 (감사 DLP-5).
+              useProjectStore.getState().setCurrentProjectId(projectId);
+              router.push(withLocale(locale, '/project'));
+            }}
             onRealSeal={() => {
               // [C3] real-decision onramp: clear the just-closed retro project so
               // the idle main input starts a fresh, blind decision (not the retro).
@@ -977,7 +986,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                       {/* Shared Button, accent variant (H1-C3): the raw inline-gold
                           button had no active/hover depth and its disabled state
                           (opacity-30) visually erased the page's one next action. */}
-                      <Button variant="accent" size="md" onClick={() => { setJustFromDemo(false); handleSubmit(); }} disabled={!problemInput.trim()}
+                      {/* `id` 는 결정 루프 E2E 가 잡는 손잡이다. 이 화면의 문구는
+                          제품 재정의 때마다 바뀌는데(2026-08-10 "시작" → "다음 움직임
+                          만들기"), 문구로 잡으면 그때마다 라이브 루프가 조용히 눈이
+                          멀고 프로덕션이 깨져도 아무도 모른다. 실제로 그렇게 됐다. */}
+                      <Button id="workspace-start"
+                        variant="accent" size="md" onClick={() => { setJustFromDemo(false); handleSubmit(); }} disabled={!problemInput.trim()}
                         className={`shrink-0 min-h-[44px] md:min-h-[40px] ${justFromDemo ? 'animate-pulse' : ''}`}>
                         {L('다음 움직임 만들기', 'Build the next move')} <ChevronRight size={12} />
                       </Button>

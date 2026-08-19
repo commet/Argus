@@ -47,9 +47,16 @@ const MAX_OUTCOME = 1200;
 
 type Step = 'lean' | 'outcome' | 'settle';
 
-export function RetroSeal({ onExit, onRealSeal }: {
+export function RetroSeal({ onExit, onRealSeal, onViewRecord }: {
   /** Return to the idle workspace (skip / done / close). */
   onExit: () => void;
+  /**
+   * Open the record this rehearsal just wrote. The rehearsal creates a real,
+   * durable project (`activate: false`), so its settlement has a record to go
+   * to — but the route belongs to the page, not to this component. Absent →
+   * the closing button says `연습 닫기` instead of promising a record.
+   */
+  onViewRecord?: (projectId: string) => void;
   /** [C3] 실전 온램프 — 회고 정산이 닫히면 완료 화면이 이 링크 하나를 제공한다:
    *  "이제 진짜 …". 눈먼(결과 모르는) 새 결정을 시작한다(setCurrentProjectId(null)
    *  + 메인 입력으로). 미전달 시 온램프는 onExit로 폴백(연습만 닫고 워크스페이스). */
@@ -161,6 +168,7 @@ export function RetroSeal({ onExit, onRealSeal }: {
           project={project}
           draftVerdicts={draftVerdicts}
           onClose={onExit}
+          onViewRecord={onViewRecord ? () => onViewRecord(project.id) : undefined}
           onRealSeal={() => {
             // [C4/활성화] retro loop → real seal handoff. Fire the transition
             // event first (item 10), then hand off to the real-decision entry.

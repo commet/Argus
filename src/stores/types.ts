@@ -887,6 +887,17 @@ export interface ContractSettlement {
     response_text?: string;
     recorded_at: string;
   };
+  /** 다음 판단으로 가져갈 한 줄 — **사용자가 직접 쓰고 명시적으로 남긴 것만.**
+   *  귀환의 값어치는 관찰이 아니라 그 뒤에 남는 규칙인데(감사 DLP-5), 그 규칙을
+   *  기계가 추론해 채우면 사용자의 기준이 아니라 모델의 요약이 다음 결정으로
+   *  간다. 그래서 `authored` 는 리터럴 'user' 이고, 빈 텍스트로는 저장되지
+   *  않으며, 이 줄이 없는 귀환은 그냥 규칙 없는 귀환이다(정직한 공백).
+   *  jsonb-nested inside the contract — no migration. */
+  lesson?: {
+    text: string;
+    authored: 'user';
+    recorded_at: string;
+  };
   observation_source_kind?: ObservationSourceKind;
 }
 

@@ -1307,6 +1307,12 @@ export default function ProjectPage() {
                 setSettleOpenId(null);
                 setSettleDismissed((prev) => new Set(prev).add(currentProject.id));
               }}
+              /* 여기서는 기록이 모달 바로 뒤에 있다 — 닫으면 도착한다. 그
+                 사실을 호출자가 선언해야 버튼이 기록을 약속할 수 있다. */
+              onViewRecord={() => {
+                setSettleOpenId(null);
+                setSettleDismissed((prev) => new Set(prev).add(currentProject.id));
+              }}
             />
           )}
 

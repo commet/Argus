@@ -413,7 +413,14 @@ try {
   // ── 2. 상황을 적고 시작 → 기준점 단계 ────────────────────────────────
   await page.locator('textarea').first().fill(DECISION);
   await page.waitForTimeout(600);
-  await page.getByRole('button', { name: '시작' }).first().click();
+  // 문구가 아니라 **손잡이**로 잡는다. 이 버튼의 이름은 제품 재정의 때마다
+  // 바뀌었고(2026-08-10 "시작" → "다음 움직임 만들기"), 그때마다 이 줄이 30초
+  // 타임아웃으로 죽으면서 루프 전체가 눈이 멀었다 — 프로덕션이 멀쩡한지 아닌지를
+  // 아무도 알 수 없는 상태가 그 사이 계속됐다. `#workspace-start` 가 정본이고,
+  // 이름 매칭은 그 손잡이가 아직 배포되지 않은 환경을 위한 폴백이다.
+  const startById = page.locator('#workspace-start');
+  if (await startById.count()) await startById.first().click();
+  else await page.getByRole('button', { name: /다음 움직임 만들기|시작/ }).first().click();
   await page.waitForTimeout(9000);
   await shot('baseline');
   const baselineText = await bodyText();
