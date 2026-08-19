@@ -4,7 +4,9 @@
 > 정산된다"** (첫 사용자: AI에게 일 시키는 사람, 첫 시험장: 이 저장소).
 >
 > 이 감사가 막으려는 병: 새 방향을 옛 정본 옆에 그냥 쌓으면 모순이 자란다 —
-> PRODUCT.md "1차=웹" vs CANON §9 "1차=MCP"가 9일간 공존한 것과 같은 병.
+> PRODUCT.md "1차=웹" vs CANON §9 "1차=MCP" 모순과 같은 병. (정정: 모순의 실공존
+> 창은 봉인 후 ~1일 — 2a 백테스트. 그리고 같은 백테스트가 **제3의 모순
+> METHOD V1.0 §11.2 "Primary surface는 web이다"** 를 추가 발견, 주 세션이 원문 확인.)
 > 그래서 **무엇이 그대로 살고, 무엇이 창업자 개정을 필요로 하고, 무엇이
 > 뒤로 가는지**를 조준 확정 전에 전수로 적는다. 개정 자체는 전부 창업자 몫.
 
@@ -33,7 +35,7 @@
 | 개정-2 | **METHOD §1.3 빈도 문제** | "월 2~4건일 수 있다. … 이 빈도면 제품은 죽는다" | 새 과녁에선 결정이 일 단위 — 전제가 뒤집힘 (방향은 유리) | 같은 delta 에서 함께 |
 | 개정-3 | **R3-A 게이트** (G1) | 30케이스 3-arm 블라인드 — 시장 결정 카드로 사전등록(R3A-CONTRACT SEALED) | 옛 과녁용 시험이라 새 과녁의 실력을 재지 않음 | 갈래 둘 다 가능: (a) 봉인대로 실행하고 결과를 옛 과녁의 정산으로 기록 (b) 새 과녁용 시험을 별도 설계. **봉인 수정 금지 원칙상 (a)+(b)가 정직** — 판단은 창업자 |
 | 개정-4 | **R3-B** (G2, 10명 스크립트 SEALED) | 옛 과녁의 사용자 10명 | 같은 문제 | 같은 갈래 |
-| 개정-5 | **PRODUCT.md Users 절** | "Primary wedge: founders and product leaders making consequential product or market decisions" | 첫 사용자가 "AI에게 일 시키는 사람"으로 이동 | D-A(Platform 절)와 같은 개정 묶음으로 — 한 번에 |
+| 개정-5 | **PRODUCT.md Users·Platform 절 + METHOD V1.0 §11.2 표면 위계** | PRODUCT "Primary wedge: founders … product or market decisions" · "Primary surface: responsive web" · METHOD:1284 "Primary surface는 web이다" | 첫 사용자 이동 + 표면 위계가 08-18 봉인(MCP 1차)과 세 곳에서 모순 (2a 백테스트가 METHOD 쪽을 추가 발견) | 한 묶음으로 개정 (D-A 확장). 개정 시 검색키·금지값을 장부에 등록하면 재발을 기계가 막는다 — 2a 실증 |
 | 개정-6 | **자기 봉인들의 정산 기준** | KEYSTONE 준공검사(외부인 1명 30일 완주) 등 — 옛 과녁 기준 | 과녁이 바뀌면 "미달=fail"인지 "과녁 변경=moot"인지 애매해짐 | G3/D-B 정산 때 함께 판정 — fail 과 moot 를 섞지 말 것 |
 
 ## 3. 뒤로 가거나 재검토되는 것
