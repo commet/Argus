@@ -44,6 +44,10 @@ export interface LedgerEventInput {
   /** The user's own words a premise rests on (premise_add) — persisted so the
    *  terminal can show its lineage the way the browser card does. */
   anchor_quote?: string;
+  /** 이 전제가 틀리면 결정에서 무엇이 달라지는지 한 줄 (premise_add).
+   *  공개 스키마가 이것을 받아 "나중에 이걸 다시 확인한다"고 약속해 놓고
+   *  내부에 칸이 없어 버리고 있었다 — 재확인 순간이 대조할 것을 갖게 한다. */
+  if_false_changes?: string;
   /** 확인창 직접 입력 표식 (premise_add, 입력 깊이 사이클 3): 이 문장이 모델을
    *  거치지 않고 elicit 채널로 도착했다는 사실 — 저자성이 구조로 확보된 경로. */
   elicited?: boolean;
@@ -65,6 +69,19 @@ export interface LedgerEventInput {
   rejected_alternative?: { alternative: string; reason: string };
   load_bearing_assumption?: string;
   confidence?: string;
+  /** 귀환이 남기는 규칙 한 줄 (settle) — 사용자가 확인창에 직접 타이핑한
+   *  문장 그대로. CONTEXT.md 의 `Lesson` 이고 새 어휘가 아니다: 웹은 이미
+   *  ContractSettlement.lesson 으로 갖고 있었고 MCP 쪽만 비어 있었다.
+   *
+   *  WHY IT RIDES ON `settle` INSTEAD OF ITS OWN EVENT. settled 는 종결
+   *  상태이고 상태기계가 그 뒤의 append 를 전부 막는다(거울 조항: 닫힌 결정을
+   *  다시 열지 않는다). 그래서 규칙은 정산 **직전에** 묻고 같은 이벤트에
+   *  실린다 — 새 이벤트 이름 0, 종결 규율 무손상. 창을 거절·무응답·빈 제출로
+   *  지나가면 정산은 그대로 저장된다(창이 정산을 실패시킬 수 없다). */
+  lesson?: string;
+  /** 그 문장이 elicit 채널로 도착했다는 표식 — premise_add 의 `elicited` 와
+   *  같은 의미이고, 모델이 대신 쓴 요약과 구조적으로 구분된다. */
+  lesson_elicited?: boolean;
   // ── execution plan (plan_adopt / plan_check) ──
   // plan_check reuses `ordinal` (1-based step) and `note` (the user's words).
   steps?: Array<{ what: string; due?: string }>;

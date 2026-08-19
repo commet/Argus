@@ -140,6 +140,11 @@ export const ArgusEventSchema = z.discriminatedUnion('event', [
     reason: z.string().max(400).optional() }),
   z.strictObject({ ...D, event: z.literal('settle'), decision_id: zSlug,
     outcome: provenanced(z.enum(SETTLE_OUTCOMES)),
+    // 귀환이 남긴 규칙 (CONTEXT.md 의 `Lesson`). provenanced 인 이유: 이
+    // 문장의 값은 누가 썼는가와 분리될 수 없다 — 모델 요약이 사용자 규칙으로
+    // 미러되면 v1 이 지킨 저자성이 거울에서 무너진다 (사이클 5 의 교훈:
+    // 계수되며 유실하는 거울).
+    lesson: provenanced(z.string().max(400)).optional(),
     note: z.string().max(2000).optional() }),
   z.strictObject({ ...D, event: z.literal('snooze'), decision_id: zSlug,
     until: zIsoDate }),

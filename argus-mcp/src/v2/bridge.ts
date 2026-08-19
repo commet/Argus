@@ -194,11 +194,12 @@ export function settleV2(ctx: V2Context, a: {
   decisionId: string;
   outcome: { value: 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed'; provenance: Provenance };
   note?: string;
+  lesson?: Provenanced;
   idempotencyKey?: string;
 }): IdempotentAppendResult {
   return append(ctx, {
     ...envelope(ctx, 'settle', a.idempotencyKey), event: 'settle', decision_id: a.decisionId,
-    outcome: a.outcome, ...(a.note ? { note: a.note } : {}),
+    outcome: a.outcome, ...(a.lesson ? { lesson: a.lesson } : {}), ...(a.note ? { note: a.note } : {}),
   });
 }
 

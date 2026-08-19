@@ -295,7 +295,11 @@ export const checkIn: ToolModule = {
       const TOP = 5;
       const duePrem = premiseGroups.slice(0, TOP).map((g) => ({
         fact: g.text,
-        decisions: g.premises.map((p) => ({ decision_id: p.decision_id, decision: p.decision_text, ref: `P${p.ordinal}`, staleness: p.days_stale === null ? 'never re-checked' : `${p.days_stale}d` })),
+        // if_false_changes: 이 전제가 틀리면 결정에서 무엇이 달라지는지, 기록될
+        // 때 적힌 한 줄. 재확인을 요청하는 이 자리가 그것을 나르지 않으면
+        // 공개 스키마의 약속("나중에 무엇을 확인할지가 여기서 나옵니다")이
+        // 거짓이 된다. 없으면 키가 없다 (채워야 할 칸이 아니라 정직한 공백).
+        decisions: g.premises.map((p) => ({ decision_id: p.decision_id, decision: p.decision_text, ref: `P${p.ordinal}`, staleness: p.days_stale === null ? 'never re-checked' : `${p.days_stale}d`, ...(p.if_false_changes ? { if_false_changes: p.if_false_changes } : {}) })),
       }));
 
       // M3 — open questions the user left unresolved, past their reconsider

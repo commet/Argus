@@ -37,6 +37,8 @@ import { complete, completeJson } from './anthropic.mjs';
 // 모델에게 넘기는 채널의 정본. 여기 두 함수만이 "제품이 말한 것"과 "모델이 들은
 // 것" 사이에 있고, model-channel 게이트가 그 사이가 무손실인지 매번 검사한다.
 import { toolsForModel, resultForModel } from './model-channel.mjs';
+// 시계는 모델 없이도 재져야 한다 — 왜 별도 모듈인지는 그 파일 머리말.
+import { collectPlanDues, earliestPlanDue } from './plan-clock.mjs';
 
 const argOf = (flag, dflt) => (process.argv.includes(flag) ? process.argv[process.argv.indexOf(flag) + 1] : dflt);
 const VERSION = argOf('--version', '2.0.22');
@@ -291,6 +293,29 @@ const journey = { stages: [], toolCalls: [], errors: [], rejections: [] };
 // 실제로 되돌려주는가. 도구 개수 비교는 서버가 같은 바이너리라는 뜻일 뿐,
 // 원장을 읽었다는 증거가 아니다.
 let afterRestart = false;
+/**
+ * 세션2의 논리적 '오늘'. null이면 시계를 안 옮긴다 (실제 오늘).
+ *
+ * WHY THIS EXISTS — 이 하네스의 15바퀴가 plan_check 를 한 번도 못 본 이유다.
+ * 7단계 "재시작"은 **프로세스** 재시작이지 날짜 이동이 아니었다. 계획 단계는
+ * +7d/+2w 지평으로 채택되므로 확인일은 일주일 뒤고, 그래서 세션2의 check_in 은
+ * 마감 전이라 **옳게** 침묵했다. 확인일이 온 적이 없으니 plan_due 표면이 뜬
+ * 적이 없고, 뜬 적이 없으니 모델이 plan_check 를 부를 계기가 구조적으로
+ * 존재한 적이 없다. 리시트는 그 침묵을 "마감 전이라 옳음"이라 적어 놓고
+ * 결론을 못 냈다 — 계측기가 자기 맹점의 원인을 정상 동작으로 기록한 것이다.
+ *
+ * 잘린 발화·버려진 봉투·잘린 도구 표면과 같은 계열의 계측기 결함이며,
+ * 이번에는 숨긴 것이 아니라 **시간을 멈춰서** 제품의 절반을 사정거리 밖에
+ * 두었다. 부품은 처음부터 있었다: today_override 는 resolveToday() 의 첫
+ * 인자이고 결정론 배터리는 이미 이것으로 시간여행을 한다(battery.mjs).
+ *
+ * 규율 둘. ① 날짜를 지어내지 않는다 — 원장에 실제로 채택된 계획의 가장 이른
+ * 확인일을 읽어 그날로 간다(그 단계는 항상 scheduled 다: 예약은 이른 순 3개).
+ * ② 어디로 갔는지 반드시 기록한다 — 어느 빌드를 쟀는지가 결과의 일부인 것과
+ * 같은 이유로, 어느 날짜를 쟀는지도 결과의 일부다.
+ */
+let timeTravelTo = null;
+let timeTravelNote = '시계 미사용 (default 대본이거나 날짜 붙은 단계 없음)';
 const postRestartOutputs = [];
 let preRestartIds = [];
 
@@ -305,7 +330,9 @@ async function assistantExchange(n, userTurn) {
     calls++;
     say(`  🤖 어시스턴트가 스스로 선택한 도구(${calls}): ${act.tool}`);
     say(`     인자: ${JSON.stringify(act.arguments ?? {}).slice(0, 260)}`);
-    const callArgs = { argus_dir: ledgerDir, ...(act.arguments ?? {}) };
+    // today_override 는 스프레드 **뒤**다. 타임머신은 계측기의 것이지
+    // 피검체의 것이 아니다 — 모델이 자기 날짜를 보내와도 덮는다.
+    const callArgs = { argus_dir: ledgerDir, ...(act.arguments ?? {}), ...(timeTravelTo ? { today_override: timeTravelTo } : {}) };
     let errText = null, okSurface = null, okForModel = null;
     try {
       const r = await client.callTool({ name: act.tool, arguments: callArgs }, undefined, { timeout: 90_000 });
@@ -496,6 +523,22 @@ await client.close();
 })(ledgerDir);
 preRestartIds = [...new Set(preRestartIds)];
 say(`  세션1 종료. 재시작 전 원장의 식별자 ${preRestartIds.length}개: ${preRestartIds.join(', ') || '(없음)'}`);
+
+// ── 시계: 세션2를 확인일로 옮긴다 (계획 대본에서만) ──────────────────────────
+// 실사용자에게 이 구간은 몇 주다. 하네스가 몇 주를 기다릴 수 없으므로 날짜를
+// 옮긴다 — 다른 것은 아무것도 바꾸지 않는다. 옮기지 않으면 이 대본의 마지막
+// 관문(plan_check)은 **측정 불가**이지 실패가 아니다.
+if (SCRIPT === 'plan') {
+  const dues = collectPlanDues(ledgerDir);
+  timeTravelTo = earliestPlanDue(ledgerDir);
+  if (timeTravelTo) {
+    timeTravelNote = `채택된 계획의 가장 이른 확인일 ${timeTravelTo} 로 이동 (날짜 붙은 단계 ${dues.length}개)`;
+    say(`  ⏱ 세션2의 오늘 = ${timeTravelTo} — ${timeTravelNote}`);
+  } else {
+    timeTravelNote = '계획이 채택되지 않았거나 날짜 붙은 단계가 없어 시계를 옮기지 않았다';
+    say(`  ⏱ 시계를 옮기지 않는다 — ${timeTravelNote} (그 자체가 발견이다: 날짜 없는 채택은 귀환 계약이 아니다)`);
+  }
+}
 // 실제 재시작은 어시스턴트의 대화 기억도 지운다. 서버 프로세스만 갈아끼우고
 // history를 유지하면 세션2의 모델이 원장을 읽지 않고도 어제를 "기억"으로
 // 복기한다 — S1~S3 실측: check_in은 침묵 계약대로 조용했고(마감 전이라 옳음),
@@ -624,7 +667,13 @@ const gates = [
   ...(SCRIPT === 'plan' ? [
     ['계획이 원장에 남았다 (plan_adopt, 날짜 단계 포함)',
       planAdoptEvents.some((e) => Array.isArray(e.steps) && e.steps.some((s) => s && s.due))],
-    ['단계 결과가 원장에 남았다 (plan_check)', planCheckEvents.length > 0],
+    // 라벨이 시계 상태를 지고 간다. 시계를 안 옮긴 실행의 이 ❌ 는 제품
+    // 실패가 아니라 **측정 불가**이고, 그 둘을 같은 기호로 적으면 15바퀴를
+    // 잘못 읽은 그 실수를 다시 한다.
+    [timeTravelTo
+      ? `단계 결과가 원장에 남았다 (plan_check · 세션2 오늘=${timeTravelTo})`
+      : '단계 결과가 원장에 남았다 (plan_check · ⚠ 시계 미이동 — 확인일이 오지 않아 측정 불가)',
+      planCheckEvents.length > 0],
   ] : []),
 ];
 {
@@ -665,6 +714,10 @@ fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({
   toolCalls: journey.toolCalls, failedCalls,
   rejections: journey.rejections, errors: journey.errors,
   restartEvidence, ledgerFiles: ledgerCopies,
+  // 어느 날짜를 쟀는지는 결과의 일부다 (어느 빌드를 쟀는지와 같은 규율).
+  // null 이면 세션2가 실제 오늘로 돌았다는 뜻이고, 그 실행의 plan_check ❌ 는
+  // 제품 실패가 아니라 **측정 불가**로 읽어야 한다.
+  time_travel: { session2_today: timeTravelTo, note: timeTravelNote },
   ledgerEventCounts: { total: allEvents.length, seal: sealEvents.length, settle: settleEvents.length, plan_adopt: planAdoptEvents.length, plan_check: planCheckEvents.length },
   // 입력 깊이 (사이클 1 기준선): 인지 수집이 실제로 얼마나 일어났는가.
   // 라벨 커버리지가 아니라 원장 실물을 센다 — 10점을 숫자로 만드는 계측.

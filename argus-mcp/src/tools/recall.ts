@@ -153,6 +153,10 @@ export const recall: ToolModule = {
             ...(cogEntry?.question ? { question: cogEntry.question } : {}),
             ...(cogEntry?.values?.length ? { values: cogEntry.values } : {}),
             ...(cogEntry?.rejected_alternative ? { rejected_alternative: cogEntry.rejected_alternative } : {}),
+            // 귀환이 남긴 규칙 — 영수증을 다시 여는 자리가 이것을 다시 볼 수
+            // 있는 유일한 곳이다. 선언만 하고 소비되지 않는 필드를 만들지
+            // 않는다(웹의 기록 카드와 같은 규율).
+            ...(cogEntry?.lesson ? { lesson: cogEntry.lesson, lesson_authored: 'user' as const } : {}),
           },
         });
       }

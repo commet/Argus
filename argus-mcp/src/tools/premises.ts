@@ -74,6 +74,12 @@ const zPremiseInput = z.strictObject({
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional (kind="open_question" only): how many days between reconsider nudges — a "come back and see if you can answer this yet" timer (M3). Absent → a sensible default. Leaving the question open stays a valid answer; this only moves the nudge, never forces a resolution.'),
   reconsider_cadence_days: z.number().int().min(1).max(365).optional().describe('Alias of reponder_cadence_days (the historical field name) — either spelling is accepted.'),
   confidence: z.enum(['confident', 'uncertain', 'contested']).optional().describe('사용자가 실제로 표현한 확신 정도입니다. 추측 금지.'),
+  /** 공개 스키마(public-tools.ts)가 오래 받아 온 필드인데 **여기 칸이 없어서
+   *  경계에서 죽었다.** 공개 설명은 "나중에 무엇을 확인할지가 여기서 나옵니다"
+   *  라고 약속했고, 그 약속을 지키는 소비처가 0이었다 — 받고 버리는 필드는
+   *  이 저장소가 LLM-glue 불변식으로 금지한 형태다(생산된 필드는 소비되거나
+   *  명시적으로 포기된다). 이제 원장·fold·도래 표면까지 관통한다. */
+  if_false_changes: z.string().max(400).optional().describe('One line: what changes in the decision if this premise turns out false. Carried to the re-check moment so the user sees why this fact mattered.'),
 });
 
 const inputSchema = z.strictObject({
@@ -442,6 +448,7 @@ async function opAdd(
     kind: p.kind, text: p.text,
     external: p.external, load_bearing: p.load_bearing,
     ...(typeof p.anchor_quote === 'string' && p.anchor_quote ? { anchor_quote: p.anchor_quote } : {}),
+    ...(typeof p.if_false_changes === 'string' && p.if_false_changes.trim() ? { if_false_changes: p.if_false_changes.trim() } : {}),
     ...(p.confidence === 'confident' || p.confidence === 'uncertain' || p.confidence === 'contested' ? { confidence: p.confidence } : {}),
     monitoring_enabled: p.monitoring_enabled,
     source: normalizePremiseSource(p.source),

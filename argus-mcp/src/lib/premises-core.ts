@@ -135,6 +135,12 @@ export interface PremiseState {
    *  under every premise — "내가 쓴 말" — and nothing downstream could check the
    *  lineage it had already been handed. */
   anchor_quote?: string;
+  /** 이 전제가 틀리면 결정에서 무엇이 달라지는지, 사용자/모델이 적은 한 줄.
+   *  공개 스키마가 이것을 받아 *"나중에 무엇을 확인할지가 여기서 나옵니다"* 라고
+   *  약속해 놓고, 내부 스키마에 칸이 없어 경계에서 버렸다 (2026-08-18 확인:
+   *  리포 전체에서 선언 한 곳 말고는 등장 0회). 재확인 순간이 **대조할 것**을
+   *  갖게 하는 필드다. 없으면 키가 없다. */
+  if_false_changes?: string;
   source: PremiseSource;
   /** The AI's original wording, preserved across user edits — the provenance the
    *  receipt's authorship honesty rests on. Its declared reader is the recall
