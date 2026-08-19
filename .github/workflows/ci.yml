@@ -221,6 +221,13 @@ jobs:
         if: github.event_name == 'pull_request'
         run: node scripts/check-capability-duplication.mjs "origin/${{ github.base_ref }}"
 
+      # 도달성 래칫 — 진입점에서 못 닿는 소스가 늘지 않게 막는다.
+      # 2026-08-19: 아무도 재고 있지 않아서 앱 존 13,697줄·MIT 존 2,053줄이 조용히
+      # 쌓였고, 그중 36,212줄짜리 빌드 산출물까지 커밋되어 있었다. 커버리지 래칫과
+      # 같은 방식으로 잠근다 — 기준선보다 늘면 실패. 판정은 docs/ARGUS-MAP 이 한다.
+      - name: Reachability ratchet
+        run: node scripts/check-reachability.mjs
+
       # Enforcement gates — the architectural check that the verify / route-contract /
       # flat gates hold in session artifacts (prose rules are a floor, not enforcement).
       - name: Argus enforcement gates
