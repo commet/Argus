@@ -90,6 +90,10 @@ const inputSchema = z.strictObject({
   unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt). Recorded as an AI-tagged draft (ai_surfaced, with the original wording preserved) unless the user later amends it in their own words.').optional(),
   human_only: z.string().max(400).describe('What only a human can judge here (receipt).').optional(),
   human_judgment: z.string().max(400).describe("The user's one-line call. MUST be the user's words — never an Argus-drafted line relabeled.").optional(),
+  // 승격되는 unverified_assumption 을 감시 궤도에 올릴지. 기본 false 유지 —
+  // 현실 검증 가능성은 기계가 추론할 수 없고(승격 지점 주석 참조), 사용자가
+  // 말했을 때만 켠다. 켜져야 isMonitored 를 통과해 재확인 때 실제로 돌아온다.
+  assumption_external: z.boolean().optional(),
   today_override: zDate.optional(),
 });
 
@@ -327,8 +331,10 @@ export const seal: ToolModule = {
       // alias. source='ai_surfaced' with ai_original preserved (the field is
       // model-fillable and the schema never requires the user's words — tagging
       // it user_stated would forge authorship; an amend transfers it honestly),
-      // external=false until the user marks it (honest default: we cannot infer
-      // reality-checkability), load_bearing=true (it is the receipt headline).
+      // external 은 사용자가 `assumption_external` 로 표시했을 때만 true
+      // (정직한 기본: 검증 가능성은 추론할 수 없다). 표시하지 않으면 전제는
+      // 기록으로 남되 재확인 궤도에는 오르지 않는다 — isMonitored 의 요건.
+      // load_bearing=true (it is the receipt headline).
       // Skipped field ⇒ no promotion. Dedup + cap-safe: never fails the seal.
       let promotedRef: string | null = null;
       const ua = a['unverified_assumption'] as string | undefined;
@@ -343,7 +349,10 @@ export const seal: ToolModule = {
           events.push({
             id, event: 'premise_add', premise_id: pid, ordinal,
             kind: 'premise', text: ua.trim(),
-            external: false, load_bearing: lbCount < MAX_LOAD_BEARING,
+            // 사용자가 명시했을 때만 감시 궤도. 미표시는 기록으로만 남는다
+            // (정직한 기본 — 검증 가능성은 추론 대상이 아니다).
+            external: a['assumption_external'] === true,
+            load_bearing: lbCount < MAX_LOAD_BEARING,
             source: 'ai_surfaced', ai_original: ua.trim(),
           });
           promotedRef = `P${ordinal}`;
@@ -497,6 +506,18 @@ export const seal: ToolModule = {
                   ? '이 예측이 기대는 가정 하나, 당신의 표현으로.'
                   : 'One assumption this bet rests on, your words.',
               },
+              // 이 한 칸이 감시의 스위치다. 끄면 전제는 기록으로만 남고,
+              // 켜면 isMonitored 를 통과해 duePremises·check_in 에 실제로 뜬다
+              // (premises-core.ts 의 external 요건). 기계가 추론할 수 없는
+              // 사실이므로 사람에게 묻는다 — 제약 키워드 없는 boolean 이라
+              // picker-no-required-field 가드를 통과하고 Accept 를 막지 않는다.
+              reality_checkable: {
+                type: 'boolean',
+                title: locale === 'ko' ? '나중에 확인할 수 있나요?' : 'Checkable later?',
+                description: locale === 'ko'
+                  ? '숫자·날짜·제3자가 나중에 이 믿음을 확인해 줄 수 있으면 체크하세요. 체크하면 재확인 때 이 믿음을 다시 불러옵니다.'
+                  : 'Check if a number, a date, or someone else can confirm this later. Checked beliefs come back at re-check time.',
+              },
             },
           },
         );
@@ -505,6 +526,8 @@ export const seal: ToolModule = {
         if (asked.kind !== 'unsupported') beliefWindowShownFor.add(dir);
         if (asked.kind === 'accepted') {
           const typed = typeof asked.content['belief'] === 'string' ? (asked.content['belief'] as string).trim() : '';
+          // 미체크·무응답은 false 로 남는다 — "확인 가능하다"를 추론하지 않는다.
+          const checkable = asked.content['reality_checkable'] === true;
           if (typed && typed.length <= 400) {
             // 답한 시각으로 도장 (위 예측 확인창의 재도장과 같은 규칙) — 창이
             // 열려 있던 시간이 전제의 기록 시각을 거짓말하게 두지 않는다.
@@ -530,7 +553,10 @@ export const seal: ToolModule = {
                 await appendLedger(dir, [{
                   id, event: 'premise_add', premise_id: pid, ordinal,
                   kind: 'premise', text: typed,
-                  external: false,
+                  // 사용자가 체크했을 때만 감시 궤도에 올린다. 이 한 값이
+                  // isMonitored 의 관문이고, false 면 그 전제는 영영
+                  // duePremises 에 안 잡힌다 — 그래서 묻고, 추론하지 않는다.
+                  external: checkable,
                   load_bearing: prems.filter((p) => p.status === 'active' && p.load_bearing).length < MAX_LOAD_BEARING,
                   source: 'user_stated', anchor_quote: typed, elicited: true,
                 }], beliefNow);

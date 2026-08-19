@@ -10,6 +10,7 @@ import { computeContinuity } from '../lib/continuity.js';
 import { relatedOpenForPremises } from '../v2/connection-io.js';
 import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { appendLedger } from '../lib/ledger-append.js';
+import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premises-core.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { z } from 'zod';
@@ -128,6 +129,41 @@ export const openDecision: ToolModule = {
         ...(typeof a['load_bearing_assumption'] === 'string' && a['load_bearing_assumption']
           ? { load_bearing_assumption: a['load_bearing_assumption'] } : {}),
       }], now);
+
+      // 하중 가정을 전제로 승격한다 (2026-08-18, 재정초 §6 봉인 후 배선 수리).
+      //
+      // 이 필드는 여기까지 문자열로만 살아 있었다: `harvest` payload 와 fold 의
+      // `ContractEntry.load_bearing_assumption` 에는 도착하지만 `PremiseState`
+      // 가 되지 않아 duePremises·check_in·argus_recheck 어디에도 안 잡혔다.
+      // 그런데 seal 의 믿음창은 이 값을 "이미 하중 믿음이 있다"로 읽고 창을
+      // **억제**한다 — 결과적으로 그 가정은 이름만 얻고, 감시도 못 받고,
+      // 물어볼 창마저 닫혔다. 승격 규칙은 seal 의 unverified_assumption 과
+      // 같다: dedup + 상한 안전, source='ai_surfaced' + ai_original 보존
+      // (필드는 모델이 채울 수 있고 스키마가 사용자의 말을 요구하지 않으므로
+      // user_stated 로 태깅하면 저자성 위조다 — amend 가 정직하게 옮긴다),
+      // external=false (검증 가능성은 추론 대상이 아니다 — argus_capture 의
+      // amend 나 seal 의 assumption_external 이 사용자 표시로 켠다).
+      const lba = typeof a['load_bearing_assumption'] === 'string' ? a['load_bearing_assumption'].trim() : '';
+      if (lba) {
+        // 실패해도 결정 열기를 해치지 않는다 — 기록은 이미 원장에 있다.
+        try {
+          const fresh = resolveContract(dir, id, today);
+          const prems = fresh.entry?.premises ?? [];
+          const pid = premiseId(id, 'premise', lba);
+          const isDup = prems.some((p) => p.premise_id === pid);
+          const activeCount = prems.filter((p) => p.status === 'active').length;
+          if (!isDup && activeCount < MAX_ACTIVE_PREMISES) {
+            const ordinal = prems.reduce((m, p) => Math.max(m, p.ordinal), 0) + 1;
+            const lbCount = prems.filter((p) => p.status === 'active' && p.load_bearing).length;
+            await appendLedger(dir, [{
+              id, event: 'premise_add', premise_id: pid, ordinal,
+              kind: 'premise', text: lba,
+              external: false, load_bearing: lbCount < MAX_LOAD_BEARING,
+              source: 'ai_surfaced', ai_original: lba,
+            }], now);
+          }
+        } catch { /* 승격 실패는 결정 열기를 실패시키지 않는다 */ }
+      }
 
       const relatedIds = Array.isArray(a['related_to']) ? (a['related_to'] as string[]) : [];
       const continuity = relatedIds.length ? computeContinuity(dir, relatedIds) : undefined;
