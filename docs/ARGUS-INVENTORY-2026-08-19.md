@@ -21,12 +21,14 @@
    먼저 지어졌다.** O4(숫자 봉인된 판정 — 실행 0) · R3-A(30케이스 3-arm) ·
    R3-B(10명 스크립트, SEALED 인 채 archive 행) · E3B(이해도 연구, /patterns 404 유지) ·
    DKK-P5(재개 조건 추적자 없음).
-3. **만들고 시동을 안 거는 일이 체계적으로 반복됐다.** 죽은 엔진 6개(~3,700줄,
-   테스트까지 완비) · DB 테이블 7개(RLS·삭제등록 완비, 쓰기 0) · "유일한 진실" 통합
+3. **만들고 시동을 안 거는 일이 체계적으로 반복됐다.** 죽은 엔진 6개(~3,700줄 —
+   다섯은 전용 테스트까지 완비, persona-refiner 만은 참조도 테스트도 0) · DB 테이블 7개(RLS·삭제등록 완비, 쓰기 0) · "유일한 진실" 통합
    스키마(흐르는 데이터 0) · 리소스 템플릿(빈 목록 반환) · outbox 상태머신(진입점 0).
 
-상태 분포(수확 2회 합산 감): 안 지음/안 함 ~70 · 잊힘 ~40 · 지었는데 안 이음 ~25 ·
-판정 필요 ~25 · 반쯤 ~12 · 미확인 ~8.
+~175 의 산술: 살아있는 문서 수확 84 + 은퇴·삭제 문서 수확 91 (겹침 소수 —
+loop:demo·zone-purity·outbox 등). 본 문서의 번호는 묶음 행을 포함해 102행이다.
+상태 분포(수확 2회 합산 감): 안 지음/안 함 ~70 · 잊힘 ~40(그중 BLUEPRINT §8
+대기목록이 37건) · 지었는데 안 이음 ~25 · 판정 필요 ~25 · 반쯤 ~12 · 미확인 ~8.
 
 ---
 
@@ -50,7 +52,7 @@
 |---|---|---|---|
 | 10 | **cognition 4,658줄 대화 루프 편입** — 창업자 봉인의 남은 반쪽 (화면 철거만 완료) | CANON §9 결정 3 | 큼 |
 | 11 | cognitive_* DB 테이블 7개 — 테이블·매퍼·RLS·삭제등록 완비, **지속 호출 0** | 데이터 감사 D4 | 중간 |
-| 12 | 죽은 엔진 6: persona-refiner 576줄(참조 0) · **control-plane 692줄("파생 기억의 유일한 권위", 승인·철회·반례 API 7개 프로덕션 호출 0)** · judgment-vitality 760 · decision-quality 535 · context-compiler 폐쇄그래프 801 · skill-quality-eval 531 | 웹 감사 W6 | 큼 |
+| 12 | 죽은 엔진 6: persona-refiner 576줄(참조 0) · **control-plane 692줄("파생 기억의 유일한 권위", 승인·철회·반례 API 7개 프로덕션 호출 0)** · judgment-vitality 760 · decision-quality 535 · context-compiler 폐쇄그래프 801 · skill-quality-eval 531. **죽은 export 전체 138개/3,430줄** | 웹 감사 W6 | 큼 |
 | 13 | **LedgerDecision "통합 스키마"** — "single source of truth" 자칭, 변환기 2개 호출처 0 | ledger-schema.ts · 웹 감사 W1 | 중간 |
 | 14 | `listResourceTemplates()` 빈 배열 반환 — receipts/premises 템플릿 구현돼 있는데 광고 0 | MCP 감사 M2 | 작음 |
 | 15 | `v2/outbox.ts` 88줄 — 계정 sync 상태머신, 진입점 0 (사슬 전체) | MCP 감사 · MCP-V2-SPEC 규칙 12 | 작음 |
@@ -106,7 +108,7 @@
 | 55 | Antefact 제품 접점 C1~C8 (봉인 린트·정산 4값·treatment 깃발·as-of·영수증 리소스…) | BP §8 + AF |
 | 56 | antefact `tripwires[]` — 스펙만, 구현 0 | antefact/SPEC §3.1 |
 | 57 | MCP Apps 픽커 위젯 (리서치 완료, 승인 대기인 채 잊힘) | BP §8 |
-| 58 | MCPB Desktop 번들 · `npx argus install` 범용 설치기 · Apps 위젯 2종 | BP §8 [O4 뒤] |
+| 58 | MCPB Desktop 번들 · `npx argus install` 범용 설치기 · Apps 위젯 2종 · Codex 플러그인 v1 | BP §8 [O4 뒤] |
 | 59 | v2 미러 catch-up → read-canonical 승격 | BP §8·§9.7 |
 | 60 | legacy plugin importer (items.jsonl 멱등 임포트) — "가장 중요한 미완 원장 항목" | HANDOFF-07-27 §4.3 |
 | 61 | 공유 이벤트 봉투 4.2 · 테이블 projection 재분류 4.5 · 휴대용 export 4.6 · E2E 매트릭스 11종 4.7 | HANDOFF-07-27 |
@@ -138,7 +140,7 @@
 | 82 | 17명 에이전트 명부 거취 · 대량 due UX · 공개 rollback 계획 · 첫 100명 채널 | archive 각처 |
 | 83 | 미판정 낱개: R35+ 감지 중단 제안 · tools/list_changed 통로 · 발사 빈도 튜닝 · TWIN 옵트인 토글 · 보정 도메인 분해 시점 | 각처 |
 | 84 | FINDINGS 관찰 2 (선택지 저자 추적 · 봉인 기록 빈 스키마) — 2걸음 결과가 정할 것 | FINDINGS §3 |
-| 85 | VoyageFilm 771줄 폐기 (가드 2개 동반 수술) | MAP §5.1 |
+| 85 | VoyageFilm 771줄 폐기 (가드 2개 동반 수술) — MASTER-PLAN 이 KILL 로 **제안**, D10 승인 대상 | MAP §5.1 |
 | 86 | 런타임 순환 1번(control-plane 고리) 해소 방식 | CORE §6.1 |
 | 87 | 이름 어휘 통일 — premise/assumption 타입 5·필드 3이름, return 어휘 5종, context 4뜻, agent/worker/persona 3ID | 웹 감사 W4·W5 |
 | 88 | 문서-현실 불일치 수리 — COMPLETION-PLAN 0걸음 "머지 대기" 낡음 · README 가 은퇴한 BLUEPRINT 를 "빌드 정본"으로 안내 | 수확 · README:258 |
