@@ -28,12 +28,12 @@
 | 고리 | 어디 | 상태 |
 |---|---|---|
 | 결정을 받는다 | `argus-mcp/src/tools/open-decision.ts` | ✅ 질문·가치·버린 대안·하중 가정까지 |
-| 하중 가정 하나를 세운다 | `tools/seal.ts:494-523` (믿음 확인창) | ✅ 사용자 직접 타이핑, `elicited:true` |
-| 실행 계획을 붙인다 | `tools/plan.ts` · `public-tools.ts:151` | ✅ 날짜 붙은 채택, 인용 동반 |
+| 하중 가정 하나를 세운다 | `argus-mcp/src/tools/seal.ts:494-523` (믿음 확인창) | ✅ 사용자 직접 타이핑, `elicited:true` |
+| 실행 계획을 붙인다 | `argus-mcp/src/tools/plan.ts` · `public-tools.ts:151` | ✅ 날짜 붙은 채택, 인용 동반 |
 | 기한을 관리한다 | `lib/ledger-replay.ts:78-102`, `PLAN_MAX_SCHEDULED=3` | ✅ 12단계가 12번 잔소리가 되지 않는다 |
-| **기한이 오면 찾아온다** | `tools/check-in.ts:323,410` → `lib/surfaces.ts:529` (`plan_due`) | ✅ **E2E 대조군 + 에이전트 실주행 확정** · ⚠️ 눈먼 모델은 미관측 |
+| **기한이 오면 찾아온다** | `argus-mcp/src/tools/check-in.ts:323,410` → `lib/surfaces.ts:529` (`plan_due`) | ✅ **E2E 대조군 + 에이전트 실주행 확정** · ⚠️ 눈먼 모델은 미관측 |
 | 결과를 적는다 | `action:'plan_check'` (`public-tools.ts:163,498`) | ✅ **E2E 대조군 + 에이전트 실주행 도달** · ⚠️ 눈먼 모델은 미관측 |
-| 정산이 확신도를 되돌려준다 | `tools/settle.ts` · `tools/recall.ts` | ✅ 실주행 확인 (14차) |
+| 정산이 확신도를 되돌려준다 | `argus-mcp/src/tools/settle.ts` · `argus-mcp/src/tools/recall.ts` | ✅ 실주행 확인 (14차) |
 | 규칙 한 줄이 남는다 | 웹: `attachSettlementLesson()` (PR #370) · MCP: `settle.ts` 규칙 창 (PR #399) | ✅ **양쪽 다 시공됨** (둘 다 미머지) |
 
 **08-18 아침 상태**: 앞쪽 다섯 칸은 다 이어져 있었고 뒤쪽 셋이 비어 있었다.

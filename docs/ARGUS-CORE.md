@@ -61,11 +61,11 @@ UI 가 바뀌어도, 모델이 바뀌어도, 호스트가 바뀌어도 원장이
 ### L1 — 코어 28 모듈 (`argus-mcp/src/lib/` + `src/v2/`)
 
 원장을 **쓰고 · 읽고 · 상태로 접는** 결정론 층. 12개 뿌리에서 도달하는 28 모듈이
-전부이고, 그 목록은 `src/lib/__tests__/core-boundary.test.ts` 가 기계로 고정한다.
+전부이고, 그 목록은 `argus-mcp/src/lib/__tests__/core-boundary.test.ts` 가 기계로 고정한다.
 
 | 무엇 | 어느 모듈 | 하는 일 |
 |---|---|---|
-| **쓴다** | `ledger-append` | 유일한 writer. `O_APPEND` 관용구가 이 파일에만 존재 |
+| **쓴다** | `ledger-append` | MCP 존의 canonical writer (`O_APPEND` 관용구가 여기 · 플러그인에 손-베낌 하나 더 있다 — §4.1) |
 | **읽어서 접는다** | `ledger-replay` | 이벤트 나열 → 현재 상태. 같은 파일이면 언제나 같은 결과 |
 | **상태를 지킨다** | `state-machine` | `settled` 는 종착이다 — 되돌아가는 전이가 없다 |
 | **기한을 안다** | `resolve-today` · `premises` | 오늘이 며칠인지, 무엇이 도래했는지 |
@@ -116,8 +116,34 @@ MCP SDK 도, 네트워크도, 화면 문구도 코어에 들어올 수 없다 �
 |---|---|---|
 | 1 | **코어의 바깥 의존은 node 내장 + zod 뿐** | `core-boundary.test.ts` — SDK·네트워크·표현층이 들어오면 빨간불 |
 | 2 | **폐포 = 매니페스트.** 코어에 import 하나만 더해도 목록을 같은 커밋에서 갱신해야 한다 | 같은 파일. 실제로 타입 import 한 줄이 표현 계층 전체를 끌고 들어온 적이 있다 |
-| 3 | **원장에 쓰는 손은 하나** (`ledger-append`) | 같은 파일이 `O_APPEND` 관용구의 위치를 전수 검사 |
+| 3 | **MCP 존 안에서** 원장에 쓰는 손은 둘뿐 (`ledger-append` · `v3/store`) | 같은 파일이 `O_APPEND` 관용구의 위치를 전수 검사 — **단 `argus-mcp/src` 안에서만 돈다**(§4.1) |
 | 4 | **두 존에 같은 로직이 있으면 바이트까지 같다** | `premises-core-drift.test.ts` — 6개 파일 쌍 |
+
+### 4.1 규칙 3 은 저장소 전체에 대해서는 참이 아니다 (2026-08-19 확인, 철회·정정)
+
+이 문서의 첫 판은 규칙 3 을 *"원장에 쓰는 손은 하나"* 라고 적었다. **틀렸다.**
+`core-boundary.test.ts` 의 전수 검사는 `argus-mcp/src` 를 걷는다 — 그 존 안에서만
+참이다. 저장소 전체에서 `O_APPEND` 를 가진 소스는 넷이다:
+
+| 파일 | 존 | 지키는 기계 |
+|---|---|---|
+| `argus-mcp/src/lib/ledger-append.ts` | MCP | ✅ core-boundary |
+| `argus-mcp/src/v3/store.ts` | MCP | ✅ core-boundary (사유 등재됨 — 별도 파일 `semantic-v3.jsonl`) |
+| `argus-plugin-v2/scripts/decision-ledger.js` | 플러그인 | ❌ **없음** |
+| `argus-plugin-v2/scripts/push-webapp.js` | 플러그인 | ❌ **없음** |
+
+그리고 플러그인 쪽 `decision-ledger.js:79` 는 **MCP 와 같은 파일**
+(`.argus/ledger/ledger.jsonl`) 에 쓴다. 파일 헤더가 스스로 *"MIRROR of
+argus-mcp/src/lib/ledger-append.ts"* 라고 적어 두었는데, 그 약속을 지키는
+테스트는 없다.
+
+**락은 호환된다** — 양쪽 다 `<원장파일>.lock` 을 쓰므로 동시 쓰기로 원장이
+찢어지지는 않는다(플러그인 `decision-ledger.js:151`, MCP `ledger-append.ts:155`).
+위험한 것은 경합이 아니라 **규율의 드리프트**다: 한쪽만 고친 append 규율이
+다른 쪽에 반영되지 않으면 같은 파일에 서로 다른 규칙으로 쓰게 된다.
+
+→ 처분은 §8 에. 이 칸을 비워두지 않으려고 여기 적는다 — **문서가 코드보다
+좋게 들리면 그건 문서의 결함이다.**
 
 여기에 이번에 둘을 더한다:
 
@@ -134,7 +160,7 @@ MCP SDK 도, 네트워크도, 화면 문구도 코어에 들어올 수 없다 �
 |---|---|---|
 | 기한에 하는 말을 바꾼다 | `argus-mcp/src/lib/surfaces.ts` | 한국어 문자열에 em-dash 금지 가드 |
 | 새 이벤트 종류를 만든다 | `lib/ledger-append` + `ledger-replay` fold | **먼저 `CONTEXT.md` 낱말 11개를 읽는다.** 같은 개념을 여섯 번째 이름으로 다시 만든 전례가 있다 |
-| 도구에 필드를 더한다 | `tools/public-tools.ts` | 그 필드를 **읽는 곳**이 실재해야 한다 (생산만 하면 dead-on-arrival) |
+| 도구에 필드를 더한다 | `argus-mcp/src/tools/public-tools.ts` | 그 필드를 **읽는 곳**이 실재해야 한다 (생산만 하면 dead-on-arrival) |
 | 웹에 필드를 더한다 | `src/stores/types.ts` | CLAUDE.md 의 체크리스트 4단계 전부 (마이그레이션 포함) |
 | 상태 전이를 바꾼다 | `lib/state-machine` | `settled` 는 종착이다. 되돌리는 전이를 만들면 거울 조항 위반 |
 | 루프가 도는지 확인한다 | `cd argus-mcp && npm run loop:demo` | 모델·키·대기 없이 한 바퀴 |
@@ -148,12 +174,13 @@ MCP SDK 도, 네트워크도, 화면 문구도 코어에 들어올 수 없다 �
 | 항목 | 값 | 판정 |
 |---|---|---|
 | 코어 폐포 | 28 모듈, 외부 의존 = node + zod | ✅ 잠겨 있다 |
-| 원장 writer | 1개 | ✅ |
+| 원장 writer | MCP 2 (등재됨) + 플러그인 2 (**기계가 안 지킴**) | ⚠️ §4.1 |
 | 런타임 순환 import | **3** (전체 19 중 16은 `import type` 이라 컴파일에서 지워진다) | ⚠️ §6.1 |
 | 안 쓰는 npm 의존성 | 앱 36개 중 0 · MCP 10개 중 0 | ✅ |
 | 링크 없는 페이지 | 31개 중 3 (`/design/*` 2 + `/admin/utm-builder`) | ✅ 의도된 내부 도구 |
 | 호출처 없는 API | 66개 중 1 (`/api/epistemic/commands`) | ⚠️ 미배선 |
 | 진입점 미도달 | 앱 42파일 · MCP 15 · 플러그인 12 · 스크립트 34 | §6.2 |
+| **"정본은 저쪽" 주석** | 22곳 중 **13곳은 지키는 기계가 없다** | ⚠️ §6.3 |
 
 ### 6.1 런타임 순환 셋
 
@@ -188,6 +215,39 @@ MCP SDK 도, 네트워크도, 화면 문구도 코어에 들어올 수 없다 �
 **규칙: 미도달은 "죽었다"가 아니라 "아홉 중 어느 것인지 물어라"는 뜻이다.**
 아홉 중 어디에도 안 들어가면 그때 (a) 미배선 / (b) 폐기 / (c) 의도된 라이브러리로
 판정한다.
+
+---
+
+### 6.3 "정본은 저쪽" 22곳 — 13곳은 약속만 있고 기계가 없다
+
+세 표면이 코드를 공유하는 방식이 **다섯 가지**다. 이게 이 저장소가 명료하게
+읽히지 않는 가장 큰 이유다 — 읽는 사람이 매번 "이건 어느 방식이지?"를 먼저
+풀어야 한다.
+
+| 방식 | 건수 | 기계가 지키나 |
+|---|---:|---|
+| 진짜 import (`webapp → mcp/dist`) | 7 | ✅ 컴파일러 |
+| byte-핀 복제 (6파일 1,413줄) | 6 | ✅ `premises-core-drift.test.ts` |
+| 공용 적합성 픽스처 | 9 | ✅ 픽스처 |
+| **주석만 "정본은 저쪽"** | **13** | ❌ **없음** |
+| 승인된 예외 채널 (`webapp → harness`) | 23 | ✅ `harness.test.ts` |
+
+기계 없는 13곳 중 무거운 셋:
+
+1. `argus-plugin-v2/scripts/decision-ledger.js:104` ← `ledger-append.ts` — **원장 쓰기 규율**
+2. `argus-plugin-v2/scripts/validate-gates.mjs:22,61` ← `validate-seal.ts` — **봉인 게이트**
+3. `argus-plugin-v2/scripts/push-webapp.js:469` ← `a0/account-connect.ts` — **OAuth PKCE**
+
+셋 다 안전에 관한 규율이고, 셋 다 "주석으로 부탁"만 하고 있다.
+
+### 6.4 같은 이름이 다른 뜻 — 25종
+
+존을 가로질러 같은 파일명이 25종 있고 그중 **19종은 내용이 다르다**.
+`types.ts` 7곳 · `reducer.ts` 5곳 · `run.mjs` 3곳 · `store.ts` 3곳 ·
+`ledger.ts` `mirror.ts` `surfaces.ts` `plan.ts` 각 2곳.
+
+사람이든 AI든 `reducer.ts` 를 열었을 때 **전체 경로 없이는 어느 것인지 모른다.**
+이것이 "누구나 이해 가능한 구조"의 반대말이다.
 
 ---
 
