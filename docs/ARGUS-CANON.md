@@ -35,7 +35,7 @@
 |---|---|---|
 | 정본 | 1 | `ARGUS-METHOD-V1.0.md` |
 | 이 지도 | 1 | `ARGUS-CANON.md` |
-| 지금 진행 중인 계획 | 1 | `ARGUS-COMPLETION-PLAN-2026-08-18.md` (§8) |
+| 지금 진행 중인 계획 | 3 | `ARGUS-COMPLETION-PLAN-2026-08-18.md` (§8) · **`ARGUS-INVENTORY-2026-08-19.md`**(미완 ~175건 전수 — BLUEPRINT §8 대기목록 37건의 공식 후계 등재처) · **`ARGUS-MASTER-PLAN-2026-08-19.md`**(자르는 계획, **초안 — 창업자 판단점 D1~D10 확정 전**) |
 | 창업자 결정이 걸린 탐색 문서 | 1 | `ARGUS-REFOUNDATION-BRIEF-2026-08-16.md` (§9) |
 | 정본이나 코드가 이름을 부르는 역사 | 13 | 아래 archive/README 에 표 |
 | 판단으로 남긴 역사 | 2 | `HANDOFF-2026-08-10`(웹 완성 기준) · `OPS-RUNBOOK`(사고 대처) |
