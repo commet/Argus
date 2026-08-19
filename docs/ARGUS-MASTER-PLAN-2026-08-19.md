@@ -143,7 +143,8 @@ BLUEPRINT §8 잔여 중 조건 미도래분 (스냅샷·컴팩션·judgment_rec
 persona-refiner 576줄(웹 감사 실측: 참조 0 **그리고 테스트도 0** — 죽은 엔진
 여섯 중 유일하게 테스트조차 없는 것) · VoyageFilm 771줄+가드 2 손질
 **(제안 — 인벤토리 #85 의 판정 대기를 이 초안이 KILL 로 제안, D10 에서 승인)** ·
-v3 잔여 3파일 540줄 · PUBLIC_NAME_MAP 유령 이름 4 · 죽은 export 138건(웹 감사
+v3 잔여 4파일 536줄(index 재수출 포함 · store 삭제는 core-boundary 등재 해제
+동반) · PUBLIC_NAME_MAP 유령 이름 4 · 죽은 export 138건(웹 감사
 W6 실측, 3,430줄) 중 **FROZEN 주석 없는 것**(그게 "격리 선언"의 판별 기준이다) ·
 vi.mock 유령 3곳 · 당직 잔해(fleetLine=''·anchors fold)
 

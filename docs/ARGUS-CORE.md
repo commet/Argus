@@ -88,7 +88,9 @@ MCP SDK 도, 네트워크도, 화면 문구도 코어에 들어올 수 없다 �
 | `argus_settings` | 말 거는 빈도 등 |
 
 이 여섯 개의 **이름과 스키마는 계약**이다. 바꾸면 남의 호스트가 깨진다.
-내부에는 도구가 16개 있지만 열 개는 내부 전용이고 공개 목록에 없다.
+내부에는 핸들러 모듈이 16개 있고 **전부 이 여섯 뒤에서 산다** — 열 개는 와이어에
+이름이 없을 뿐이다 (`argus_capture` 의 action 라우팅이 여섯을, `argus_settings` 가
+init·config·sync 를, `argus_patterns` 가 recall 을 나른다). 죽은 핸들러는 없다.
 
 ### L3 — 표면 넷
 
@@ -128,7 +130,7 @@ MCP SDK 도, 네트워크도, 화면 문구도 코어에 들어올 수 없다 �
 | 파일 | 존 | 지키는 기계 |
 |---|---|---|
 | `argus-mcp/src/lib/ledger-append.ts` | MCP | ✅ core-boundary |
-| `argus-mcp/src/v3/store.ts` | MCP | ✅ core-boundary (사유 등재됨 — 별도 파일 `semantic-v3.jsonl`) |
+| `argus-mcp/src/v3/store.ts` | MCP | ✅ core-boundary (사유 등재됨 — 별도 파일 `semantic-v3.jsonl` · **단 호출처 0 인 잠든 손**: 등재는 허가지, 사용의 증거가 아니다) |
 | `argus-plugin-v2/scripts/decision-ledger.js` | 플러그인 | ❌ **없음** |
 | `argus-plugin-v2/scripts/push-webapp.js` | 플러그인 | ❌ **없음** |
 
@@ -179,7 +181,7 @@ argus-mcp/src/lib/ledger-append.ts"* 라고 적어 두었는데, 그 약속을 �
 | 안 쓰는 npm 의존성 | 앱 36개 중 0 · MCP 10개 중 0 | ✅ |
 | 링크 없는 페이지 | 31개 중 3 (`/design/*` 2 + `/admin/utm-builder`) | ✅ 의도된 내부 도구 |
 | 호출처 없는 API | 66개 중 1 (`/api/epistemic/commands`) | ⚠️ 미배선 |
-| 진입점 미도달 | 앱 42파일 · MCP 15 · 플러그인 12 · 스크립트 34 | §6.2 |
+| 진입점 미도달 | 앱 42파일 · MCP 13 (#402 머지 후 7) · 플러그인 12 · 스크립트 34 | §6.2 |
 | **"정본은 저쪽" 주석** | 22곳 중 **13곳은 지키는 기계가 없다** | ⚠️ §6.3 |
 
 ### 6.1 런타임 순환 셋
@@ -203,7 +205,7 @@ argus-mcp/src/lib/ledger-append.ts"* 라고 적어 두었는데, 그 약속을 �
 | # | 이유 | 예 |
 |---|---|---|
 | 1 | 프레임워크 규약으로 진입 | `page.tsx` · `error.tsx` |
-| 2 | **다른 존이 소비** | 앱이 `argus-mcp/dist/v3/reducer.js` 를 쓴다 |
+| 2 | **다른 존이 소비** | 앱이 `argus-mcp/dist/v3/` 의 reducer·types·kind 를 쓴다 |
 | 3 | 테스트가 **경로 문자열**로 읽는다 | `readFileSync('../../x.tsx')` |
 | 4 | 앰비언트 선언 (import 되지 않는 종류) | `*.d.ts` |
 | 5 | **스킬 마크다운이 셸로 부른다** | `node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js"` (1,757줄) |

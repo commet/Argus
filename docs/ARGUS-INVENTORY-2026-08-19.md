@@ -61,7 +61,7 @@ loop:demo·zone-purity·outbox 등). 본 문서의 번호는 묶음 행을 포�
 | 18 | lib 낱개 미배선 10파일 ~2,200줄 (routing-default·analysis-routing·request-type-classifier·item-extract-core·notification-copy·retrospective·agent-stats·workflow-review 등 — 전부 전용 테스트 보유) | MAP §5.1 | 중간 |
 | 19 | `decisive-premises.ts` 194줄 (MCP) — 정본 문구 갖고 한 번도 안 물음. 봉인 믿음창 불리언 대체 자리 설계돼 있음 | MAP · 계획 B-2 | 작음 |
 | 20 | `detect-signals.ts` 194줄 (MCP) — 플러그인 정본 원천으로만 생존 | MAP | 작음 |
-| 21 | v3 잔여 3파일 540줄 (store·legacy-v2·p5-gate) + `ARGUS_DKK_V6_PILOT` 플래그는 주석에만 존재 | MCP 감사 M4 | 작음 |
+| 21 | v3 잔여 4파일 536줄 (index·store·legacy-v2·p5-gate) + `ARGUS_DKK_V6_PILOT` 플래그는 주석에만 존재 | MCP 감사 M4 | 작음 |
 | 22 | E3B 표면 (J9) — 코드·게이트 검증 완료, 공개 활성화만 잠김 (§1-5 와 한 몸) | JCR §17·§24 | 중간 |
 | 23 | BranchMap 129줄 · ArgusCompanionNote 47줄 | MAP §5.1 | 작음 |
 | 24 | 페르소나 피드백 프롬프트 중앙화분 — 소비자 테스트뿐 (의도적 대기) | CLAUDE.md | 작음 |
