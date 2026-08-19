@@ -63,6 +63,11 @@ next-env.d.ts
 # argus-watch + local working data: personal — never commit (repo is public)
 /.argus/
 **/.argus/
+# 예외: 리시트 안의 .argus 는 실주행 증거(원장 픽스처)다. 이 부정이 없으면
+# 다음 리시트의 원장 증거를 git add 가 조용히 건너뛴다 (2026-08-19 확인 —
+# 이미 추적 중인 6개는 우연히 살아남은 것이었다).
+!docs/receipts/**/.argus/
+!docs/receipts/**/.argus/**
 
 # Private strategy/eval/roadmap notes — kept as local backup, never public (BLUEPRINT §3.3)
 /docs/ARGUS-PRODUCT-EVALUATION-2026-07-16.ko.md
@@ -110,8 +115,11 @@ argus-plugin-v2/evals/sweep-report.json
 # Borrowed/vendored non-Argus skill packs — not redistributed in this repo
 /.agents/
 
-# Internal design/strategy history — kept private, not in the public repo
-/docs/archive/
+# (2026-08-19 삭제) /docs/archive/ 무시 규칙이 여기 있었다 — 2026-08-02 에는
+# "전략 문서는 비공개"라는 뜻이었는데, 2026-08-18 문서 정리가 은퇴 문서 52개를
+# 인덱스 README 와 함께 **추적되는 역사**로 archive/ 에 넣으면서 뜻이 뒤집혔다.
+# 규칙을 남겨두면 다음 은퇴 문서부터 git add 가 조용히 건너뛴다 — 정리 규약을
+# gitignore 가 정면으로 막는 함정. 추적이 정본이므로 규칙을 지운다.
 
 # Supabase CLI link/runtime metadata
 /supabase/.temp/
@@ -121,6 +129,7 @@ card-preview/
 
 .vercel
 .env*.local
+!.env.example
 
 # 시뮬 하네스 빌드 산출물 — run-sim.mjs:88 이 esbuild 로 매번 다시 만든다.
 # 2026-08-19: 36,212줄이 추적되고 있었다 (저장소의 약 10%).
