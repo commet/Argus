@@ -40,7 +40,6 @@ const interactiveDemo = read('src/components/workspace/InteractiveDemo.tsx');
 const workspacePage = read('src/app/[locale]/workspace/page.tsx');
 const settingsPage = read('src/app/[locale]/settings/page.tsx');
 const types = read('src/stores/types.ts');
-const blueprint = read('docs/ARGUS-BLUEPRINT.md');
 const design = read('docs/DESIGN-epistemic-agency-and-self-knowledge-governance-v1-2026-07-17.md');
 
 type BaselineState = 'known_violation' | 'partial_guard' | 'missing_guard' | 'protected';
@@ -333,7 +332,7 @@ describe('E0 boundary evidence — evaluation only, no runtime owner grab', () =
       'src/lib/semantic-v4/**',
       '웹 공정 5',
     ]) {
-      expect(`${blueprint}\n${design}`).toContain(token);
+      expect(design).toContain(token);
     }
   });
 

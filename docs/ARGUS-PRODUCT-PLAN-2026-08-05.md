@@ -1,5 +1,9 @@
 # Argus 제품 기획안 v2 — 계획과 정산 (2026-08-05, 최종 후보)
 
+> **2026-08-18 공지.** 이 문서가 근거로 삼는 `ARGUS-BLUEPRINT.md` 는 은퇴했다
+> (`docs/archive/README.md`). 현재 정본은 `docs/ARGUS-CANON.md` 가 가리키는 다섯이다.
+> 이 문서 내용 자체의 유효 여부는 아직 판정되지 않았다 — 읽기 전에 CANON 을 먼저 본다.
+
 상태: **FINAL CANDIDATE — 창업자 확정으로 STABLE 전환.** BLUEPRINT §9.12(트랙 R)
 산하. 방법 정본은 `ARGUS-METHOD-V1.0.md`, 측정 정본은
 `ARGUS-R3A-MEASUREMENT-CONTRACT-2026-08-04.md`. 이 문서는 **제품 형태와 순서**만

@@ -23,7 +23,6 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const blueprint = read('docs/ARGUS-BLUEPRINT.md');
 const eConstitution = read('docs/DESIGN-epistemic-agency-and-self-knowledge-governance-v1-2026-07-17.md');
 const jcr = read('docs/DESIGN-judgment-continuity-runtime-v1-2026-07-18.md');
 const types = read('src/lib/epistemic/types.ts');
@@ -43,10 +42,6 @@ const verifySkill = read('argus-plugin-v2/skills/review/verify.md');
 
 describe('JCR canon registration', () => {
   it('registers one execution canon while preserving the E constitution', () => {
-    expect(blueprint).toContain('DESIGN-judgment-continuity-runtime-v1-2026-07-18.md');
-    expect(blueprint).toContain('헌법 정본: `docs/DESIGN-epistemic-agency-and-self-knowledge-governance-v1-2026-07-17.md`');
-    expect(blueprint).toContain('E3A · durable authority foundation');
-    expect(blueprint).toContain('E3B · 자기지식 검토 표면');
     expect(eConstitution).toContain('DESIGN-judgment-continuity-runtime-v1-2026-07-18.md');
     expect(jcr).toContain('## 30. 적대적 최종 검수');
     expect(jcr).toContain('## 31. 결론');

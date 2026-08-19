@@ -1532,7 +1532,8 @@ measurement contract·interview script 봉인 (recall probe 문안, verbatim 임
 
 **실행 수단:** 초대 전용·비공개·폐기 전제의 pilot harness (R2 harness + 최소
 대화 통로). 공개 UI·canonical schema·기존 배관·알림 불변. 종료 시 데이터
-반출·삭제. BLUEPRINT §9.12 무접촉 경계의 명시적 amendment.
+반출·삭제. (BLUEPRINT §9.12 무접촉 경계에 대한 amendment 였다 — 그 문서는
+2026-08-18 은퇴, `docs/archive/README.md`.)
 
 GO 최소 조건:
 

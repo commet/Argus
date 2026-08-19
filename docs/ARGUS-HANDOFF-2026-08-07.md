@@ -1,5 +1,9 @@
 # Argus 인계 문서 — 2026-08-07
 
+> **2026-08-18 공지.** 이 문서가 근거로 삼는 `ARGUS-BLUEPRINT.md` 는 은퇴했다
+> (`docs/archive/README.md`). 현재 정본은 `docs/ARGUS-CANON.md` 가 가리키는 다섯이다.
+> 이 문서 내용 자체의 유효 여부는 아직 판정되지 않았다 — 읽기 전에 CANON 을 먼저 본다.
+
 **지위: 비규범 (인계).** 이 문서는 정본이 아니다. 규범을 정하는 것은
 `ARGUS-METHOD-V1.0.md`(방법)와 `ARGUS-BLUEPRINT.md`(빌드 순서)이고, 그 둘과
 충돌하면 언제나 그쪽이 이긴다.

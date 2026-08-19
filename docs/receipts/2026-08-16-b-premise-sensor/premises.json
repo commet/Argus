@@ -1,0 +1,77 @@
+{
+  "sealed_at": "2026-08-16T16:10:00Z",
+  "note": "판별 실험 B — 창업자의 열린 결정에서 전제 5개를 관찰 가능한 외부 신호에 결박한다. 감시 대상은 사람이 아니라 세계다 (브리프 §4 B) — 프로파일링 금지와 충돌하지 않는다.",
+  "threshold_disclosure": "각 전제의 임계값은 검증 불가능한 사전 믿음이다 (브리프 §1.2). 그래서 임계값을 코드에 숨기지 않고 이 파일에 노출하고, 근거를 함께 적는다 (P6 잔여의 공시). 임계값이 틀렸다는 것은 경보가 틀렸을 때만 알 수 있다.",
+  "premises": [
+    {
+      "id": "P1-발행본이-설치-가능하다",
+      "decision": "argus-mcp를 npm 발행본으로 공개하고 파일럿을 그 위에서 돌린다",
+      "decision_source": "리시트 연작 · plugin_decisions(2026-06-15) 계열",
+      "premise": "발행된 argus-mcp 패키지가 레지스트리에 살아있고 설치 가능한 버전을 유지한다",
+      "signal": { "type": "npm_version", "args": { "pkg": "argus-mcp" } },
+      "baseline": "1.2.0",
+      "alert_if": "패키지가 사라지거나(조회 실패) 버전이 baseline보다 낮아짐(yank)",
+      "threshold_rationale": "버전 상승은 정상. 하락·소실만 전제 붕괴다 — 임계를 한 방향으로만 둔다.",
+      "targets": ["M2", "M3"]
+    },
+    {
+      "id": "P2-프로덕션이-살아있다",
+      "decision": "웹을 항구로 두고 파일럿을 라이브 URL로 초대한다",
+      "decision_source": "argus_cases case_mslfdkqd (2026-08-09 파일럿 결정)",
+      "premise": "argus.voyage가 응답한다",
+      "signal": { "type": "http_status", "args": { "url": "https://argus.voyage" } },
+      "baseline": "307",
+      "alert_if": "5xx 또는 연결 실패",
+      "threshold_rationale": "3xx는 로케일 리디렉션(정상 설계). 4xx는 경로 문제일 수 있어 경보하지 않고, 5xx·무응답만 전제 붕괴로 본다.",
+      "targets": ["M2"]
+    },
+    {
+      "id": "P3-사람이-혼자-연결까지-간다",
+      "decision": "지금 문안으로 파일럿을 나간다 — 연결 막힘이 2/3 넘으면 즉시 문안을 고친다",
+      "decision_source": "argus_cases case_mslfdkqd · belief_check \"받은 사람이 혼자서 연결까지 갈 수 있다\"(uncertain)",
+      "premise": "MCP 계정 인가가 계속 발생한다 — 연결이 사람 손을 안 타고도 일어난다",
+      "signal": { "type": "supabase_count", "args": { "table": "mcp_account_authorizations" } },
+      "baseline": 2,
+      "alert_if": "7일간 증가 0 (파일럿이 초대되었는데도 인가가 안 늘면 연결 관문이 막힌 것)",
+      "threshold_rationale": "이 임계가 가장 약한 사전 믿음이다 — 초대 자체가 없으면 증가 0도 정상이라, 신호가 '전제 붕괴'와 '실험 미실행'을 구분하지 못한다. 그래서 경보는 초대 발송 사실과 함께만 읽어야 한다. 이 한계를 숨기지 않는다.",
+      "targets": ["M2", "M3"]
+    },
+    {
+      "id": "P4-제품이-쓰이고-있다",
+      "decision": "현 제품 위에서 방법을 검증한다 (원형 A 계속)",
+      "decision_source": "BLUEPRINT 공정 진행 · E-0 기준선",
+      "premise": "사용자 행동 이벤트가 계속 도착한다",
+      "signal": { "type": "supabase_recent", "args": { "table": "user_events", "column": "created_at", "days": 7 } },
+      "baseline": null,
+      "alert_if": "최근 7일 이벤트 0",
+      "threshold_rationale": "0은 명백한 붕괴지만, 0이 아니어도 '누가 쓰는가'는 답하지 못한다(E-0에서 확인: 내용 가시 봉인 중 외부 사용자 0). 이 센서는 생존 신호이지 사용 증거가 아니다.",
+      "targets": ["M2"]
+    },
+    {
+      "id": "P6-제품이-여러-사람에게-쓰인다",
+      "decision": "현 제품 위에서 방법을 검증한다 (원형 A 계속)",
+      "decision_source": "1일차 판독의 발견으로 신설 — 아래 amendment 참조",
+      "premise": "제품을 쓰는 사람이 여럿이다 — 활동량이 아니라 사람 수가 살아있다",
+      "signal": { "type": "supabase_distinct", "args": { "table": "user_events", "column": "user_id", "days": 7 } },
+      "baseline": 2,
+      "alert_if": "7일 고유 사용자 ≤ 2 (창업자 + 1)",
+      "threshold_rationale": "P4의 임계(이벤트 0)가 느슨했음이 첫 판독에서 드러나 신설한 전제다. 이벤트 1,937건은 '살아있음'을 말하지만 고유 사용자 2명은 '창업자가 혼자 쓰고 있음'을 말한다. 이 임계 역시 사전 믿음이다 — 3명이 의미 있는 경계라는 근거는 없고, 다만 2명이 '창업자+1'이라는 사실이 검증 가능할 뿐이다.",
+      "targets": ["M2"],
+      "amendment": {
+        "at": "2026-08-16T16:15:00Z",
+        "why": "1일차 판독에서 P4가 '유지'로 떴는데 같은 시각 고유 사용자는 2명이었다. 선언된 임계가 붕괴를 못 잡는다는 것이 관측으로 드러났다. Goodhart 방어를 위해 P4의 임계는 **고치지 않고 그대로 둔다** — 나쁜 판정을 좋게 보이도록 사후 조정하는 것이 정확히 브리프가 금지한 것이다. 대신 새 전제를 추가하고, 임계가 틀렸다는 사실을 원장에 남긴다."
+      }
+    },
+    {
+      "id": "P5-다음세대-호스트가-아직-없다",
+      "decision": "정산 건너뛰기의 차세대 재현을 2026-11-14까지 확인한다",
+      "decision_source": "sim-ledger 봉인 next-claude-confirmatory (predicate_owner: user)",
+      "premise": "2026-08-14 이후 출시된 차세대 Claude 호스트 모델이 아직 없다 — 있으면 확인일 전이라도 재실험 시점이 도래한 것이다",
+      "signal": { "type": "manual", "args": { "how": "Anthropic 모델 목록·릴리스 공지 확인" } },
+      "baseline": "2026-08-16 기준 미출시로 관측",
+      "alert_if": "차세대 호스트 출시 확인 시 — 확인일(11-14)을 기다리지 않고 재실험을 앞당긴다",
+      "threshold_rationale": "이 전제만 자동 신호가 없다. 브리프 §4 B가 말한 '결박 가능한 전제만 커버한다'의 실사례로 남긴다 — 정성 전제는 센서망 밖이다.",
+      "targets": ["M3"]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "session": "standing",
+  "sealed_at": "2026-08-16T16:10:00Z",
+  "note": "세션에 무관하게 항상 참이어야 하는 하중 가정. session-guard.sh(SessionStart 훅)가 매 세션 시작에 검사한다. 특정 세션의 가정은 assumptions-session-*.json에 따로 봉인한다.",
+  "assumptions": [
+    {
+      "id": "S1-업로드된-정본을-읽었는가",
+      "stated": "이 세션에 업로드된 문서는 산출물에서 참조된다 — 파생 요약이 원본을 대체하지 않았다.",
+      "why_load_bearing": "틀리면 전 작업이 원본과 어긋난 채 그럴듯하게 완주한다. 결과물이 멀쩡해 보이므로 어떤 테스트도 울리지 않는다. 2026-08-16 세션에서 실제로 발생 (E-0 리시트 §5.6).",
+      "check": { "type": "uploads_referenced", "args": { "uploads_dir": "auto", "search_paths": ["docs"] } },
+      "on_violation": "업로드된 정본을 먼저 읽는다. 파생 목록으로 작업을 시작하지 않는다."
+    },
+    {
+      "id": "S2-최신-위에-짓고-있는가",
+      "stated": "현재 브랜치는 원격보다 뒤처지지 않았다.",
+      "why_load_bearing": "틀리면 남이 이미 고친 것을 다시 풀거나 조용히 덮어쓴다.",
+      "check": { "type": "branch_synced", "args": { "remote": "origin" } },
+      "on_violation": "fetch·merge 후 시작한다."
+    },
+    {
+      "id": "S3-한-PR-한-존인가",
+      "stated": "현재 브랜치의 변경은 한 라이선스 존에만 머문다.",
+      "why_load_bearing": "MIT 존과 앱 존이 한 PR에 섞이면 라이선스 경계가 무너진다 (CLAUDE.md 규약).",
+      "check": { "type": "zone_purity", "args": { "base": "origin/main" } },
+      "on_violation": "PR을 존별로 쪼갠다."
+    }
+  ]
+}

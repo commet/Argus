@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 능력 중복 검사가 base 와의 merge-base 를 봐야 하므로 전체 히스토리.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -209,6 +212,14 @@ jobs:
       # nightly in argus-eval.yml. See argus-plugin-v2/evals/README.md.
       - name: Argus spine static gate
         run: node argus-plugin-v2/evals/static-gate.test.mjs
+
+      # 능력 중복 검사 — "짓기 전에 이미 있는지 훑었는가"를 기계로 묻는다.
+      # 2026-08-18: 대화 수집·후보 추출을 앱 존에 새로 지었는데 argus-mcp/src/v2/ 에
+      # 훅 자동발견·큐·게이트·민감정보 차단이 이미 있었다. 결심은 재발을 못 막는다.
+      # PR 에서만 의미가 있다 (main push 에는 비교할 base 가 없다).
+      - name: Capability duplication survey
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-capability-duplication.mjs "origin/${{ github.base_ref }}"
 
       # Enforcement gates — the architectural check that the verify / route-contract /
       # flat gates hold in session artifacts (prose rules are a floor, not enforcement).

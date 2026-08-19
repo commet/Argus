@@ -1,5 +1,9 @@
 # ARGUS R2 HARNESS — 구현 설계도
 
+> **2026-08-18 공지.** 이 문서가 근거로 삼는 `ARGUS-BLUEPRINT.md` 는 은퇴했다
+> (`docs/archive/README.md`). 현재 정본은 `docs/ARGUS-CANON.md` 가 가리키는 다섯이다.
+> 이 문서 내용 자체의 유효 여부는 아직 판정되지 않았다 — 읽기 전에 CANON 을 먼저 본다.
+
 Date: 2026-08-04
 Status: **Track R · R2 산출물의 구현 정본. `ARGUS-METHOD-V1.0.md`를 코드로 옮기는 유일한 지도**
 Canon: `docs/ARGUS-METHOD-V1.0.md`

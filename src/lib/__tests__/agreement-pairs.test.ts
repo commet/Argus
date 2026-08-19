@@ -105,11 +105,6 @@ const PAIRS: Pair[] = [
     guard: 'src/lib/__tests__/persistence-contract.test.ts', kind: 'ci',
   },
   {
-    a: 'BLUEPRINT exit 체크박스', b: 'EVIDENCE 맵 (증거 파일 실존)',
-    breaks: '짓지 않은 것이 준공으로 기록된다',
-    guard: 'src/lib/__tests__/blueprint-exit-evidence.test.ts', kind: 'ci',
-  },
-  {
     a: 'ProgressiveFlow.tsx', b: 'flow-parts/* (E-1로 분리된 표시 조각)',
     breaks: '흐름을 읽는 소스 가드가 코드 이동만으로 조용히 눈을 감는다',
     guard: 'src/components/workspace/progressive/__tests__/no-machinery-leak.test.ts', kind: 'ci',
