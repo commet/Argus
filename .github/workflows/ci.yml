@@ -228,6 +228,13 @@ jobs:
       - name: Reachability ratchet
         run: node scripts/check-reachability.mjs
 
+      # 런타임 순환 import 래칫 — 순환이 있으면 "누가 먼저인지"를 읽어서 알 수 없고,
+      # ARGUS-CORE.md §2 의 단 하나의 규칙(위는 아래를 알고 아래는 위를 모른다)이
+      # 그 자리에서 깨진다. 타입 순환(`import type`, 컴파일에서 지워짐)은 세지 않는다 —
+      # 합쳐 세면 3개가 19개가 되고, 과장된 경보는 꺼진 경보와 같다.
+      - name: Import cycle ratchet
+        run: node scripts/check-cycles.mjs
+
       # Enforcement gates — the architectural check that the verify / route-contract /
       # flat gates hold in session artifacts (prose rules are a floor, not enforcement).
       - name: Argus enforcement gates

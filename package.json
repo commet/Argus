@@ -32,6 +32,7 @@
     "gates:test": "node argus-plugin-v2/scripts/validate-gates.test.mjs",
     "gates:capability": "node scripts/check-capability-duplication.mjs",
     "gates:reach": "node scripts/check-reachability.mjs",
+    "gates:cycles": "node scripts/check-cycles.mjs",
     "signals:test": "node argus-plugin-v2/scripts/test-decision-signals.mjs",
     "validate:progressive": "tsx --env-file=.env.local scripts/validate-progressive.ts",
     "probe:boss": "tsx --env-file=.env.local scripts/probe-boss-store.ts",
