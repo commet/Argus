@@ -264,6 +264,15 @@ jobs:
       - name: Argus sense hook
         run: node argus-plugin-v2/scripts/sense-signal.test.mjs
 
+      # Conversation capture must run WITHOUT anyone asking for it (N6). The queue
+      # was already filled automatically by the SessionStart hook, but draining it
+      # — actually reading the conversation into candidates — only happened inside
+      # the check_in tool, i.e. when the model decided to call it. This Stop hook
+      # moves that trigger into deterministic wiring; the test pins that it fires,
+      # stays silent, never waits, and is actually registered in hooks.json.
+      - name: Argus capture sweep hook
+        run: node argus-plugin-v2/hooks/capture-sweep.test.mjs
+
       # Enforcement is a HARD BLOCK, not advisory (CLI exits non-zero on a violation).
       - name: Argus enforcement hard-block
         run: node argus-plugin-v2/scripts/enforcement-hardblock.test.mjs

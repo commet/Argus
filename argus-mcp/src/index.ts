@@ -19,6 +19,11 @@ async function main() {
     await runCaptureCli(process.argv.slice(3));
     return;
   }
+  if (process.argv[2] === 'capture-drain') {
+    const { runCaptureDrainCli } = await import('./v2/capture-cli.js');
+    await runCaptureDrainCli(process.argv.slice(3));
+    return;
+  }
   if (process.argv[2] === 'capture-status') {
     const { runCaptureStatusCli } = await import('./v2/capture-cli.js');
     runCaptureStatusCli(process.argv.slice(3));

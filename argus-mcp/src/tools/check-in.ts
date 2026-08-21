@@ -17,7 +17,7 @@ import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './too
 import { handleToolException } from './errors.js';
 import { accountCredentialStatus } from '../a0/account-credentials.js';
 import { briefDivergence, readV2Brief } from '../v2/mirror.js';
-import { drainCaptureOnCheckIn } from '../v2/capture-runtime.js';
+import { drainCapture } from '../v2/capture-runtime.js';
 
 /**
  * The watch anchor is the one surface a user cannot close: a contract has
@@ -90,7 +90,7 @@ export const checkIn: ToolModule = {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);
       const today = resolveToday({ override: a['today_override'] as string | undefined });
-      const captureStatus = await drainCaptureOnCheckIn(dir, today);
+      const captureStatus = await drainCapture(dir, today, 'check_in_bounded');
       const ledger = replayLedger(dir, today);
       const seeds = bearingContracts(dir, today, ledger);
 
