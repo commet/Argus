@@ -11,6 +11,12 @@
 
 import type { WatchRule } from './watch/rule.js';
 
+/**
+ * `provenance` 의 두 값(`user`·`ai_surfaced`)은 앱 존
+ * `src/lib/judgment-authorship.ts` 의 저자성 판정과 같은 뜻이다. 재사용하지
+ * 않는 이유는 라이선스 경계 하나뿐 — MIT 존은 앱 존을 import 하지 않는다.
+ */
+
 /** 이 결정이 어디서 왔나 — 맥락을 **복사하지 않고 가리킨다** (§4.6).
  *  열람할 때 이 포인터를 따라가 원본의 앞뒤 장면을 펼친다. */
 export interface OriginPointer {

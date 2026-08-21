@@ -6,6 +6,13 @@ import type {
   DecisionRecord, DecisionType, OriginPointer, Unattended, WatchMode,
 } from './types.js';
 
+/**
+ * `provenance`(사용자가 쓴 문장인가, 아르고스가 꺼낸 것인가)는 앱 존의
+ * `src/lib/judgment-authorship.ts` 와 **같은 질문**이다. 안 쓰는 이유는 하나뿐:
+ * 여기는 MIT 존이고 앱 존을 import 하면 라이선스 경계가 무너진다. 뜻은 같게
+ * 두되(사용자 `user` · 기계가 꺼낸 것 `ai_surfaced`) 코드는 각자 산다.
+ */
+
 /** 결정 장부가 원장에 쓰는 사건 이름 셋. 옛 예측 상태기계 밖이라 그 전이 검사를
  *  거치지 않는다 (`gate_input`·`watch_*` 와 같은 자리). */
 export const DEC_EVENT_TYPES = ['dec_signed', 'dec_amended', 'dec_repealed', 'dec_fired', 'dec_misfire'] as const;

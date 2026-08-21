@@ -7,6 +7,12 @@ import type { DecisionRecord } from './types.js';
 /**
  * 결정 파일을 디스크에 두는 자리 — 판정 10(B+) 의 몸통.
  *
+ * **원장을 여기서 쓰지 않는다.** 추가 전용 원장은 `argus-mcp/src/v2/ledger.ts`
+ * 와 `method-harness/ledger.ts` 가 이미 갖고 있고, 이 제품의 쓰기는 전부
+ * `lib/ledger-append.ts` 한 관문을 지난다(`src/dec/write.ts`). 이 파일은
+ * **읽어서 사람이 보는 파일을 그리기만** 한다 — 여기서 append 하면 관문이
+ * 둘이 되고, 그걸 막는 검사가 `lib/__tests__/ledger-gateway.test.ts` 다.
+ *
  * 규율 둘이 여기 전부다:
  *  1. **사람이 고친 파일을 덮어쓰지 않는다.** 덮어쓰면 그게 곧 "조용히 무시"이고,
  *     그것 때문에 안(B)이 탈락했다. 고친 흔적을 보면 **멈추고 알린다** — 그
