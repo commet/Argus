@@ -1,4 +1,5 @@
 import { readLedgerRaw } from '../lib/ledger-replay.js';
+import { isValidScope } from './scope.js';
 import type {
   Amendment, DecAmendedPayload, DecRepealedPayload, DecSignedPayload,
   DecisionRecord, DecisionType, Unattended, WatchMode,
@@ -71,7 +72,7 @@ export function foldDecisions(argusDir: string): DecFoldResult {
       if (byId.has(id)) continue; // 재서명은 개정으로 온다
       const p = payload as Partial<DecSignedPayload>;
       // 필수 필드가 빠진 서명은 **조용히 기본값으로 메우지 않는다** — 버린다.
-      if (!isType(p.type) || !str(p.decision) || !str(p.scope) || !str(p.binds) ||
+      if (!isType(p.type) || !str(p.decision) || !str(p.scope) || !isValidScope(p.scope!) || !str(p.binds) ||
           !str(p.author) || !str(p.adopted) || !isUnattended(p.unattended) || !isWatch(p.watch)) {
         dropped++; continue;
       }

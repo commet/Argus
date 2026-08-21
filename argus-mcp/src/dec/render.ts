@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { scopeSay } from './scope.js';
 import type { DecisionRecord } from './types.js';
 
 /**
@@ -76,7 +77,8 @@ const VALUE_SAY: Record<string, string> = {
 };
 
 const say = (field: string, value: string): string =>
-  (field === 'unattended' || field === 'watch') ? (VALUE_SAY[value] ?? value) : value;
+  (field === 'unattended' || field === 'watch') ? (VALUE_SAY[value] ?? value)
+    : field === 'scope' ? scopeSay(value) : value;
 
 const TYPE_SAY: Record<DecisionRecord['type'], string> = {
   pin: '한 쪽으로 정해 둔 것',
@@ -99,7 +101,7 @@ export function renderDecisionBody(record: DecisionRecord): string {
     out.push(`**${record.adopted}에 정했고, 지금 지키고 있다.** (${TYPE_SAY[record.type]})`, '');
   }
 
-  out.push(`걸리는 곳: ${record.scope} · 지키는 사람: ${record.binds}`, '');
+  out.push(`걸리는 곳: ${scopeSay(record.scope)} · 지키는 사람: ${record.binds}`, '');
 
   if (record.provenance === 'ai_surfaced') {
     // 저자성에 거짓말하지 않는다 (CLAUDE.md Zero-Judgment Gate 1항).

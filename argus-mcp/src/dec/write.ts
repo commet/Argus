@@ -1,6 +1,7 @@
 import { withLedgerLock, appendLedger } from '../lib/ledger-append.js';
 import { foldDecisions } from './fold.js';
 import { syncDecisionFiles, type SyncResult } from './files.js';
+import { isValidScope } from './scope.js';
 import type { DecAmendedPayload, DecRepealedPayload, DecSignedPayload } from './types.js';
 
 /**
@@ -40,6 +41,10 @@ async function appendAndDraw(
 export async function signDecision(
   argusDir: string, id: string, payload: DecSignedPayload, now: string,
 ): Promise<DecWriteResult> {
+  if (!isValidScope(payload.scope)) {
+    // 범위가 빈·틀린 결정 하나가 "다른 프로젝트 규칙이 안 섞인다"는 보증을 무너뜨린다.
+    throw new Error(`BAD_SCOPE: ${payload.scope} — repo · global · path:<자리> 중 하나여야 한다`);
+  }
   if (payload.watch === 'inject_only' && !payload.review) {
     // 불변식 ⑤ + §12: 기계가 못 잡는 법은 사건형 재확인을 고를 수 없다.
     throw new Error('INJECT_ONLY_NEEDS_CALENDAR: 기계가 못 잡는 규칙은 날짜로만 다시 볼 수 있다');
@@ -59,6 +64,9 @@ export async function amendDecision(
   argusDir: string, id: string, payload: DecAmendedPayload, now: string,
 ): Promise<DecWriteResult> {
   if (!payload.why) throw new Error('NO_REASON: 왜 바꾸는지 한 줄이 있어야 한다');
+  if (payload.scope !== undefined && !isValidScope(payload.scope)) {
+    throw new Error(`BAD_SCOPE: ${payload.scope} — repo · global · path:<자리> 중 하나여야 한다`);
+  }
   return appendAndDraw(argusDir, id, 'dec_amended', payload, now, () => mustBeLive(argusDir, id));
 }
 
