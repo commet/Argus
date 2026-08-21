@@ -102,24 +102,54 @@ describe('묻는 글 — 그때의 당신을 먼저 보여준다', () => {
 
   /**
    * 화면 글을 쓰는 자리가 늘 때마다 같은 실수가 난다 — 있지도 않은 명령을
-   * 적어 두는 것. `dec amend`(띄어쓰기)·`dec check <계획>` 둘 다 실제로 그렇게
-   * 나갔다. 그래서 **화면 글을 만드는 파일 전체**를 훑는다.
+   * 적어 두는 것. `dec amend`(띄어쓰기)·`dec check <계획>`·`dec verify` 가
+   * 그렇게 나갔다.
+   *
+   * **처음엔 파일 목록을 손으로 적었다가 `render.ts` 를 빠뜨렸다** — 결정
+   * 파일 맨 아래, 사람이 제일 많이 읽는 자리였다. 지키려던 것과 똑같이
+   * 표류한 것이다. 그래서 목록이 아니라 **`src/dec/` 전체를 훑는다.**
    */
   it('화면 글에 적힌 dec 명령은 어느 파일에서든 실재한다', () => {
+    const decRoot = new URL('../', import.meta.url).pathname;
     const dispatch = fs.readFileSync(new URL('../../index.ts', import.meta.url), 'utf8');
     const known = new Set([...dispatch.matchAll(/process\.argv\[2\] === '(dec-[a-z-]+)'/g)].map((m) => m[1]!));
     expect(known.size).toBeGreaterThan(5);
 
-    const surfaces = ['../inject/say.ts', './ask.ts', '../check/speak.ts', '../rehearse/engine.ts',
-                      '../block/say.ts', '../export/emit.ts'];
-    for (const rel of surfaces) {
-      const src = fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
-      // 사람에게 보이는 문장 안의 `dec …` 만 본다 (import 경로가 아니라).
-      for (const m of src.matchAll(/\bdec[ -]([a-z][a-z-]{2,})\b/g)) {
-        const spelled = `dec-${m[1]!}`;
-        expect(known, `${rel} 이 "${m[0]}" 를 적었는데 index.ts 가 안 받는다`).toContain(spelled);
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) return walk(full);
+        return e.isFile() && e.name.endsWith('.ts') && !e.name.includes('.test.') ? [full] : [];
+      });
+
+    const files = walk(decRoot);
+    expect(files.length).toBeGreaterThan(15);
+    let seen = 0;
+    for (const file of files) {
+      // 주석은 화면 글이 아니다 — 설계 낱말이 거기 살아도 사용자는 안 본다.
+      // (주석 안의 백틱을 문자열로 착각해 `dec check <계획>` 이 걸렸었다.)
+      const src = fs.readFileSync(file, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+      // **화면에 나가는 글자만** 본다 — 주석의 설계 낱말이나 파일 이름이 아니라
+      // 따옴표·백틱 안의 사람이 읽을 문장. (`dec-spoken.json`·주석의 `dec init`
+      // 이 처음에 걸렸다 — 둘 다 화면에 안 나간다.)
+      const quoted = [...src.matchAll(/(['"`])((?:\\.|(?!\1)[^\\])*)\1/g)]
+        .map((q) => q[2]!)
+        .filter((q) => /[가-힣]/.test(q))          // 사람에게 보이는 우리말 문장
+        .join('\n');
+      for (const m of quoted.matchAll(/\bdec([ -])([a-z][a-z-]{2,})\b(?!\.[a-z]|\/)/g)) {
+        const spelled = `dec-${m[2]!}`;
+        seen += 1;
+        // **이름이 맞아도 형태가 틀리면 안 돈다.** `dec misfire D-0001` 은 띄어쓰기라
+        // 그대로 치면 아무 일도 안 일어난다 — 실주행에서 눈으로 발견(2026-08-21).
+        expect(m[1], `${path.relative(decRoot, file)} 이 "${m[0]}" 라고 적었다 — 붙임표로 써야 실제로 돈다 (${spelled})`)
+          .toBe('-');
+        expect(known, `${path.relative(decRoot, file)} 이 "${m[0]}" 를 적었는데 index.ts 가 안 받는다`)
+          .toContain(spelled);
       }
     }
+    expect(seen, 'dec 명령을 하나도 못 찾았다 — 훑는 규칙이 깨졌다').toBeGreaterThan(3);
   });
 });
 

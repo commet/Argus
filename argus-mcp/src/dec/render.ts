@@ -207,7 +207,7 @@ export function renderDecisionBody(record: DecisionRecord): string {
   out.push('---', '');
   out.push('이 파일은 기록에서 자동으로 만들어진다. 여기를 고쳐도 규칙은 안 바뀐다 —');
   out.push('고친 게 보이면 다음에 "이대로 바꿀까요?" 하고 묻는다.');
-  out.push(`바꾸려면: dec amend ${record.id}`);
+  out.push(`바꾸려면: argus-decision-mcp dec-amend --id ${record.id} --decision "<새 문장>" --why "<왜 바꾸나>"`);
 
   return out.join('\n') + '\n';
 }

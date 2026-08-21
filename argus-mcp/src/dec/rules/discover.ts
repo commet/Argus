@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * 이미 쓰고 있던 규칙 파일 찾기 — 역이식(`dec init`)의 첫 걸음.
+ * 이미 쓰고 있던 규칙 파일 찾기 — 역이식(`dec-scan-rules` → `dec-sign --from-clause`)의 첫 걸음.
  *
  * **빈 장부로 시작하지 않는다**가 이 제품의 첫 60초다. 그러려면 사람이
  * 이미 쓰고 있던 규칙이 어디 있는지부터 알아야 한다.

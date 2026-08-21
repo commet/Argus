@@ -27,6 +27,22 @@ function flag(args: readonly string[], name: string): string | null {
   return index >= 0 && typeof args[index + 1] === 'string' ? args[index + 1]! : null;
 }
 
+/**
+ * 모르는 깃발을 **조용히 무시하지 않는다.**
+ *
+ * 시운전에 `--clause <조항>` 을 줬더니 그냥 버려지고, 내가 안 물은 질문의 답이
+ * 답처럼 돌아왔다. 사람은 그게 자기 질문의 답인 줄 안다. CLAUDE.md 의
+ * LLM-glue 불변식이 이름 붙인 실패 그대로다 — **모든 공백은 크게 실패하거나
+ * 정직하게 드러난다.**
+ */
+function rejectUnknownFlags(args: readonly string[], command: string, known: readonly string[]): void {
+  const allowed = new Set(known);
+  const unknown = args.filter((a) => a.startsWith('--') && !allowed.has(a));
+  if (unknown.length > 0) {
+    throw new Error(`${command}: 모르는 깃발이다 — ${unknown.join(' ')}. 받는 것: ${known.join(' ')}`);
+  }
+}
+
 function argusDirOf(args: readonly string[], command: string): string {
   const dir = flag(args, '--argus-dir');
   if (!dir || !path.isAbsolute(dir)) throw new Error(`${command} requires an absolute --argus-dir`);
@@ -108,17 +124,24 @@ export function runDecScanRulesCli(args: readonly string[]): void {
  * 뜻이 없다.
  */
 export function runDecRehearseCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-rehearse', ['--argus-dir', '--repo', '--days', '--top', '--clause']);
   const repo = flag(args, '--repo');
   if (!repo || !path.isAbsolute(repo)) throw new Error('dec-rehearse requires an absolute --repo');
   const days = Number(flag(args, '--days') ?? 30);
   const top = Number(flag(args, '--top') ?? 5);
+  const only = flag(args, '--clause');
   if (!Number.isFinite(days) || days <= 0) throw new Error('dec-rehearse --days must be a positive number');
 
   const found = discoverRuleFiles(repo);
-  const clauses: Clause[] = [];
+  const all: Clause[] = [];
   for (const file of found.files) {
-    clauses.push(...splitRuleFile(file.rel, fs.readFileSync(file.abs, 'utf8')).clauses);
+    all.push(...splitRuleFile(file.rel, fs.readFileSync(file.abs, 'utf8')).clauses);
   }
+  // 조항 하나만 보겠다고 했으면 **그 하나가 없을 때 말해 준다** (빈 결과로 안 넘긴다).
+  if (only && !all.some((c) => c.clause_id === only)) {
+    throw new Error(`dec-rehearse --clause ${only} — 그런 조항이 이 저장소에 없다`);
+  }
+  const clauses = only ? all.filter((c) => c.clause_id === only) : all;
 
   // 읽을 과거도 말 걸 표면도 없으면 **지어내지 않고 돌려보낸다**.
   if (clauses.length === 0) {
@@ -144,19 +167,20 @@ export function runDecRehearseCli(args: readonly string[]): void {
     b.result.hit_days - a.result.hit_days || b.result.hit_count - a.result.hit_count);
 
   const say: string[] = [];
-  say.push(`이미 쓰고 있던 규칙을 읽었다: ${found.files.map((f) => `${f.rel} ${clauses.filter((c) => c.file === f.rel).length}조`).join(' · ')}`);
+  say.push(`이미 쓰고 있던 규칙을 읽었다: ${found.files.map((f) => `${f.rel} ${all.filter((c) => c.file === f.rel).length}조`).join(' · ')}`);
+  if (only) say.push(`그중 ${only} 하나만 대 봤다.`);
   say.push(`지난 ${days}일에 대보니 ${collided.length}건이 실제로 부딪혔다.`);
   if (collected.gaps.length > 0) say.push(`다만 못 읽은 것이 있다: ${collected.gaps.join(' / ')}`);
   say.push('');
   for (const item of collided.slice(0, top)) {
-    say.push(`■ ${item.clause.text.replace(/\s+/g, ' ').trim().slice(0, 78)}`);
+    say.push(`■ ${clauseSentence(item.clause.text, 78)}`);
     for (const line of sayRehearsal(item.result)) say.push(`  ${line}`);
     say.push('');
   }
 
   process.stdout.write(JSON.stringify({
     rule_files: found.files.map((f) => f.rel),
-    clause_count: clauses.length,
+    clause_count: all.length,
     days,
     scanned: { file_changes: collected.past.filter((e) => e.kind === 'file_change').length,
                utterances: collected.past.filter((e) => e.kind === 'utterance').length,
@@ -316,7 +340,9 @@ export async function runDecCheckCli(args: readonly string[]): Promise<void> {
   const file = flag(args, '--file');
   const text = flag(args, '--text') ?? flag(args, '--plan');
   const quiet = args.includes('--quiet') || flag(args, '--plan') !== null;
-  const sessionId = flag(args, '--session-id') ?? 'unknown';
+  // 세션 번호를 안 주면 **모른다고 우리말로** 적는다. 'unknown' 은 나중에
+  // 다시 묻기 화면에 그대로 나갔다 — 화면에 기계 낱말을 안 쓴다(DESIGN.md).
+  const sessionId = flag(args, '--session-id') ?? '어느 세션인지 안 남았다';
   const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
   if (!file && !text) throw new Error('dec-check requires --file <경로> or --text/--plan <말>');
 

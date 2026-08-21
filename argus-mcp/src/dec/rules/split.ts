@@ -230,5 +230,21 @@ export function clauseSentence(text: string, max = 200): string {
   out = out.replace(/\*\*(.+?)\*\*/g, '$1');        // 굵게
   out = out.replace(/(?<![*\w])\*(?!\*)(.+?)(?<!\*)\*(?![*\w])/g, '$1'); // 기울임
   out = out.replace(/^#+\s+/, '').replace(/^>\s*/, '').trim();
-  return out.length <= max ? out : `${out.slice(0, max - 1)}…`;
+  if (out.length <= max) return out;
+
+  // **말이 끝나는 데서 끊는다.** 200자에서 그냥 자르니 원장에 들어간 법이
+  // "…훅이 기계로도 차단하…" 로 끝났다 (2026-08-21 실주행에서 눈으로 발견).
+  // 법은 사람이 읽는 평문이어야 한다(불변식 ①) — 말이 안 끝나면 평문이 아니다.
+  const window = out.slice(0, max);
+  const sentenceEnd = Math.max(
+    window.lastIndexOf('. '), window.lastIndexOf('.\n'),
+    window.lastIndexOf('다. '), window.lastIndexOf('다.'),
+    window.lastIndexOf('! '), window.lastIndexOf('? '),
+  );
+  // 문장 끝이 창의 절반보다 뒤에 있으면 거기서 끊는다 (너무 짧아지지 않게).
+  if (sentenceEnd > max * 0.5) return out.slice(0, sentenceEnd + 1).trim();
+  // 문장 끝이 없으면 적어도 **단어 중간은 피한다**.
+  const wordEnd = window.lastIndexOf(' ');
+  const cut = wordEnd > max * 0.5 ? wordEnd : max - 1;
+  return `${out.slice(0, cut).trim()}…`;
 }

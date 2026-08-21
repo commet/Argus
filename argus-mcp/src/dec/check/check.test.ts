@@ -106,7 +106,7 @@ describe('말할지 말지가 형태보다 먼저다 (거울 조항)', () => {
     expect(text).toContain('D-0001');
     expect(text).toContain('src/app/**');
     expect(text).toContain('못 잡는 것');
-    expect(text).toContain('dec misfire D-0001');
+    expect(text).toContain('dec-misfire --id D-0001');
   });
 
   it('여러 개가 걸려도 한 번에 하나만 말한다 (목록을 던지지 않는다)', () => {
