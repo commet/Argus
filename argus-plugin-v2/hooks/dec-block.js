@@ -96,16 +96,30 @@ function main(stdinText) {
   }
 
   const result = parseJson(String(raw).trim());
-  if (!result || result.block !== true || !Array.isArray(result.say) || result.say.length === 0) return null;
-  return result.say.join("\n");
+  if (!result) return null;
+  if (result.block === true && Array.isArray(result.say) && result.say.length > 0) {
+    return { deny: result.say.join("\n") };
+  }
+  // **안 막았지만 걸리긴 한 것**(관찰 중 · 사람이 멈춰 둔 것)은 조용히 넘기지
+  // 않는다. 넘기면 관찰 모드가 그냥 침묵이 되어 "사흘간 네 번 걸렸다, 깎을까?"
+  // 를 물을 재료가 안 쌓인다. 다만 이건 알림이지 차단이 아니라 0 으로 끝난다.
+  if (Array.isArray(result.say_held_back) && result.say_held_back.length > 0) {
+    return { note: result.say_held_back.join("\n") };
+  }
+  return null;
 }
 
 let stdin = "";
 try { stdin = fs.readFileSync(0, "utf8"); } catch { /* stdin 없음 */ }
-let deny = null;
-try { deny = main(stdin); } catch { deny = null; }   // 훅이 깨지면 통과다
-if (deny) {
-  process.stderr.write(`${deny}\n`);
+let outcome = null;
+try { outcome = main(stdin); } catch { outcome = null; }   // 훅이 깨지면 통과다
+if (outcome && outcome.deny) {
+  process.stderr.write(`${outcome.deny}\n`);
   process.exit(2);
+}
+if (outcome && outcome.note) {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: outcome.note },
+  }));
 }
 process.exit(0);

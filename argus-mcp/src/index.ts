@@ -39,6 +39,11 @@ async function main() {
     runDecExportCli(process.argv.slice(3));
     return;
   }
+  if (process.argv[2] === 'dec-pause') {
+    const { runDecPauseCli } = await import('./dec/dec-cli.js');
+    await runDecPauseCli(process.argv.slice(3));
+    return;
+  }
   if (process.argv[2] === 'dec-block') {
     const { runDecBlockCli } = await import('./dec/dec-cli.js');
     runDecBlockCli(process.argv.slice(3));

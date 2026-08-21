@@ -6,6 +6,26 @@ import { matchWatch, watchProblems, type WatchRule } from './rule.js';
 import { draftWatchFromClause } from './draft.js';
 import { chooseWatch, compileWatchPrompt, parseCompiledWatch } from './compile-prompt.js';
 import { splitRuleFile } from '../rules/split.js';
+import os from 'node:os';
+import { runDecScanRulesCli, runDecSignCli } from '../dec-cli.js';
+import { foldDecisions } from '../fold.js';
+
+const grab = (): { out: () => string; done: () => void } => {
+  const write = process.stdout.write.bind(process.stdout);
+  let text = '';
+  (process.stdout as { write: unknown }).write = (c: string): boolean => { text += c; return true; };
+  return { out: () => text, done: () => { (process.stdout as { write: unknown }).write = write; } };
+};
+const capture = (fn: () => void): unknown => {
+  const g = grab();
+  try { fn(); } finally { g.done(); }
+  return JSON.parse(g.out());
+};
+const captureAsync = async (fn: () => Promise<void>): Promise<unknown> => {
+  const g = grab();
+  try { await fn(); } finally { g.done(); }
+  return JSON.parse(g.out());
+};
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 
@@ -164,5 +184,68 @@ describe('모델의 답을 받는 문 — 반쯤 맞는 것을 조용히 메우�
     expect(prompt).toContain('지어내지 마라');
     expect(prompt).toContain('blind_spots 를 반드시 채워라');
     expect(prompt).toContain('정규식을 쓰지 마라');
+  });
+});
+
+describe('컴파일된 규칙이 실제로 서명까지 간다 (도달성 게이트가 잡은 끊긴 전선)', () => {
+  it('dec-sign 이 --compiled 를 받아 그 규칙으로 서명한다', async () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'dec-compile-'));
+    const argusDir = path.join(repo, '.argus');
+    fs.mkdirSync(path.join(argusDir, 'ledger'), { recursive: true });
+    fs.writeFileSync(path.join(repo, 'CLAUDE.md'), [
+      '# 규칙',
+      '',
+      '## 금지',
+      '',
+      '- **웹 화면은 나중에 연다.** 지금은 터미널만 짓는다. 웹은 안 만든다.',
+      '',
+    ].join('\n'));
+
+    const scan = capture(() => runDecScanRulesCli(['--repo', repo])) as {
+      clauses: Array<{ clause_id: string }>; compile_prompt?: string;
+    };
+    expect(scan.clauses.length).toBeGreaterThan(0);
+    const clauseId = scan.clauses[0]!.clause_id;
+
+    // 물어보는 글이 실제로 나온다 (에이전트가 이걸 읽고 답한다).
+    const asked = capture(() => runDecScanRulesCli(['--repo', repo, '--compile-prompt', clauseId])) as {
+      compile_prompt?: string;
+    };
+    expect(asked.compile_prompt).toBeTruthy();
+    expect(asked.compile_prompt!).toContain('무엇을 보면 되는지');
+
+    const compiled = JSON.stringify({
+      paths: ['src/app/**'], phrases: ['웹 화면'], except_paths: [], except_phrases: [],
+      blind_spots: ['다른 이름의 틀은 못 잡는다'], mode: 'machine',
+    });
+    const signed = await captureAsync(() => runDecSignCli([
+      '--argus-dir', argusDir, '--repo', repo, '--from-clause', clauseId,
+      '--author', '나', '--type', 'ban', '--review', '2026-12-01',
+      '--compiled', compiled,
+    ])) as { watch_from?: string; id: string };
+    expect(signed.watch_from).toBe('model');
+
+    const record = foldDecisions(argusDir).records.find((r) => r.id === signed.id)!;
+    expect(record.watch_rule?.phrases).toEqual(['웹 화면']);
+    fs.rmSync(repo, { recursive: true, force: true });
+  });
+
+  it('모델 답이 나쁘면 조용히 초안으로 안 돌아간다 — 왜 버렸는지 말한다', async () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'dec-compile-bad-'));
+    const argusDir = path.join(repo, '.argus');
+    fs.mkdirSync(path.join(argusDir, 'ledger'), { recursive: true });
+    fs.writeFileSync(path.join(repo, 'CLAUDE.md'), [
+      '# 규칙', '', '## 금지', '',
+      '- **웹 화면은 나중에 연다.** 지금은 터미널만 짓는다. 웹은 안 만든다.', '',
+    ].join('\n'));
+    const scan = capture(() => runDecScanRulesCli(['--repo', repo])) as { clauses: Array<{ clause_id: string }> };
+    expect(scan.clauses.length, '픽스처에서 조항이 안 나왔다 — 제품이 아니라 픽스처를 본다').toBeGreaterThan(0);
+    const signed = await captureAsync(() => runDecSignCli([
+      '--argus-dir', argusDir, '--repo', repo, '--from-clause', scan.clauses[0]!.clause_id,
+      '--author', '나', '--review', '2026-12-01', '--compiled', '이건 JSON 이 아니다',
+    ])) as { watch_from?: string; compiled_rejected?: string[] };
+    expect(signed.watch_from).toBe('draft');
+    expect(signed.compiled_rejected!.length).toBeGreaterThan(0);
+    fs.rmSync(repo, { recursive: true, force: true });
   });
 });

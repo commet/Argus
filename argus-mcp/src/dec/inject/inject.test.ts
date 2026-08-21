@@ -5,13 +5,11 @@ import path from 'node:path';
 import { inScopeForCwd, planInjection } from './select.js';
 import { sayInjection } from './say.js';
 import { markShown, readShown } from './state.js';
+import { makeRecord } from '../test-helpers.js';
 import type { DecisionRecord } from '../types.js';
 
-const base = (id: string, scope: string, extra: Partial<DecisionRecord> = {}): DecisionRecord => ({
-  id, type: 'pin', decision: `${id} 의 문장`, scope, binds: '나', author: '나',
-  provenance: 'user', adopted: '2026-08-01', unattended: 'park', watch: 'inject_only',
-  status: 'active', amendments: [], fires: [], misfires: 0, reviews: [], ...extra,
-});
+const base = (id: string, scope: string, extra: Partial<DecisionRecord> = {}): DecisionRecord =>
+  makeRecord(id, { scope, ...extra });
 
 describe('지금 있는 자리에 걸리나 — 회전이 누설이 되지 않게', () => {
   it('이 저장소 전체와 어디서나 걸리는 것은 늘 걸린다', () => {

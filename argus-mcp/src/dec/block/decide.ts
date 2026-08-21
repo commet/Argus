@@ -22,25 +22,75 @@ import type { DecisionRecord } from '../types.js';
  * 사람의 하루가 통째로 멈춘다.
  */
 
+/** 갓 만든 금지는 처음 사흘 동안 **보기만 한다** (§4.7 관찰 모드). */
+export const OBSERVE_DAYS = 3;
+
+/** 금지형인데 안 막은 것 — 왜 안 막았는지까지 들고 온다. */
+export interface HeldBack {
+  id: string;
+  decision: string;
+  matched: string;
+  why: 'observing' | 'paused' | 'unknown_date';
+  /** 관찰이면 언제부터 물기 시작하나, 정지면 언제까지 멈춰 있나. */
+  until: string;
+}
+
 export interface BlockDecision {
   block: boolean;
   /** 막은 것들 (금지형만). */
   blocking: Match[];
+  /** 금지인데 아직 안 무는 것 — 관찰 중이거나 사람이 멈춰 둔 것. */
+  held_back: HeldBack[];
   /** 걸리긴 했으나 금지형이 아니라 안 막은 것 — 세어서 알린다. */
   matched_not_ban: number;
   check: CheckResult;
 }
 
+const addDays = (day: string, n: number): string => {
+  const t = Date.parse(`${day}T00:00:00Z`);
+  return Number.isFinite(t) ? new Date(t + n * 86_400_000).toISOString().slice(0, 10) : day;
+};
+
+/**
+ * @param today 오늘 (YYYY-MM-DD). 관찰 기간과 정지 기간을 재는 자다.
+ *   **안 주면 아무것도 안 막는다** — 날짜를 모르는 채로 손을 붙잡느니 통과다.
+ */
 export function decideBlock(
-  records: readonly DecisionRecord[], subject: CheckSubject,
+  records: readonly DecisionRecord[], subject: CheckSubject, today?: string,
 ): BlockDecision {
   const check = checkSubject(records, subject);
-  const banIds = new Set(records.filter((r) => r.type === 'ban').map((r) => r.id));
-  const blocking = check.matches.filter((m) => banIds.has(m.id));
+  const bans = new Map(records.filter((r) => r.type === 'ban').map((r) => [r.id, r]));
+  const blocking: Match[] = [];
+  const held: HeldBack[] = [];
+
+  for (const m of check.matches) {
+    const record = bans.get(m.id);
+    if (!record) continue;
+    if (!today) {
+      // 관찰도 정지도 아니다 — **날짜를 모르는 것**이다. 셋을 한 이름으로
+      // 뭉치면 이 값을 읽는 쪽이 "사흘 뒤엔 물겠구나"로 잘못 읽는다.
+      held.push({ id: m.id, decision: m.decision, matched: m.matched, why: 'unknown_date', until: '' });
+      continue;
+    }
+    // ① 사람이 멈춰 뒀나 — 그 날짜가 지나면 저절로 다시 문다.
+    if (record.paused_until && today <= record.paused_until) {
+      held.push({ id: m.id, decision: m.decision, matched: m.matched, why: 'paused', until: record.paused_until });
+      continue;
+    }
+    // ② 아직 사흘이 안 지났나 — 갓 만든 규칙이 그날 일을 세우지 않게.
+    const bitesFrom = addDays(record.adopted, OBSERVE_DAYS);
+    if (record.effective_now !== true && today < bitesFrom) {
+      held.push({ id: m.id, decision: m.decision, matched: m.matched, why: 'observing', until: bitesFrom });
+      continue;
+    }
+    blocking.push(m);
+  }
+
   return {
     block: blocking.length > 0,
     blocking,
-    matched_not_ban: check.matches.length - blocking.length,
+    held_back: held,
+    matched_not_ban: check.matches.length - blocking.length - held.length,
     check,
   };
 }

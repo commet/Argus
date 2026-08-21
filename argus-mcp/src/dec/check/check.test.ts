@@ -8,6 +8,7 @@ import { markSpoken, readSpoken } from './state.js';
 import { signDecision, recordMisfire } from '../write.js';
 import { foldDecisions } from '../fold.js';
 import { runDecCheckCli, runDecMisfireCli } from '../dec-cli.js';
+import { makeRecord } from '../test-helpers.js';
 import type { DecisionRecord, DecSignedPayload } from '../types.js';
 import type { WatchRule } from '../watch/rule.js';
 
@@ -17,11 +18,8 @@ const WATCH: WatchRule = {
   blind_spots: ['다른 이름의 틀은 못 잡는다'], mode: 'machine',
 };
 
-const rec = (id: string, extra: Partial<DecisionRecord> = {}): DecisionRecord => ({
-  id, type: 'pin', decision: `${id} 의 문장`, scope: 'repo', binds: '나', author: '나',
-  provenance: 'user', adopted: '2026-08-01', unattended: 'park', watch: 'machine',
-  watch_rule: WATCH, status: 'active', amendments: [], fires: [], misfires: 0, reviews: [], ...extra,
-});
+const rec = (id: string, extra: Partial<DecisionRecord> = {}): DecisionRecord =>
+  makeRecord(id, { watch: 'machine', watch_rule: WATCH, ...extra });
 
 describe('걸렸나 — 판정은 전부 결정론이다', () => {
   const records = [

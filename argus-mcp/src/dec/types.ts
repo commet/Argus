@@ -76,6 +76,10 @@ export interface DecSignedPayload {
   /** 열람용 필드 — 저장하되 주입·공개에서 기본 제외된다 (§12). */
   source?: string;
   source_origin?: string;
+  /** 지금 바로 물게 할까 (§4.7 관찰 모드). 기본은 **첫 72시간 관찰**이다 —
+   *  갓 만든 금지가 곧바로 손을 붙잡으면, 잘못 쓴 규칙 하나가 그날 일을 세운다.
+   *  급한 것(사고를 겪고 그 자리에서 정한 것)만 사람이 이걸 켠다. */
+  effective_now?: boolean;
 }
 
 /** 개정 — 법을 바꾼다. 지우지 않고 위에 쌓는다 (불변식 ③). */
@@ -135,9 +139,26 @@ export interface DecReviewedPayload {
   prevented?: string;
 }
 
+/**
+ * 막는 것을 잠시 멈춘다 (§4.7 `pause`) — **기록되는 비상 정지**.
+ *
+ * 규율 셋: **사람만 한다**(봇에게는 `park` 뿐) · **우회는 된다** ·
+ * **감사는 남는다.** 그래서 막는 자리에서 이 길을 가르치지 않는다 — 사람은
+ * 알고 오고, 온 사실이 원장에 남아 다음 정산에서 묻힌다.
+ */
+export interface DecPausedPayload {
+  /** 언제까지 (YYYY-MM-DD). 무기한 정지는 없다 — 그건 폐지(`sunset`)다. */
+  until: string;
+  /** 왜 멈추나. 없이는 못 멈춘다. */
+  why: string;
+  /** 사람의 터미널에서 왔나. 거짓이어도 막지 않고 **기록에 남긴다** —
+   *  이 문은 잠그는 문이 아니라 발자국이 남는 문이다. */
+  by_tty: boolean;
+}
+
 export type DecPayload =
   | DecSignedPayload | DecAmendedPayload | DecRepealedPayload
-  | DecFiredPayload | DecMisfirePayload | DecReviewedPayload;
+  | DecFiredPayload | DecMisfirePayload | DecReviewedPayload | DecPausedPayload;
 
 /** 법이 일한 순간 하나 — 파일 말미에 쌓인다. */
 export interface FireRecord {
@@ -185,6 +206,13 @@ export interface DecisionRecord {
   /** 잘못 잡았다고 들은 횟수. 세 번이면 이 규칙은 말하기를 멈춘다. */
   misfires: number;
   /** 다시 보고 닫은 기록들 (추가 전용). */
+  /** 막기가 멈춰 있는 날짜 (YYYY-MM-DD). 지나면 저절로 다시 문다. */
+  paused_until?: string;
+  /** 멈춘 적들 — **다시 볼 때 같이 나온다**(§4.7 "다음 정산에 묻힌다").
+   *  기록만 하고 아무도 안 읽으면 "감사는 남는다"가 거짓말이 된다. */
+  pauses: Array<{ at: string; until: string; why: string; by_tty: boolean }>;
+  /** 서명할 때 "지금 바로" 를 골랐나. 안 골랐으면 첫 72시간은 보기만 한다. */
+  effective_now?: boolean;
   reviews: Array<{ at: string; outcome: 'keep' | 'later'; next_review: string; lesson?: string; prevented?: string }>;
   repealed_at?: string;
   repealed_why?: string;

@@ -8,13 +8,10 @@ import { signDecision, reviewDecision } from '../write.js';
 import { foldDecisions } from '../fold.js';
 import { runDecDueCli, runDecCloseCli, runDecAmendCli } from '../dec-cli.js';
 import { renderDecisionBody } from '../render.js';
+import { makeRecord } from '../test-helpers.js';
 import type { DecisionRecord, DecSignedPayload } from '../types.js';
 
-const rec = (id: string, extra: Partial<DecisionRecord> = {}): DecisionRecord => ({
-  id, type: 'pin', decision: `${id} 의 문장`, scope: 'repo', binds: '나', author: '나',
-  provenance: 'user', adopted: '2026-08-01', unattended: 'park', watch: 'inject_only',
-  status: 'active', amendments: [], fires: [], misfires: 0, reviews: [], ...extra,
-});
+const rec = (id: string, extra: Partial<DecisionRecord> = {}): DecisionRecord => makeRecord(id, extra);
 
 describe('때가 됐나 — 세 이유를 섞지 않는다', () => {
   it('정한 날이 지나면 달력으로 부른다', () => {

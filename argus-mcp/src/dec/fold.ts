@@ -2,7 +2,7 @@ import { readLedgerRaw } from '../lib/ledger-replay.js';
 import { isValidScope } from './scope.js';
 import { watchProblems, type WatchRule } from './watch/rule.js';
 import type {
-  Amendment, DecAmendedPayload, DecFiredPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload,
+  Amendment, DecAmendedPayload, DecFiredPayload, DecPausedPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload,
   DecisionRecord, DecisionType, OriginPointer, Unattended, WatchMode,
 } from './types.js';
 
@@ -15,7 +15,7 @@ import type {
 
 /** 결정 장부가 원장에 쓰는 사건 이름 셋. 옛 예측 상태기계 밖이라 그 전이 검사를
  *  거치지 않는다 (`gate_input`·`watch_*` 와 같은 자리). */
-export const DEC_EVENT_TYPES = ['dec_signed', 'dec_amended', 'dec_repealed', 'dec_fired', 'dec_misfire', 'dec_reviewed'] as const;
+export const DEC_EVENT_TYPES = ['dec_signed', 'dec_amended', 'dec_repealed', 'dec_fired', 'dec_misfire', 'dec_reviewed', 'dec_paused'] as const;
 export type DecEventType = (typeof DEC_EVENT_TYPES)[number];
 
 export interface DecFoldResult {
@@ -134,7 +134,8 @@ export function foldDecisions(argusDir: string): DecFoldResult {
         ...(str(p.falsified_if) ? { falsified_if: p.falsified_if! } : {}),
         ...(str(p.source) ? { source: p.source! } : {}),
         ...(str(p.source_origin) ? { source_origin: p.source_origin! } : {}),
-        amendments: [], fires: [], misfires: 0, reviews: [],
+        ...(p.effective_now === true ? { effective_now: true } : {}),
+        amendments: [], fires: [], misfires: 0, reviews: [], pauses: [],
       });
       continue;
     }
@@ -153,6 +154,17 @@ export function foldDecisions(argusDir: string): DecFoldResult {
 
     if (event === 'dec_misfire') {
       record.misfires += 1;
+      continue;
+    }
+
+    if (event === 'dec_paused') {
+      const p = payload as Partial<DecPausedPayload>;
+      const until = str(p.until);
+      // 이유 없는 정지도, 끝날 날 없는 정지도 안 받는다 — 무기한 정지는
+      // 이름만 다른 폐지이고, 폐지는 폐지의 문으로 가야 한다.
+      if (!until || !str(p.why) || !/^\d{4}-\d{2}-\d{2}$/.test(until)) { dropped++; continue; }
+      record.paused_until = until;
+      record.pauses.push({ at, until, why: p.why!, by_tty: p.by_tty === true });
       continue;
     }
 

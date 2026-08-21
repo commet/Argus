@@ -32,3 +32,23 @@ export function sayBlock(decision: BlockDecision): string[] {
   }
   return lines;
 }
+
+/**
+ * 안 막았지만 **걸리긴 한** 것을 알리는 글 (관찰 중 · 사람이 멈춰 둔 것).
+ *
+ * 막는 글과 갈라 둔다 — 이건 손을 붙잡는 말이 아니라 알려 주는 말이고, 훅은
+ * 이걸로 종료 코드를 바꾸지 않는다. 조용히 넘기면 **관찰 모드가 그냥 침묵**이
+ * 되어 "3일간 4번 걸렸다, 깎을까?" 를 물을 재료가 안 쌓인다.
+ */
+export function sayHeldBack(decision: BlockDecision): string[] {
+  if (decision.held_back.length === 0) return [];
+  const lines: string[] = [];
+  for (const h of decision.held_back) {
+    lines.push(h.why === 'paused'
+      ? `${h.id} 에 걸렸다. ${h.until}까지 멈춰 두기로 해서 안 막았다. (${h.decision})`
+      : h.why === 'observing'
+        ? `${h.id} 에 걸렸다. 아직 보고만 있다 — ${h.until}부터 막는다. (${h.decision})`
+        : `${h.id} 에 걸렸다. 오늘이 며칠인지 몰라 안 막았다. (${h.decision})`);
+  }
+  return lines;
+}

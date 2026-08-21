@@ -4,15 +4,16 @@ import fs from 'node:fs';
 import { discoverRuleFiles } from './rules/discover.js';
 import { clauseSentence, splitRuleFile, unmarkedBlocks, verifyClauseAnchors, type Clause, type SkippedBlock } from './rules/split.js';
 import { draftWatchFromClause } from './watch/draft.js';
+import { chooseWatch, compileWatchPrompt } from './watch/compile-prompt.js';
 import { collectPast } from './rehearse/collect.js';
 import { rehearse, sayRehearsal } from './rehearse/engine.js';
-import { amendDecision, recordFire, recordMisfire, repealDecision, reviewDecision, signDecision } from './write.js';
+import { amendDecision, pauseDecision, recordFire, recordMisfire, repealDecision, reviewDecision, signDecision } from './write.js';
 import { dueDecisions } from './review/due.js';
 import { sayAsk } from './review/ask.js';
 import { checkSubject } from './check/match.js';
 import { decideBlock } from './block/decide.js';
 import { emitExport, inspectExport } from './export/emit.js';
-import { sayBlock } from './block/say.js';
+import { sayBlock, sayHeldBack } from './block/say.js';
 import { decideSpeak } from './check/speak.js';
 import { markSpoken, readSpoken } from './check/state.js';
 import { foldDecisions } from './fold.js';
@@ -76,6 +77,14 @@ export function runDecScanRulesCli(args: readonly string[]): void {
   }
   const skipped_by_reason: Record<string, number> = {};
   for (const s of skipped) skipped_by_reason[s.why] = (skipped_by_reason[s.why] ?? 0) + 1;
+  // 조항 하나를 골라 `--compile-prompt <조항id>` 로 물으면, **그 조항을 어겼는지
+  // 무엇을 보면 아는지**를 에이전트에게 묻는 글이 나온다. 답은 `dec-sign
+  // --compiled '<json>'` 로 되돌아온다. 이 문이 없으면 감지 규칙은 결정론
+  // 초안 하나뿐이고, 초안은 짧은 명령 이름 같은 것을 잘 못 잡는다.
+  const wantPrompt = flag(args, '--compile-prompt');
+  const asked = wantPrompt ? clauses.find((c) => c.clause_id === wantPrompt) : undefined;
+  if (wantPrompt && !asked) throw new Error(`NO_SUCH_CLAUSE: ${wantPrompt}`);
+
   process.stdout.write(JSON.stringify({
     files: found.files.map((f) => ({ rel: f.rel, tool: f.tool, bytes: f.bytes })),
     files_skipped: found.skipped,
@@ -85,6 +94,7 @@ export function runDecScanRulesCli(args: readonly string[]): void {
     anchors_missing: anchorsMissing,
     clauses,
     unmarked,
+    ...(asked ? { compile_prompt: compileWatchPrompt(asked, draftWatchFromClause(asked)) } : {}),
   }) + '\n');
 }
 
@@ -209,6 +219,11 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
   if (!source.includes(clause.text)) throw new Error(`CLAUSE_MOVED: ${clauseRef} 의 원문이 파일과 다르다`);
 
   const draft = draftWatchFromClause(clause);
+  // 결정론 초안이 첫 안이고, **에이전트가 더 나은 답을 냈으면 그걸 쓴다**
+  // (`dec-scan-rules --compile-prompt` 가 물어보는 그 답이다). 답이 없거나
+  // 문이 안 열리면 조용히 초안으로 돌아간다 — 모델이 못 냈다고 서명이 막히면
+  // 안 되고, 못 낸 사실은 나가는 값에 적힌다.
+  const chosen = chooseWatch(draft, flag(args, '--compiled'));
   const review = flag(args, '--review');
   const reviewOnEvent = flag(args, '--review-on-event');
   const unattended = (flag(args, '--unattended') ?? 'park') as Unattended;
@@ -225,8 +240,8 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
     provenance: 'user', // 문장이 사용자의 규칙 파일에서 그대로 왔다
     adopted: today,
     unattended,
-    watch: draft.rule.mode,
-    watch_rule: draft.rule,
+    watch: chosen.rule.mode,
+    watch_rule: chosen.rule,
     origin: { kind: 'rule_file', ref: clauseRef, line_start: clause.line_start, line_end: clause.line_end },
     quote: clause.text,
     ...(review ? { review } : {}),
@@ -238,8 +253,12 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
   const result = await signDecision(argusDir, id, payload, new Date().toISOString());
   process.stdout.write(JSON.stringify({
     ...result,
-    watch: draft.rule.mode,
-    blind_spots: draft.rule.blind_spots,
+    watch: chosen.rule.mode,
+    watch_from: chosen.source,
+    // 모델 답을 버렸으면 **왜 버렸는지** 말한다. 조용히 초안으로 돌아가면
+    // 사람은 자기가 고른 규칙이 들어간 줄 안다.
+    ...(chosen.problems.length > 0 ? { compiled_rejected: chosen.problems } : {}),
+    blind_spots: chosen.rule.blind_spots,
     file: `decisions/${id}.md`,
     // 사람이 안 쓴 것은 안 썼다고 말한다.
     because_written: Boolean(because),
@@ -479,14 +498,44 @@ export function runDecBlockCli(args: readonly string[]): void {
     return;
   }
   const subject = file ? { kind: 'file' as const, path: file } : { kind: 'text' as const, text: text! };
-  const decision = decideBlock(fold.records, subject);
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const decision = decideBlock(fold.records, subject, today);
   process.stdout.write(JSON.stringify({
     block: decision.block,
     blocking: decision.blocking.map((m) => ({ id: m.id, matched: m.matched })),
+    held_back: decision.held_back,
     matched_not_ban: decision.matched_not_ban,
     unwatchable: decision.check.unwatchable,
     scope_unknown: decision.check.scope_unknown,
     say: sayBlock(decision),
+    say_held_back: sayHeldBack(decision),
+  }) + '\n');
+}
+
+/**
+ * 막는 것을 잠시 멈춘다 — **사람 전용 문**이지만 잠긴 문은 아니다 (§4.7).
+ *
+ * 터미널이 아니면 거절하지 않고 **기록에 `by_tty:false` 로 남긴다.** 기술로
+ * 잠그면 사람이 훅을 통째로 끄고, 그러면 아무 발자국도 안 남는다.
+ */
+export async function runDecPauseCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-pause');
+  const id = flag(args, '--id');
+  if (!id) throw new Error('dec-pause requires --id <결정 번호>');
+  const until = flag(args, '--until');
+  if (!until) throw new Error('dec-pause requires --until <YYYY-MM-DD> — 끝날 날 없는 정지는 이름만 다른 폐지다');
+  const why = flag(args, '--why');
+  if (!why) throw new Error('dec-pause requires --why <왜 멈추는지 한 줄>');
+
+  const byTty = Boolean(process.stdin.isTTY);
+  const result = await pauseDecision(argusDir, id, { until, why, by_tty: byTty },
+    new Date().toISOString());
+  process.stdout.write(JSON.stringify({
+    ...result, until, by_tty: byTty,
+    say: byTty
+      ? [`${id} 을 ${until}까지 안 막는다. 그날이 지나면 저절로 다시 막는다.`]
+      : [`${id} 을 ${until}까지 안 막는다. 그날이 지나면 저절로 다시 막는다.`,
+         '터미널에서 온 것이 아니라고 기록에 남겼다 — 다음에 다시 볼 때 같이 나온다.'],
   }) + '\n');
 }
 

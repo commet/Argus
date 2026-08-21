@@ -146,6 +146,25 @@ testCase('훅이 우회 방법을 보태지 않는다', () => {
   }
 });
 
+testCase('보고만 있는 것은 알리되 막지 않는다 (관찰 모드)', () => {
+  const repo = world();
+  const r = runHook(repo, { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'pkill claude' } },
+    fakeEngine({ block: false, say: [], say_held_back: ['D-0100 에 걸렸다. 아직 보고만 있다 — 2026-08-23부터 막는다.'] }));
+  assert.equal(r.status, 0, '보고만 있어야 하는데 막았다');
+  assert.equal(r.stderr.trim(), '', '알림이 stderr 로 새어 차단처럼 보인다');
+  const parsed = JSON.parse(r.stdout);
+  assert.ok(parsed.hookSpecificOutput.additionalContext.includes('D-0100'));
+  assert.equal(parsed.hookSpecificOutput.hookEventName, 'PreToolUse');
+});
+
+testCase('막을 때는 알림을 stdout 으로 안 낸다 (한 사건에 두 목소리 금지)', () => {
+  const repo = world();
+  const r = runHook(repo, { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'pkill claude' } },
+    fakeEngine({ ...DENY, say_held_back: ['이건 안 나가야 한다'] }));
+  assert.equal(r.status, 2);
+  assert.equal(r.stdout.trim(), '');
+});
+
 testCase('PreToolUse 에 실제로 걸려 있다', () => {
   const hooks = JSON.parse(readFileSync(join(DIR, 'hooks.json'), 'utf8')).hooks;
   const entry = (hooks.PreToolUse || []).find((e) => JSON.stringify(e).includes('dec-block.js'));

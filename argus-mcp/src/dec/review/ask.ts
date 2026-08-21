@@ -56,6 +56,14 @@ export function sayAsk(item: DueItem, argusDir?: string): string[] {
     lines.push('  그 뒤로 한 번도 안 걸렸다.');
   }
   if (record.misfires > 0) lines.push(`  잘못 잡았다고 ${record.misfires}번 말했다.`);
+  if (record.pauses.length > 0) {
+    // §4.7: 우회는 되고 감사는 남고 **다음 정산에 묻힌다.** 여기가 그 자리다.
+    const last = record.pauses.at(-1)!;
+    lines.push(`  막는 것을 ${record.pauses.length}번 멈췄다 (마지막 ${last.at.slice(0, 10)} · "${last.why}").`);
+    if (record.pauses.some((p) => !p.by_tty)) {
+      lines.push('  그중에는 터미널이 아닌 데서 멈춘 것도 있다.');
+    }
+  }
   if (record.falsified_if) {
     // 반증 조건은 있는데 읽는 자리가 없던 것이 가장 값싼 해독제의 dead-on-arrival 이었다.
     lines.push(`  틀린 것으로 치기로 한 조건: ${record.falsified_if}`);

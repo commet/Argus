@@ -4,7 +4,7 @@ import { emitExport, type EmitResult } from './export/emit.js';
 import { syncDecisionFiles, type SyncResult } from './files.js';
 import { isValidScope } from './scope.js';
 import { watchProblems } from './watch/rule.js';
-import type { DecAmendedPayload, DecFiredPayload, DecMisfirePayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload } from './types.js';
+import type { DecAmendedPayload, DecFiredPayload, DecMisfirePayload, DecPausedPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload } from './types.js';
 
 /**
  * 결정을 원장에 쓰는 자리 — **여기 말고는 없다.**
@@ -29,9 +29,26 @@ export interface DecWriteResult {
  * 정산 이중 기록으로 이미 겪은 경주다 — ledger-append.ts 의 잠금 주석).
  * 그리기는 잠금 밖 — 잠금 범위는 여기까지라는 규율.
  */
+/**
+ * 막는 것을 잠시 멈춘다 (§4.7 `pause`).
+ *
+ * **잠그는 문이 아니라 발자국이 남는 문이다.** `by_tty` 가 거짓이어도 안 막고
+ * 기록한다 — 우회를 기술로 막으려 들면 사람이 훅을 통째로 꺼 버리고, 그러면
+ * 아무 기록도 안 남는다. 남는 기록이 다음 정산에서 묻힌다.
+ */
+export async function pauseDecision(
+  argusDir: string, id: string, payload: DecPausedPayload, now: string,
+): Promise<DecWriteResult> {
+  if (!payload.why) throw new Error('NO_REASON: 왜 멈추는지 한 줄이 있어야 한다');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.until)) {
+    throw new Error('BAD_DATE: 언제까지 멈추나 (YYYY-MM-DD). 끝날 날 없는 정지는 이름만 다른 폐지다');
+  }
+  return appendAndDraw(argusDir, id, 'dec_paused', payload, now, () => mustBeLive(argusDir, id));
+}
+
 async function appendAndDraw(
   argusDir: string, id: string,
-  event: 'dec_signed' | 'dec_amended' | 'dec_repealed' | 'dec_fired' | 'dec_misfire' | 'dec_reviewed',
+  event: 'dec_signed' | 'dec_amended' | 'dec_repealed' | 'dec_fired' | 'dec_misfire' | 'dec_reviewed' | 'dec_paused',
   dec: unknown, now: string, check: () => void,
 ): Promise<DecWriteResult> {
   const written = await withLedgerLock(argusDir, async () => {
