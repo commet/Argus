@@ -3,6 +3,9 @@ import { syncDecisionFiles, verifyDecisionFiles } from './files.js';
 import fs from 'node:fs';
 import { discoverRuleFiles } from './rules/discover.js';
 import { splitRuleFile, unmarkedBlocks, verifyClauseAnchors, type Clause, type SkippedBlock } from './rules/split.js';
+import { draftWatchFromClause } from './watch/draft.js';
+import { collectPast } from './rehearse/collect.js';
+import { rehearse, sayRehearsal } from './rehearse/engine.js';
 
 function flag(args: readonly string[], name: string): string | null {
   const index = args.indexOf(name);
@@ -68,5 +71,84 @@ export function runDecScanRulesCli(args: readonly string[]): void {
     anchors_missing: anchorsMissing,
     clauses,
     unmarked,
+  }) + '\n');
+}
+
+/**
+ * 시운전 — 아직 아무것도 서명하지 않은 채로 **첫 60초**를 만드는 자리.
+ *
+ * 이미 쓰고 있던 규칙을 읽어서, 각각을 지난 기록에 대보고, 실제로 부딪힌
+ * 것들을 뜨거운 순으로 보여준다. 서명은 그걸 보고 나서 하는 일이다.
+ *
+ * 못 읽은 것이 있으면 숫자 옆에 같이 말한다 — 분모를 모르면 "5번"은 아무
+ * 뜻이 없다.
+ */
+export function runDecRehearseCli(args: readonly string[]): void {
+  const repo = flag(args, '--repo');
+  if (!repo || !path.isAbsolute(repo)) throw new Error('dec-rehearse requires an absolute --repo');
+  const days = Number(flag(args, '--days') ?? 30);
+  const top = Number(flag(args, '--top') ?? 5);
+  if (!Number.isFinite(days) || days <= 0) throw new Error('dec-rehearse --days must be a positive number');
+
+  const found = discoverRuleFiles(repo);
+  const clauses: Clause[] = [];
+  for (const file of found.files) {
+    clauses.push(...splitRuleFile(file.rel, fs.readFileSync(file.abs, 'utf8')).clauses);
+  }
+
+  // 읽을 과거도 말 걸 표면도 없으면 **지어내지 않고 돌려보낸다**.
+  if (clauses.length === 0) {
+    process.stdout.write(JSON.stringify({
+      rule_files: found.files.map((f) => f.rel),
+      clause_count: 0,
+      say: ['이 도구가 읽을 규칙이 당신 환경에 없다.'],
+    }) + '\n');
+    return;
+  }
+
+  const collected = collectPast(repo, days);
+  const rehearsals = clauses.map((clause) => {
+    const draft = draftWatchFromClause(clause);
+    const result = rehearse(draft.rule, collected.past, { days, maxScenes: 3 });
+    return { clause, rule: draft.rule, result };
+  });
+
+  const collided = rehearsals.filter((r) => r.result.hit_count > 0);
+  // 뜨거운 순 — 부딪힌 날 수가 먼저다. 한 커밋에서 열 번보다 열흘에 걸쳐
+  // 세 번이 더 살아 있는 규칙이다.
+  collided.sort((a, b) =>
+    b.result.hit_days - a.result.hit_days || b.result.hit_count - a.result.hit_count);
+
+  const say: string[] = [];
+  say.push(`이미 쓰고 있던 규칙을 읽었다: ${found.files.map((f) => `${f.rel} ${clauses.filter((c) => c.file === f.rel).length}조`).join(' · ')}`);
+  say.push(`지난 ${days}일에 대보니 ${collided.length}건이 실제로 부딪혔다.`);
+  if (collected.gaps.length > 0) say.push(`다만 못 읽은 것이 있다: ${collected.gaps.join(' / ')}`);
+  say.push('');
+  for (const item of collided.slice(0, top)) {
+    say.push(`■ ${item.clause.text.replace(/\s+/g, ' ').trim().slice(0, 78)}`);
+    for (const line of sayRehearsal(item.result)) say.push(`  ${line}`);
+    say.push('');
+  }
+
+  process.stdout.write(JSON.stringify({
+    rule_files: found.files.map((f) => f.rel),
+    clause_count: clauses.length,
+    days,
+    scanned: { file_changes: collected.past.filter((e) => e.kind === 'file_change').length,
+               utterances: collected.past.filter((e) => e.kind === 'utterance').length,
+               transcript_files: collected.sources.transcripts, git: collected.sources.git },
+    gaps: collected.gaps,
+    collided: collided.length,
+    not_watchable: rehearsals.filter((r) => r.result.not_watchable).length,
+    top: collided.slice(0, top).map((item) => ({
+      clause_id: item.clause.clause_id,
+      text: item.clause.text,
+      section: item.clause.section,
+      hit_count: item.result.hit_count,
+      hit_days: item.result.hit_days,
+      blind_spots: item.rule.blind_spots,
+      hits: item.result.hits,
+    })),
+    say,
   }) + '\n');
 }
