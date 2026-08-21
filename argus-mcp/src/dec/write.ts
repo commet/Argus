@@ -2,6 +2,7 @@ import { withLedgerLock, appendLedger } from '../lib/ledger-append.js';
 import { foldDecisions } from './fold.js';
 import { syncDecisionFiles, type SyncResult } from './files.js';
 import { isValidScope } from './scope.js';
+import { watchProblems } from './watch/rule.js';
 import type { DecAmendedPayload, DecRepealedPayload, DecSignedPayload } from './types.js';
 
 /**
@@ -45,6 +46,20 @@ export async function signDecision(
     // 범위가 빈·틀린 결정 하나가 "다른 프로젝트 규칙이 안 섞인다"는 보증을 무너뜨린다.
     throw new Error(`BAD_SCOPE: ${payload.scope} — repo · global · path:<자리> 중 하나여야 한다`);
   }
+  if (payload.watch === 'machine') {
+    // 기계가 잡는다고 하려면 **무엇을 보고 아는지**가 같이 와야 한다.
+    if (!payload.watch_rule) {
+      throw new Error('NO_WATCH_RULE: 기계가 잡는 규칙이라면 어긋난 걸 아는 방법이 같이 있어야 한다');
+    }
+    const problems = watchProblems(payload.watch_rule);
+    if (problems.length > 0) throw new Error(`BAD_WATCH_RULE: ${problems.join(' · ')}`);
+    if (payload.watch_rule.mode !== 'machine') {
+      throw new Error('WATCH_MODE_MISMATCH: 규칙은 "읽어주기만"인데 결정은 기계가 잡는다고 돼 있다');
+    }
+  }
+  if (payload.watch === 'inject_only' && payload.watch_rule && payload.watch_rule.mode !== 'inject_only') {
+    throw new Error('WATCH_MODE_MISMATCH: 결정은 "읽어주기만"인데 규칙은 기계가 잡는다고 돼 있다');
+  }
   if (payload.watch === 'inject_only' && !payload.review) {
     // 불변식 ⑤ + §12: 기계가 못 잡는 법은 사건형 재확인을 고를 수 없다.
     throw new Error('INJECT_ONLY_NEEDS_CALENDAR: 기계가 못 잡는 규칙은 날짜로만 다시 볼 수 있다');
@@ -66,6 +81,10 @@ export async function amendDecision(
   if (!payload.why) throw new Error('NO_REASON: 왜 바꾸는지 한 줄이 있어야 한다');
   if (payload.scope !== undefined && !isValidScope(payload.scope)) {
     throw new Error(`BAD_SCOPE: ${payload.scope} — repo · global · path:<자리> 중 하나여야 한다`);
+  }
+  if (payload.watch_rule) {
+    const problems = watchProblems(payload.watch_rule);
+    if (problems.length > 0) throw new Error(`BAD_WATCH_RULE: ${problems.join(' · ')}`);
   }
   return appendAndDraw(argusDir, id, 'dec_amended', payload, now, () => mustBeLive(argusDir, id));
 }

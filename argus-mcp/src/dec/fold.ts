@@ -1,8 +1,9 @@
 import { readLedgerRaw } from '../lib/ledger-replay.js';
 import { isValidScope } from './scope.js';
+import { watchProblems, type WatchRule } from './watch/rule.js';
 import type {
   Amendment, DecAmendedPayload, DecRepealedPayload, DecSignedPayload,
-  DecisionRecord, DecisionType, Unattended, WatchMode,
+  DecisionRecord, DecisionType, OriginPointer, Unattended, WatchMode,
 } from './types.js';
 
 /** 결정 장부가 원장에 쓰는 사건 이름 셋. 옛 예측 상태기계 밖이라 그 전이 검사를
@@ -26,6 +27,36 @@ const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== 
 
 /** 개정이 실제로 바꾼 것만 골라낸다 — 파일이 "무엇이 무엇으로" 를 보여주려면 필요하다. */
 const AMENDABLE = ['decision', 'scope', 'binds', 'review', 'review_on_event', 'unattended', 'watch', 'because'] as const;
+
+/** 원장에 직접 쓰인 나쁜 규칙을 조용히 받지 않는다. */
+function usableWatchRule(value: unknown): WatchRule | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const r = value as Partial<WatchRule>;
+  const list = (v: unknown): string[] | null =>
+    Array.isArray(v) && v.every((x) => typeof x === 'string') ? (v as string[]) : null;
+  const paths = list(r.paths); const phrases = list(r.phrases);
+  const exceptPaths = list(r.except_paths ?? []); const exceptPhrases = list(r.except_phrases ?? []);
+  const blind = list(r.blind_spots);
+  if (!paths || !phrases || !exceptPaths || !exceptPhrases || !blind) return null;
+  if (r.mode !== 'machine' && r.mode !== 'inject_only') return null;
+  const rule: WatchRule = {
+    paths, phrases, except_paths: exceptPaths, except_phrases: exceptPhrases,
+    blind_spots: blind, mode: r.mode,
+  };
+  return watchProblems(rule).length === 0 ? rule : null;
+}
+
+function usableOrigin(value: unknown): OriginPointer | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const o = value as Partial<OriginPointer>;
+  if (o.kind !== 'rule_file' && o.kind !== 'conversation') return null;
+  if (typeof o.ref !== 'string' || !o.ref) return null;
+  return {
+    kind: o.kind, ref: o.ref,
+    ...(typeof o.line_start === 'number' ? { line_start: o.line_start } : {}),
+    ...(typeof o.line_end === 'number' ? { line_end: o.line_end } : {}),
+  };
+}
 
 function diffFor(before: DecisionRecord, patch: DecAmendedPayload): Amendment['changed'] {
   const changed: Amendment['changed'] = [];
@@ -77,10 +108,16 @@ export function foldDecisions(argusDir: string): DecFoldResult {
         dropped++; continue;
       }
       if (!str(p.review) && !str(p.review_on_event)) { dropped++; continue; } // 불변식 ⑤
+      const watchRule = p.watch_rule === undefined ? null : usableWatchRule(p.watch_rule);
+      // 기계가 잡는다고 해놓고 규칙이 없거나 망가졌으면 받지 않는다 — 잡는 척이
+      // 제일 나쁜 거짓말이다.
+      if (p.watch === 'machine' && (!watchRule || watchRule.mode !== 'machine')) { dropped++; continue; }
       byId.set(id, {
         id, type: p.type, decision: p.decision!, scope: p.scope!, binds: p.binds!,
         author: p.author!, provenance: p.provenance === 'ai_surfaced' ? 'ai_surfaced' : 'user',
         adopted: p.adopted!, unattended: p.unattended, watch: p.watch, status: 'active',
+        ...(watchRule ? { watch_rule: watchRule } : {}),
+        ...(usableOrigin(p.origin) ? { origin: usableOrigin(p.origin)! } : {}),
         ...(str(p.review) ? { review: p.review! } : {}),
         ...(str(p.review_on_event) ? { review_on_event: p.review_on_event! } : {}),
         ...(str(p.because) ? { because: p.because! } : {}),
@@ -105,6 +142,15 @@ export function foldDecisions(argusDir: string): DecFoldResult {
       if (!why) { dropped++; continue; } // 이유 없는 개정은 조용한 표류와 구분이 안 된다
       const changed = diffFor(record, p as DecAmendedPayload);
       for (const c of changed) (record as unknown as Record<string, unknown>)[c.field] = c.to;
+      // 감지기만 고치는 개정 (§4.7) — 법 문장은 그대로 두고 규칙만 바꾼다.
+      if (p.watch_rule !== undefined) {
+        const next = usableWatchRule(p.watch_rule);
+        if (next) {
+          record.watch_rule = next;
+          if (!changed.some((c) => c.field === 'watch')) record.watch = next.mode;
+          changed.push({ field: 'watch_rule', from: '', to: '고침' });
+        }
+      }
       record.amendments.push({ at, why, from_hand_edit: p.from_hand_edit === true, changed });
       continue;
     }

@@ -9,6 +9,16 @@ import { renderDecisionFile } from './render.js';
 import { appendLedger } from '../lib/ledger-append.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import type { DecSignedPayload } from './types.js';
+import type { WatchRule } from './watch/rule.js';
+
+const WATCH: WatchRule = {
+  paths: ['src/app/**'],
+  phrases: ['웹 화면'],
+  except_paths: ['src/app/**/*.test.tsx'],
+  except_phrases: ['예를 들면'],
+  blind_spots: ['다른 이름의 화면 틀을 새로 들이는 것은 못 잡는다.'],
+  mode: 'machine',
+};
 
 let repo: string;
 let argusDir: string;
@@ -24,6 +34,9 @@ const BASE: DecSignedPayload = {
   adopted: '2026-08-21',
   unattended: 'park',
   watch: 'machine',
+  watch_rule: WATCH,
+  // 이 픽스처는 **대화에서** 태어난 결정이다 (규칙 파일에서 온 것은 sign.test.ts).
+  origin: { kind: 'conversation', ref: 'sess-8f21a0' },
   review: '2026-09-04',
   because: '터미널에서 먼저 손에 익히고 싶어서.',
   quote: '웹 화면은 나중에 하고 터미널부터 하자',
@@ -47,6 +60,9 @@ describe('서명하면 파일이 태어난다 — 원장이 진실, 파일은 �
     expect(text).toContain('# 웹 화면은 나중에, 터미널 먼저');
     expect(text).toContain('터미널에서 먼저 손에 익히고 싶어서.');
     expect(text).toContain('> 웹 화면은 나중에 하고 터미널부터 하자');
+    // 대화에서 온 것은 대화에서 왔다고 말한다.
+    expect(text).toContain('## 그때 한 말');
+    expect(text).toContain('대화에서 그대로 옮겼다');
     expect(text).toContain('2026-08-21에 정했고, 지금 지키고 있다.');
     expect(text).toMatch(/<!-- argus:fingerprint sha256:[0-9a-f]{64} -->/);
   });
@@ -66,6 +82,64 @@ describe('서명하면 파일이 태어난다 — 원장이 진실, 파일은 �
     const result = verifyDecisionFiles(argusDir);
     expect(result.ok).toBe(true);
     expect(result.files.map((f) => f.verdict)).toEqual(['match', 'match']);
+  });
+});
+
+describe('어긋난 걸 아는 방법이 결정과 함께 산다 (단계 5)', () => {
+  it('서명한 규칙이 파일에 사람 말로 나오고, **못 잡는 것**이 같이 나온다', async () => {
+    await signDecision(argusDir, 'D-0001', BASE, NOW);
+    const text = read('D-0001');
+    expect(text).toContain('이 자리를 건드리면: src/app/**');
+    expect(text).toContain('이 말이 나오면: "웹 화면"');
+    expect(text).toContain('봐주는 자리: src/app/**/*.test.tsx');
+    expect(text).toContain('### 못 잡는 것');
+    expect(text).toContain('다른 이름의 화면 틀을 새로 들이는 것은 못 잡는다.');
+  });
+
+  it('되읽으면 규칙과 출처가 그대로 돌아온다 (서명이 규칙을 버리지 않는다)', async () => {
+    await signDecision(argusDir, 'D-0001', BASE, NOW);
+    const record = foldDecisions(argusDir).records[0]!;
+    expect(record.watch_rule).toEqual(WATCH);
+    expect(record.origin).toEqual({ kind: 'conversation', ref: 'sess-8f21a0' });
+  });
+
+  it('기계가 잡는다면서 방법이 없으면 서명이 안 된다', async () => {
+    const { watch_rule: _w, ...noRule } = BASE;
+    await expect(signDecision(argusDir, 'D-0002', noRule as DecSignedPayload, NOW))
+      .rejects.toThrow(/NO_WATCH_RULE/);
+  });
+
+  it('못 잡는 것을 안 적은 규칙으로는 서명이 안 된다', async () => {
+    await expect(signDecision(argusDir, 'D-0003', {
+      ...BASE, watch_rule: { ...WATCH, blind_spots: [] },
+    }, NOW)).rejects.toThrow(/BAD_WATCH_RULE/);
+  });
+
+  it('"읽어주기만"이라면서 걸릴 자리를 적으면 서명이 안 된다', async () => {
+    await expect(signDecision(argusDir, 'D-0004', {
+      ...BASE, watch: 'inject_only', watch_rule: WATCH,
+    }, NOW)).rejects.toThrow(/WATCH_MODE_MISMATCH/);
+  });
+
+  it('법은 그대로 두고 감지기만 고칠 수 있다 (오탐이 법을 죽이지 않게)', async () => {
+    await signDecision(argusDir, 'D-0001', BASE, NOW);
+    await amendDecision(argusDir, 'D-0001', {
+      watch_rule: { ...WATCH, except_paths: ['src/app/**/*.test.tsx', 'src/app/legacy/**'] },
+      why: '옛 화면 코드에서 자꾸 잘못 걸려서',
+    }, '2026-08-25T00:00:00.000Z');
+    const record = foldDecisions(argusDir).records[0]!;
+    expect(record.decision).toBe(BASE.decision); // 법 문장은 그대로
+    expect(record.watch_rule?.except_paths).toContain('src/app/legacy/**');
+    expect(read('D-0001')).toContain('src/app/legacy/**');
+  });
+
+  it('원장에 망가진 규칙이 직접 쓰이면 그 결정은 태어나지 않는다', async () => {
+    await appendLedger(argusDir, [{
+      id: 'D-0009', event: 'dec_signed', ts: NOW,
+      dec: { ...BASE, watch_rule: { ...WATCH, blind_spots: [] } },
+    }], NOW);
+    expect(foldDecisions(argusDir).records).toEqual([]);
+    expect(foldDecisions(argusDir).dropped).toBe(1);
   });
 });
 
@@ -146,8 +220,10 @@ describe('개정과 폐지 — 지우지 않고 쌓는다', () => {
   it('다시 볼 날도 계기도 없으면 서명이 안 된다 · 기계가 못 잡는 규칙은 날짜만 된다', async () => {
     const { review: _r, ...noRecheck } = BASE;
     await expect(signDecision(argusDir, 'D-0002', noRecheck as DecSignedPayload, NOW)).rejects.toThrow(/NO_RECHECK/);
+    // 읽어주기만 하는 결정은 걸릴 자리를 갖지 않는다 — 규칙도 같이 뺀다.
+    const { watch_rule: _w, ...noRule } = noRecheck;
     await expect(signDecision(argusDir, 'D-0003', {
-      ...noRecheck, watch: 'inject_only', review_on_event: '벤더가 같은 걸 내놓으면',
+      ...noRule, watch: 'inject_only', review_on_event: '벤더가 같은 걸 내놓으면',
     } as DecSignedPayload, NOW)).rejects.toThrow(/INJECT_ONLY_NEEDS_CALENDAR/);
   });
 });
@@ -185,6 +261,16 @@ describe('옛 되읽기와 같이 산다', () => {
     expect(state.integrity.skipped_unknown).toBe(0);
     expect(state.integrity.dropped_lines).toBe(0);
     expect(state.ids.size).toBe(0); // 결정은 예측 계약이 아니다
+  });
+});
+
+describe('발원 원문은 파일에 안 나간다 (§4.6: 저장한다 · 공개하지 않는다)', () => {
+  it('`source` 는 기록에 남지만 결정 파일 어디에도 안 나온다', async () => {
+    const secret = '2026-08-19 14:02 창업자 발화 전문 — 공개 저장소에 나가면 되돌릴 수 없다';
+    await signDecision(argusDir, 'D-0001', { ...BASE, source: secret }, NOW);
+    expect(foldDecisions(argusDir).records[0]?.source).toBe(secret);
+    expect(read('D-0001')).not.toContain(secret);
+    expect(read('D-0001')).not.toContain('source:');
   });
 });
 

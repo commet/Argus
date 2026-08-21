@@ -9,6 +9,18 @@
  * 낱말은 전부 기획서 §12 낱말 상자에서 왔다. 새로 만든 것 없음.
  */
 
+import type { WatchRule } from './watch/rule.js';
+
+/** 이 결정이 어디서 왔나 — 맥락을 **복사하지 않고 가리킨다** (§4.6).
+ *  열람할 때 이 포인터를 따라가 원본의 앞뒤 장면을 펼친다. */
+export interface OriginPointer {
+  kind: 'rule_file' | 'conversation';
+  /** 규칙 파일이면 `CLAUDE.md#a1b2c3`, 대화면 세션 id. */
+  ref: string;
+  line_start?: number;
+  line_end?: number;
+}
+
 /** 결정의 종류 (기획서 §12). `pred` 는 정의가 §11-5 규제 판정과 함께 확정될
  *  때까지 **서명을 받지 않는다** — 열거에만 있고 정의가 없던 v4 의 구멍이다. */
 export type DecisionType = 'pin' | 'ban' | 'open' | 'pred';
@@ -38,6 +50,12 @@ export interface DecSignedPayload {
   adopted: string;
   unattended: Unattended;
   watch: WatchMode;
+  /** 어긋난 걸 **어떻게** 아는지. `watch: 'machine'` 이면 반드시 있어야 한다.
+   *  초판은 종류 이름만 남기고 규칙을 통째로 버렸다 — 그러면 걸렸는지 볼 것이
+   *  없고, 파일이 "못 잡는 것"을 말할 수도 없다 (2026-08-21 단계 5에서 수리). */
+  watch_rule?: WatchRule;
+  /** 이 결정이 어디서 왔나. */
+  origin?: OriginPointer;
   /** 달력 재확인 (YYYY-MM-DD). `review_on_event` 와 **적어도 하나**는 있어야 한다. */
   review?: string;
   /** 사건 재확인. 주입-전용 법은 이것을 고를 수 없다 (불변식 ⑤). */
@@ -63,6 +81,8 @@ export interface DecAmendedPayload {
   review_on_event?: string;
   unattended?: Unattended;
   watch?: WatchMode;
+  /** 법은 그대로 두고 **감지기만** 고치는 길 (§4.7: 오탐이 법을 죽이지 않게). */
+  watch_rule?: WatchRule;
   because?: string;
   /** 왜 바꾸나 — 필수. 이유 없는 개정은 조용한 표류와 구분이 안 된다. */
   why: string;
@@ -99,6 +119,8 @@ export interface DecisionRecord {
   adopted: string;
   unattended: Unattended;
   watch: WatchMode;
+  watch_rule?: WatchRule;
+  origin?: OriginPointer;
   status: DecisionStatus;
   review?: string;
   review_on_event?: string;

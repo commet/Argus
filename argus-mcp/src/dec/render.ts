@@ -111,17 +111,35 @@ export function renderDecisionBody(record: DecisionRecord): string {
   if (record.because) out.push('## 왜 이렇게 정했나', '', record.because, '');
 
   if (record.quote) {
-    out.push('## 그때 한 말', '');
+    // 어디서 온 문장인지 **틀리게 말하지 않는다.** 규칙 파일에서 가져온 것을
+    // "대화에서 옮겼다"고 하면 그건 출처를 지어내는 것이다 (2026-08-21 수리).
+    const fromRuleFile = record.origin?.kind === 'rule_file';
+    out.push(fromRuleFile ? '## 원래 이렇게 적혀 있었다' : '## 그때 한 말', '');
     for (const line of record.quote.split('\n')) out.push(`> ${line}`);
-    out.push('', record.quote_at
-      ? `${record.quote_at.slice(0, 10)} 대화에서 그대로 옮겼다.`
-      : '대화에서 그대로 옮겼다.', '');
+    const when = record.quote_at ? `${record.quote_at.slice(0, 10)} ` : '';
+    const where = fromRuleFile
+      ? `${(record.origin?.ref ?? '').split('#')[0]}${record.origin?.line_start ? ` ${record.origin.line_start}번째 줄` : ''}`
+      : '대화';
+    out.push('', `${when}${where}에서 그대로 옮겼다.`, '');
   }
 
   out.push('## 어긋나면 어떻게 아나', '');
-  out.push(record.watch === 'machine'
-    ? '파일이 바뀌는 것과 대화에 나오는 말을 같이 본다.'
-    : '이건 기계가 못 알아챈다. 그래서 알려주지 않고, 대신 늘 읽어준다.', '');
+  const watch = record.watch_rule;
+  if (record.watch !== 'machine' || !watch) {
+    out.push('이건 기계가 못 알아챈다. 그래서 알려주지 않고, 대신 늘 읽어준다.', '');
+  } else {
+    if (watch.paths.length > 0) out.push(`이 자리를 건드리면: ${watch.paths.join(' · ')}`);
+    if (watch.phrases.length > 0) out.push(`이 말이 나오면: ${watch.phrases.map((p) => `"${p}"`).join(' · ')}`);
+    if (watch.except_paths.length > 0) out.push(`봐주는 자리: ${watch.except_paths.join(' · ')}`);
+    if (watch.except_phrases.length > 0) out.push(`봐주는 말: ${watch.except_phrases.map((p) => `"${p}"`).join(' · ')}`);
+    out.push('');
+  }
+  // **못 잡는 것은 감추지 않는다.** 다 잡는 척이 이 제품에서 제일 나쁜 거짓말이다.
+  if (watch && watch.blind_spots.length > 0) {
+    out.push('### 못 잡는 것', '');
+    for (const spot of watch.blind_spots) out.push(`- ${spot}`);
+    out.push('');
+  }
 
   if (record.review || record.review_on_event) {
     out.push('## 다시 볼 때', '');

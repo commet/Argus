@@ -216,3 +216,19 @@ export function unmarkedBlocks(
       text: lines.slice(block.line_start - 1, block.line_end).join('\n'),
     }));
 }
+
+/**
+ * 조항 원문 → **사람이 읽는 한 문장.**
+ *
+ * 원문(`text`)은 바이트로 대조되는 값이라 손대지 않는다. 화면에 나가는 결정
+ * 문장만 목록 기호와 강조 기호를 걷어낸다 — 안 걷으니 결정 파일 제목이
+ * `# - **웹 화면은 나중에.** ...` 로 나왔다 (2026-08-21 눈으로 보고 발견).
+ */
+export function clauseSentence(text: string, max = 200): string {
+  let out = text.replace(/\s+/g, ' ').trim();
+  out = out.replace(/^(?:[-*+]|\d+[.)])\s+/, '');   // 목록 기호
+  out = out.replace(/\*\*(.+?)\*\*/g, '$1');        // 굵게
+  out = out.replace(/(?<![*\w])\*(?!\*)(.+?)(?<!\*)\*(?![*\w])/g, '$1'); // 기울임
+  out = out.replace(/^#+\s+/, '').replace(/^>\s*/, '').trim();
+  return out.length <= max ? out : `${out.slice(0, max - 1)}…`;
+}

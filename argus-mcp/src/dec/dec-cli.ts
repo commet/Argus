@@ -2,10 +2,13 @@ import path from 'node:path';
 import { syncDecisionFiles, verifyDecisionFiles } from './files.js';
 import fs from 'node:fs';
 import { discoverRuleFiles } from './rules/discover.js';
-import { splitRuleFile, unmarkedBlocks, verifyClauseAnchors, type Clause, type SkippedBlock } from './rules/split.js';
+import { clauseSentence, splitRuleFile, unmarkedBlocks, verifyClauseAnchors, type Clause, type SkippedBlock } from './rules/split.js';
 import { draftWatchFromClause } from './watch/draft.js';
 import { collectPast } from './rehearse/collect.js';
 import { rehearse, sayRehearsal } from './rehearse/engine.js';
+import { signDecision } from './write.js';
+import { foldDecisions } from './fold.js';
+import type { DecSignedPayload, Unattended } from './types.js';
 
 function flag(args: readonly string[], name: string): string | null {
   const index = args.indexOf(name);
@@ -150,5 +153,84 @@ export function runDecRehearseCli(args: readonly string[]): void {
       hits: item.result.hits,
     })),
     say,
+  }) + '\n');
+}
+
+/** 다음 결정 번호 — 이미 있는 것 중 가장 큰 수 +1. id 는 한 번 붙으면 안 바뀐다. */
+function nextDecisionId(argusDir: string): string {
+  let max = 0;
+  for (const record of foldDecisions(argusDir).records) {
+    const n = /^D-(\d+)$/.exec(record.id);
+    if (n) max = Math.max(max, Number(n[1]));
+  }
+  return `D-${String(max + 1).padStart(4, '0')}`;
+}
+
+/**
+ * 확인 한 타 — 이미 쓰고 있던 조항 하나를 **법으로 만든다.**
+ *
+ * 사람이 하는 일은 조항을 고르고 날짜를 정하는 것뿐이다. 나머지(문장·출처·
+ * 어긋난 걸 아는 방법 초안)는 기계가 조항에서 그대로 가져온다.
+ *
+ * 규율:
+ *  - **문장을 지어내지 않는다.** 결정 문장도 발원 장면도 규칙 파일에 그대로
+ *    있는 글자이고, 서명 직전에 **바이트로 다시 대조한다.**
+ *  - **이유를 강요하지 않는다.** `--because` 는 선택이다. 안 쓰면 그 자리는
+ *    비어 있고, 기계가 대신 채우지 않는다 (가장 지친 사용자가 이탈하면
+ *    소유권이 0이 된다 — 불변식은 정직한 출처지 강제 타이핑이 아니다).
+ *  - **기계가 못 잡는 조항이면 그렇게 서명된다.** 잡는 척하지 않는다.
+ */
+export async function runDecSignCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-sign');
+  const repo = flag(args, '--repo') ?? path.dirname(argusDir);
+  const clauseRef = flag(args, '--from-clause');
+  if (!clauseRef) throw new Error('dec-sign requires --from-clause <파일#조항id>');
+  const author = flag(args, '--author');
+  if (!author) throw new Error('dec-sign requires --author (서명자가 누구인지 없이 법이 되지 않는다)');
+
+  const [file] = clauseRef.split('#');
+  const target = discoverRuleFiles(repo).files.find((f) => f.rel === file);
+  if (!target) throw new Error(`NO_SUCH_RULE_FILE: ${file}`);
+  const source = fs.readFileSync(target.abs, 'utf8');
+  const clause = splitRuleFile(target.rel, source).clauses.find((c) => c.clause_id === clauseRef);
+  if (!clause) throw new Error(`NO_SUCH_CLAUSE: ${clauseRef}`);
+  // 서명 직전에 원문을 바이트로 다시 본다 — 읽은 뒤 파일이 바뀌었을 수 있다.
+  if (!source.includes(clause.text)) throw new Error(`CLAUSE_MOVED: ${clauseRef} 의 원문이 파일과 다르다`);
+
+  const draft = draftWatchFromClause(clause);
+  const review = flag(args, '--review');
+  const reviewOnEvent = flag(args, '--review-on-event');
+  const unattended = (flag(args, '--unattended') ?? 'park') as Unattended;
+  const scope = flag(args, '--scope') ?? 'repo';
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const because = flag(args, '--because');
+
+  const payload: DecSignedPayload = {
+    type: (flag(args, '--type') ?? 'pin') as DecSignedPayload['type'],
+    decision: clauseSentence(clause.text),
+    scope,
+    binds: flag(args, '--binds') ?? author,
+    author,
+    provenance: 'user', // 문장이 사용자의 규칙 파일에서 그대로 왔다
+    adopted: today,
+    unattended,
+    watch: draft.rule.mode,
+    watch_rule: draft.rule,
+    origin: { kind: 'rule_file', ref: clauseRef, line_start: clause.line_start, line_end: clause.line_end },
+    quote: clause.text,
+    ...(review ? { review } : {}),
+    ...(reviewOnEvent ? { review_on_event: reviewOnEvent } : {}),
+    ...(because ? { because } : {}),
+  };
+
+  const id = flag(args, '--id') ?? nextDecisionId(argusDir);
+  const result = await signDecision(argusDir, id, payload, new Date().toISOString());
+  process.stdout.write(JSON.stringify({
+    ...result,
+    watch: draft.rule.mode,
+    blind_spots: draft.rule.blind_spots,
+    file: `decisions/${id}.md`,
+    // 사람이 안 쓴 것은 안 썼다고 말한다.
+    because_written: Boolean(because),
   }) + '\n');
 }

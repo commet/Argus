@@ -19,6 +19,11 @@ async function main() {
     await runCaptureCli(process.argv.slice(3));
     return;
   }
+  if (process.argv[2] === 'dec-sign') {
+    const { runDecSignCli } = await import('./dec/dec-cli.js');
+    await runDecSignCli(process.argv.slice(3));
+    return;
+  }
   if (process.argv[2] === 'dec-rehearse') {
     const { runDecRehearseCli } = await import('./dec/dec-cli.js');
     runDecRehearseCli(process.argv.slice(3));
