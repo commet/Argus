@@ -192,6 +192,18 @@ export function renderDecisionBody(record: DecisionRecord): string {
         : '', '');
   }
 
+  if (record.pauses.length > 0) {
+    // 멈춘 것도 파일에 남는다. 원장에만 있고 얼굴에 없으면 "감사는 남는다"가
+    // 반만 참이다 — 사람이 여는 것은 원장이 아니라 이 파일이다.
+    out.push('## 막는 것을 멈춘 때', '');
+    for (const pause of record.pauses.slice(-5).reverse()) {
+      out.push(`- ${pause.at.slice(0, 10)} — ${pause.until}까지 · ${pause.why}` +
+        (pause.by_tty ? '' : ' (터미널이 아닌 데서)'));
+    }
+    if (record.pauses.length > 5) out.push(`- … 그전에도 ${record.pauses.length - 5}번`);
+    out.push('');
+  }
+
   out.push('---', '');
   out.push('이 파일은 기록에서 자동으로 만들어진다. 여기를 고쳐도 규칙은 안 바뀐다 —');
   out.push('고친 게 보이면 다음에 "이대로 바꿀까요?" 하고 묻는다.');

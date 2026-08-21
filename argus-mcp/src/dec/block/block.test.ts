@@ -7,6 +7,7 @@ import { sayBlock, sayHeldBack } from './say.js';
 import { runDecBlockCli, runDecPauseCli } from '../dec-cli.js';
 import { pauseDecision, signDecision } from '../write.js';
 import { foldDecisions } from '../fold.js';
+import { renderDecisionBody } from '../render.js';
 import { makeRecord } from '../test-helpers.js';
 import type { DecisionRecord, DecSignedPayload } from '../types.js';
 import type { WatchRule } from '../watch/rule.js';
@@ -238,6 +239,14 @@ describe('멈추는 문 — 잠긴 문이 아니라 발자국이 남는 문이�
       .find((e) => e['event'] === 'dec_paused')!;
     expect((line['dec'] as { by_tty: boolean }).by_tty).toBe(false);
     expect((result['say'] as string[]).join('\n')).toContain('터미널에서 온 것이 아니라고 기록에 남겼다');
+  });
+
+  it('멈춘 것이 결정 파일에도 남는다 (사람이 여는 것은 원장이 아니라 파일이다)', async () => {
+    await runDecPauseCli(['--argus-dir', dir, '--id', 'D-0001', '--until', '2026-08-25', '--why', '리팩터 중이다']);
+    const body = renderDecisionBody(foldDecisions(dir).records.find((r) => r.id === 'D-0001')!);
+    expect(body).toContain('막는 것을 멈춘 때');
+    expect(body).toContain('2026-08-25까지 · 리팩터 중이다');
+    expect(body).toContain('터미널이 아닌 데서');   // 테스트는 TTY 가 아니다
   });
 
   it('멈춤은 폐지가 아니다 — 결정은 살아 있고 방출본에도 남는다', async () => {
