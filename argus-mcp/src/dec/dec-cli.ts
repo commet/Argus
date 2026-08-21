@@ -9,6 +9,9 @@ import { rehearse, sayRehearsal } from './rehearse/engine.js';
 import { signDecision } from './write.js';
 import { foldDecisions } from './fold.js';
 import type { DecSignedPayload, Unattended } from './types.js';
+import { planInjection } from './inject/select.js';
+import { sayInjection } from './inject/say.js';
+import { markShown, readShown } from './inject/state.js';
 
 function flag(args: readonly string[], name: string): string | null {
   const index = args.indexOf(name);
@@ -232,5 +235,42 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
     file: `decisions/${id}.md`,
     // 사람이 안 쓴 것은 안 썼다고 말한다.
     because_written: Boolean(because),
+  }) + '\n');
+}
+
+/**
+ * 세션이 열릴 때 펴 보일 것 — 단계 6.
+ *
+ * 회전이라 **매번 다른 것이 나온다.** 오래 안 펴 본 것부터 올라오므로, 조용히
+ * 잘 지켜지는 법이 굶어 죽지 않는다. 그리고 모든 슬롯은 지금 있는 자리에
+ * 걸리는 것부터 채운다 — 그 한 줄이 없으면 회전이 그대로 누설이 된다.
+ *
+ * `--dry` 면 펴 봤다는 표시를 안 남긴다 (사람이 그냥 보고 싶을 때).
+ */
+export function runDecBriefCli(args: readonly string[]): void {
+  const argusDir = argusDirOf(args, 'dec-brief');
+  const repoRoot = path.dirname(argusDir);
+  const cwd = flag(args, '--cwd') ?? repoRoot;
+  const cwdRel = path.relative(repoRoot, path.resolve(cwd)).replace(/\\/g, '/');
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const max = Number(flag(args, '--max') ?? 15);
+  const dry = args.includes('--dry');
+
+  const fold = foldDecisions(argusDir);
+  const plan = planInjection(fold.records, {
+    cwd_rel: cwdRel.startsWith('..') ? '' : cwdRel,
+    today, max, last_shown: readShown(argusDir),
+  });
+  if (!dry && plan.picks.length > 0) {
+    markShown(argusDir, plan.picks.map((p) => p.record.id), new Date().toISOString(),
+      fold.records.map((r) => r.id));
+  }
+  process.stdout.write(JSON.stringify({
+    shown: plan.picks.map((p) => ({ id: p.record.id, slot: p.slot })),
+    omitted: plan.omitted,
+    out_of_scope: plan.out_of_scope,
+    empty_slots: plan.empty_slots,
+    unreadable: fold.unreadable,
+    say: sayInjection(plan),
   }) + '\n');
 }

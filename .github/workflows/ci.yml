@@ -273,6 +273,14 @@ jobs:
       - name: Argus capture sweep hook
         run: node argus-plugin-v2/hooks/capture-sweep.test.mjs
 
+      # What the user has decided here must reach the agent at session start —
+      # rotated (so quiet-but-live rules don't starve), scoped to the current
+      # working directory (the rotation slot was measured as the single largest
+      # cross-project leak), and stating how many are NOT in the window so the
+      # agent never treats the visible list as the whole law.
+      - name: Argus decision brief hook
+        run: node argus-plugin-v2/hooks/dec-brief.test.mjs
+
       # Enforcement is a HARD BLOCK, not advisory (CLI exits non-zero on a violation).
       - name: Argus enforcement hard-block
         run: node argus-plugin-v2/scripts/enforcement-hardblock.test.mjs
