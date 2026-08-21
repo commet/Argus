@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { foldDecisions } from './fold.js';
+import { foldDecisions, type DecFoldResult } from './fold.js';
 import { decisionFileName, fingerprintOf, renderDecisionBody, renderDecisionFile, splitDecisionFile } from './render.js';
 import type { DecisionRecord } from './types.js';
 
@@ -93,8 +93,15 @@ function writeAtomic(file: string, text: string): void {
 /**
  * 원장 → 파일. 사람이 고친 파일은 **건드리지 않고 이름만 돌려준다.**
  */
-export function syncDecisionFiles(argusDir: string): SyncResult {
-  const fold = foldDecisions(argusDir);
+/**
+ * 원장에서 결정 파일을 다시 그린다.
+ *
+ * `fold` 를 받을 수 있게 열어 둔다 — 쓰기 한 번에 원장을 두 번 접으면 그
+ * 사이에 다른 프로세스가 끼어들어 **두 접힘이 서로 다른 세상**을 보게 된다.
+ * (그리고 원장이 길어질수록 그냥 두 배 느리다.)
+ */
+export function syncDecisionFiles(argusDir: string, folded?: DecFoldResult): SyncResult {
+  const fold = folded ?? foldDecisions(argusDir);
   const dir = decisionsDir(argusDir);
   const result: SyncResult = {
     written: [], unchanged: [], hand_edited: [], orphans: [], dropped_lines: fold.dropped,

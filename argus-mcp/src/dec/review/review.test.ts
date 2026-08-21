@@ -113,7 +113,8 @@ describe('묻는 글 — 그때의 당신을 먼저 보여준다', () => {
     const known = new Set([...dispatch.matchAll(/process\.argv\[2\] === '(dec-[a-z-]+)'/g)].map((m) => m[1]!));
     expect(known.size).toBeGreaterThan(5);
 
-    const surfaces = ['../inject/say.ts', './ask.ts', '../check/speak.ts', '../rehearse/engine.ts'];
+    const surfaces = ['../inject/say.ts', './ask.ts', '../check/speak.ts', '../rehearse/engine.ts',
+                      '../block/say.ts', '../export/emit.ts'];
     for (const rel of surfaces) {
       const src = fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
       // 사람에게 보이는 문장 안의 `dec …` 만 본다 (import 경로가 아니라).
@@ -126,6 +127,7 @@ describe('묻는 글 — 그때의 당신을 먼저 보여준다', () => {
 });
 
 describe('닫기 — 원장에 사건으로 쌓인다', () => {
+  let repo: string;
   let dir: string;
   const sign = (id: string, extra: Partial<DecSignedPayload> = {}): Promise<unknown> =>
     signDecision(dir, id, {
@@ -135,10 +137,14 @@ describe('닫기 — 원장에 사건으로 쌓인다', () => {
     } as DecSignedPayload, '2026-08-21T00:00:00.000Z');
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dec-review-'));
+    // `.argus` 의 **부모가 저장소 뿌리**다 — 그 자리에 `decisions/`·`AGENTS.md`
+    // 가 생긴다. 임시 디렉터리를 그대로 argusDir 로 쓰면 그것들이 /tmp 에 떨어지고,
+    // 파일 하나(`AGENTS.md`)를 여러 테스트가 나눠 쓰게 된다.
+    repo = fs.mkdtempSync(path.join(os.tmpdir(), 'dec-review-'));
+    dir = path.join(repo, '.argus');
     fs.mkdirSync(path.join(dir, 'ledger'), { recursive: true });
   });
-  afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+  afterEach(() => { fs.rmSync(repo, { recursive: true, force: true }); });
 
   it('다음에 볼 날 없이는 못 닫는다 (불변식 ⑤ 재확인 필수)', async () => {
     await sign('D-0001');

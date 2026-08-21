@@ -289,6 +289,9 @@ jobs:
       - name: Argus decision watch hook
         run: node argus-plugin-v2/hooks/dec-watch.test.mjs
 
+      - name: Argus decision block hook
+        run: node argus-plugin-v2/hooks/dec-block.test.mjs
+
       # Enforcement is a HARD BLOCK, not advisory (CLI exits non-zero on a violation).
       - name: Argus enforcement hard-block
         run: node argus-plugin-v2/scripts/enforcement-hardblock.test.mjs

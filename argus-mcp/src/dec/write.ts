@@ -1,5 +1,6 @@
 import { withLedgerLock, appendLedger } from '../lib/ledger-append.js';
 import { foldDecisions } from './fold.js';
+import { emitExport, type EmitResult } from './export/emit.js';
 import { syncDecisionFiles, type SyncResult } from './files.js';
 import { isValidScope } from './scope.js';
 import { watchProblems } from './watch/rule.js';
@@ -18,6 +19,8 @@ export interface DecWriteResult {
   id: string;
   written: number;
   files: SyncResult;
+  /** 방출본(`AGENTS.md`)이 같이 따라갔나 — `held` 면 사람이 손댄 것을 보고 멈췄다. */
+  exported: EmitResult;
 }
 
 /**
@@ -36,7 +39,16 @@ async function appendAndDraw(
     const outcome = await appendLedger(argusDir, [{ id, event, dec, ts: now }], now);
     return outcome.written;
   });
-  return { id, written, files: syncDecisionFiles(argusDir) };
+  // **한 번만 접는다.** 원장을 두 번 읽으면 그 사이에 다른 프로세스가 쓸 수 있고,
+  // 파일과 방출본이 서로 다른 세상을 보게 된다.
+  const folded = foldDecisions(argusDir);
+  const files = syncDecisionFiles(argusDir, folded);
+  // ① 신선도 (단계 9, N5): 장부가 바뀌면 방출본도 같이 바뀐다. **방출은 일회
+  //    변환이 아니라 동기화다** — 안 그러면 6주 낡은 방출본이 남의 에이전트를
+  //    통해 이미 폐기된 법을 집행한다 (기획서 §9 시뮬 P7 이 그 장면이었다).
+  //    사람이 손댄 방출본은 여기서도 안 덮어쓴다 (`emitExport` 가 `held` 를 낸다).
+  const exported = emitExport(argusDir, folded.records);
+  return { id, written, files, exported };
 }
 
 /** 서명 — 결정이 법이 되는 단 하나의 순간. 같은 id 로 두 번은 안 된다. */

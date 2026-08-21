@@ -10,6 +10,9 @@ import { amendDecision, recordFire, recordMisfire, repealDecision, reviewDecisio
 import { dueDecisions } from './review/due.js';
 import { sayAsk } from './review/ask.js';
 import { checkSubject } from './check/match.js';
+import { decideBlock } from './block/decide.js';
+import { emitExport, inspectExport } from './export/emit.js';
+import { sayBlock } from './block/say.js';
 import { decideSpeak } from './check/speak.js';
 import { markSpoken, readSpoken } from './check/state.js';
 import { foldDecisions } from './fold.js';
@@ -448,4 +451,80 @@ export async function runDecAmendCli(args: readonly string[]): Promise<void> {
   }
   const result = await amendDecision(argusDir, id, payload, new Date().toISOString());
   process.stdout.write(JSON.stringify({ ...result, changed, why }) + '\n');
+}
+
+/**
+ * 막을 것인가 — 훅이 사람의 손이 움직이기 **전에** 부른다 (단계 9, L3).
+ *
+ * `dec-check` 와 갈라 둔 이유: 저쪽은 *알린다*, 이쪽은 *막는다*. 같은 명령에
+ * 플래그로 붙이면 언젠가 알림 경로가 조용히 차단으로 승격된다.
+ *
+ * 나가는 값의 `block` 이 훅의 종료 코드를 정한다. **판정을 못 하면 안 막는다** —
+ * 원장을 못 읽었으면 `unreadable` 을 실어 보내고 `block:false` 다.
+ */
+export function runDecBlockCli(args: readonly string[]): void {
+  const argusDir = argusDirOf(args, 'dec-block');
+  // 이름은 `dec-check` 와 같게 둔다 — 훅 둘이 같은 낱말을 쓴다.
+  const file = flag(args, '--file');
+  const text = flag(args, '--text');
+  if (!file && !text) throw new Error('dec-block requires --file <파일> 또는 --text <말>');
+
+  const fold = foldDecisions(argusDir);
+  if (fold.unreadable) {
+    // 못 읽었으면 "걸린 게 없다"가 아니라 "모른다"다. 모를 때는 안 막는다.
+    process.stdout.write(JSON.stringify({
+      block: false, blocking: [], unreadable: fold.unreadable,
+      say: [], why_not: 'ledger_unreadable',
+    }) + '\n');
+    return;
+  }
+  const subject = file ? { kind: 'file' as const, path: file } : { kind: 'text' as const, text: text! };
+  const decision = decideBlock(fold.records, subject);
+  process.stdout.write(JSON.stringify({
+    block: decision.block,
+    blocking: decision.blocking.map((m) => ({ id: m.id, matched: m.matched })),
+    matched_not_ban: decision.matched_not_ban,
+    unwatchable: decision.check.unwatchable,
+    scope_unknown: decision.check.scope_unknown,
+    say: sayBlock(decision),
+  }) + '\n');
+}
+
+/**
+ * 규칙 파일을 내보낸다 (단계 9, N5).
+ *
+ * 평소에는 사람이 이걸 칠 일이 없다 — 장부가 바뀌면 `write.ts` 가 알아서
+ * 다시 방출한다. 이 명령이 있는 이유 둘: **처음 한 번**과 **손댄 걸 봤을 때**.
+ *
+ * `--check` 는 안 쓰고 상태만 본다. 손댄 것이 있으면 원장 쪽 본문과 나란히
+ * 돌려준다 — 어느 쪽을 남길지는 사람이 정한다 (개정으로 받거나, 다시 방출하거나).
+ */
+export function runDecExportCli(args: readonly string[]): void {
+  const argusDir = argusDirOf(args, 'dec-export');
+  const fold = foldDecisions(argusDir);
+  if (fold.unreadable) {
+    process.stdout.write(JSON.stringify({ unreadable: fold.unreadable, say: ['원장을 못 읽어서 내보내지 않았다.'] }) + '\n');
+    return;
+  }
+  if (args.includes('--check')) {
+    const state = inspectExport(argusDir, fold.records);
+    process.stdout.write(JSON.stringify({ ...state, say: sayExport(state.verdict, state.file) }) + '\n');
+    return;
+  }
+  const result = emitExport(argusDir, fold.records);
+  process.stdout.write(JSON.stringify({ ...result, say: sayExport(result.verdict, result.file, result.action) }) + '\n');
+}
+
+function sayExport(verdict: string, file: string, action?: string): string[] {
+  const where = path.basename(file);
+  if (verdict === 'hand_edited') {
+    return [
+      `${where} 의 아르고스 덩어리를 누가 손으로 고쳤다. 덮어쓰지 않았다.`,
+      '고친 내용을 결정으로 받으려면 `dec-amend` 로 결정을 고쳐라.',
+      '그 수정이 필요 없으면 그 덩어리를 지우고 다시 내보내면 된다.',
+    ];
+  }
+  if (action === 'unchanged') return [];
+  if (action === 'written') return [`${where} 에 정해 둔 것을 다시 적었다.`];
+  return [];
 }

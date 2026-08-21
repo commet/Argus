@@ -92,7 +92,14 @@ export function watchProblems(rule: WatchRule): string[] {
   }
   for (const phrase of rule.phrases) {
     if (!isUsablePhrase(phrase)) {
-      problems.push(`너무 짧거나 흔한 말이라 아무데나 걸린다: ${JSON.stringify(phrase)}`);
+      // **측정한 것만 말한다.** 옛 문구는 "아무데나 걸린다"고 단정했는데,
+      // 그건 이 규칙이 아는 사실이 아니다 — 길이는 흔함의 대용품일 뿐이다.
+      // 실측(2026-08-21, 이 저장소 30일·파일변경 8,937건): `user` 6회 · `pkill` 0회.
+      // 짧은 명령 이름은 드문데도 같이 걸린다. 판정은 시운전이 한다.
+      problems.push(
+        `짧고 띄어쓰기 없는 말이라 그냥은 못 받는다: ${JSON.stringify(phrase)} ` +
+        '— 앞뒤 말을 붙여 길게 쓰거나, 정말 이 말이 맞으면 시운전(dec-rehearse)으로 몇 번 걸리는지 먼저 보라',
+      );
     }
   }
   return problems;
