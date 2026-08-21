@@ -1,5 +1,6 @@
 import { globToRegExp } from '../watch/glob.js';
 import { parseScope } from '../scope.js';
+import { dueDecisions } from '../review/due.js';
 import type { DecisionRecord } from '../types.js';
 
 /**
@@ -90,12 +91,24 @@ export function planInjection(
     picks.push({ record, slot });
   };
 
-  // ① 오늘 다시 볼 것 — 날짜가 지났거나 오늘인 것부터, 오래된 순.
-  here
-    .filter((r) => r.review && r.review <= input.today)
-    .sort((a, b) => (a.review! < b.review! ? -1 : 1))
+  // ① 오늘 다시 볼 것 — **때가 됐나는 한 군데서만 판정한다** (review/due.ts).
+  //    여기 같은 조건을 다시 쓰면 달력만 보고 계기·조용함을 놓친다.
+  dueDecisions(here, input.today)
     .slice(0, SLOT_SIZE.due)
-    .forEach((r) => add(r, 'due'));
+    .forEach((d) => add(d.record, 'due'));
+
+  // ② 최근에 걸린 것 — 실제로 일하고 있는 법을 앞에 둔다.
+  //    이 슬롯은 §4.5 에 선언만 돼 있고 안 채워지고 있었다. 그동안 빈 칸 사유는
+  //    걸린 기록이 쌓인 뒤에도 "아직 걸린 기록이 없다"고 **거짓말했다.**
+  const lastFire = (r: DecisionRecord): string => r.fires.at(-1)?.at ?? '';
+  const fired = here
+    .filter((r) => !taken.has(r.id) && r.fires.length > 0)
+    .sort((a, b) => {
+      const fa = lastFire(a); const fb = lastFire(b);
+      return fa === fb ? a.id.localeCompare(b.id) : fa < fb ? 1 : -1;
+    })
+    .slice(0, SLOT_SIZE.recent_fire);
+  fired.forEach((r) => add(r, 'recent_fire'));
 
   // ③ 가장 오래 안 펴 본 것 — 한 번도 안 펴 본 것이 먼저다.
   const shown = input.last_shown ?? {};
@@ -109,13 +122,30 @@ export function planInjection(
     .slice(0, SLOT_SIZE.rotation)
     .forEach((r) => add(r, 'rotation'));
 
+  // ④ 교훈 — 다시 보고 닫을 때 사람이 적은 한 줄이 있는 것. 최근 것부터.
+  const withLesson = here
+    .filter((r) => !taken.has(r.id) && r.reviews.some((v) => v.lesson))
+    .sort((a, b) => {
+      const la = a.reviews.filter((v) => v.lesson).at(-1)?.at ?? '';
+      const lb = b.reviews.filter((v) => v.lesson).at(-1)?.at ?? '';
+      return la === lb ? 0 : la < lb ? 1 : -1;
+    })
+    .slice(0, SLOT_SIZE.lesson);
+  withLesson.forEach((r) => add(r, 'lesson'));
+
+  // 빈 칸 사유는 **정말 비었을 때만** 적는다 — 안 그러면 정직한 공백이 거짓말이 된다.
+  const empty: InjectionPlan['empty_slots'] = [];
+  if (fired.length === 0) {
+    empty.push({ slot: 'recent_fire', why: '아직 걸린 기록이 없다 (어긋남 알리기를 켜면 채워진다)' });
+  }
+  if (withLesson.length === 0) {
+    empty.push({ slot: 'lesson', why: '아직 쌓인 교훈이 없다 (닫을 때 한 줄씩 쌓인다)' });
+  }
+
   return {
     picks,
     omitted: here.length - picks.length,
     out_of_scope: outOfScope,
-    empty_slots: [
-      { slot: 'recent_fire', why: '아직 걸린 기록이 없다 (어긋남 알리기를 켜면 채워진다)' },
-      { slot: 'lesson', why: '아직 쌓인 교훈이 없다 (닫을 때 한 줄씩 쌓인다)' },
-    ],
+    empty_slots: empty,
   };
 }

@@ -166,6 +166,16 @@ export function renderDecisionBody(record: DecisionRecord): string {
     out.push('');
   }
 
+  if (record.reviews.length > 0) {
+    out.push('## 다시 보고 정한 것', '');
+    for (const review of record.reviews.slice(-5).reverse()) {
+      out.push(`- ${review.at.slice(0, 10)} — ${review.outcome === 'keep' ? '그대로 두기로 했다' : '나중에 다시 보기로 했다'} (다음 ${review.next_review})`);
+      if (review.lesson) out.push(`  배운 것: ${review.lesson}`);
+      if (review.prevented) out.push(`  이게 막은 것: ${review.prevented}`);
+    }
+    out.push('');
+  }
+
   if (record.fires.length > 0) {
     // §4.6 — 맥락은 복사하지 않고 **가리킨다.** 요약 한 줄 + 어디였나.
     out.push('## 이 규칙이 일한 때', '');

@@ -121,9 +121,23 @@ export interface DecMisfirePayload {
   note?: string;
 }
 
+/** 다시 보고 닫았다 (단계 8). 채점 대상은 **정책이지 사람이 아니다.** */
+export interface DecReviewedPayload {
+  /** `keep` 그대로 · `later` 나중에 다시 · `sunset` 그만둔다(폐지는 별도 사건). */
+  outcome: 'keep' | 'later';
+  /** 다음에 볼 날. `keep`·`later` 둘 다 있어야 한다 — 날짜 없는 "그대로"는
+   *  다시 안 묻겠다는 뜻이고, 그러면 불변식 ⑤(재확인 필수)가 깨진다. */
+  next_review: string;
+  /** 배운 것 한 줄 (CONTEXT.md 의 `Lesson`). 사람이 쓴 것만 들어온다. */
+  lesson?: string;
+  /** **이게 뭘 막았나** — 교환식의 입력구. 규율은 있는데 입력구가 없어
+   *  6개월 시뮬에서 표시 0건이었다. 기계가 추정하지 않는다. */
+  prevented?: string;
+}
+
 export type DecPayload =
   | DecSignedPayload | DecAmendedPayload | DecRepealedPayload
-  | DecFiredPayload | DecMisfirePayload;
+  | DecFiredPayload | DecMisfirePayload | DecReviewedPayload;
 
 /** 법이 일한 순간 하나 — 파일 말미에 쌓인다. */
 export interface FireRecord {
@@ -170,6 +184,8 @@ export interface DecisionRecord {
   fires: FireRecord[];
   /** 잘못 잡았다고 들은 횟수. 세 번이면 이 규칙은 말하기를 멈춘다. */
   misfires: number;
+  /** 다시 보고 닫은 기록들 (추가 전용). */
+  reviews: Array<{ at: string; outcome: 'keep' | 'later'; next_review: string; lesson?: string; prevented?: string }>;
   repealed_at?: string;
   repealed_why?: string;
   succeeded_by?: string;

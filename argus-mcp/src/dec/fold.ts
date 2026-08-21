@@ -2,7 +2,7 @@ import { readLedgerRaw } from '../lib/ledger-replay.js';
 import { isValidScope } from './scope.js';
 import { watchProblems, type WatchRule } from './watch/rule.js';
 import type {
-  Amendment, DecAmendedPayload, DecFiredPayload, DecRepealedPayload, DecSignedPayload,
+  Amendment, DecAmendedPayload, DecFiredPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload,
   DecisionRecord, DecisionType, OriginPointer, Unattended, WatchMode,
 } from './types.js';
 
@@ -15,7 +15,7 @@ import type {
 
 /** 결정 장부가 원장에 쓰는 사건 이름 셋. 옛 예측 상태기계 밖이라 그 전이 검사를
  *  거치지 않는다 (`gate_input`·`watch_*` 와 같은 자리). */
-export const DEC_EVENT_TYPES = ['dec_signed', 'dec_amended', 'dec_repealed', 'dec_fired', 'dec_misfire'] as const;
+export const DEC_EVENT_TYPES = ['dec_signed', 'dec_amended', 'dec_repealed', 'dec_fired', 'dec_misfire', 'dec_reviewed'] as const;
 export type DecEventType = (typeof DEC_EVENT_TYPES)[number];
 
 export interface DecFoldResult {
@@ -134,7 +134,7 @@ export function foldDecisions(argusDir: string): DecFoldResult {
         ...(str(p.falsified_if) ? { falsified_if: p.falsified_if! } : {}),
         ...(str(p.source) ? { source: p.source! } : {}),
         ...(str(p.source_origin) ? { source_origin: p.source_origin! } : {}),
-        amendments: [], fires: [], misfires: 0,
+        amendments: [], fires: [], misfires: 0, reviews: [],
       });
       continue;
     }
@@ -153,6 +153,20 @@ export function foldDecisions(argusDir: string): DecFoldResult {
 
     if (event === 'dec_misfire') {
       record.misfires += 1;
+      continue;
+    }
+
+    if (event === 'dec_reviewed') {
+      const p = payload as Partial<DecReviewedPayload>;
+      const next = str(p.next_review);
+      // 날짜 없는 "그대로"는 다시 안 묻겠다는 뜻이라 받지 않는다 (불변식 ⑤).
+      if ((p.outcome !== 'keep' && p.outcome !== 'later') || !next) { dropped++; continue; }
+      record.reviews.push({
+        at, outcome: p.outcome, next_review: next,
+        ...(str(p.lesson) ? { lesson: p.lesson! } : {}),
+        ...(str(p.prevented) ? { prevented: p.prevented! } : {}),
+      });
+      record.review = next;   // 다음에 볼 날이 앞당겨지거나 밀린다
       continue;
     }
 

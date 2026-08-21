@@ -20,7 +20,7 @@ const WATCH: WatchRule = {
 const rec = (id: string, extra: Partial<DecisionRecord> = {}): DecisionRecord => ({
   id, type: 'pin', decision: `${id} 의 문장`, scope: 'repo', binds: '나', author: '나',
   provenance: 'user', adopted: '2026-08-01', unattended: 'park', watch: 'machine',
-  watch_rule: WATCH, status: 'active', amendments: [], fires: [], misfires: 0, ...extra,
+  watch_rule: WATCH, status: 'active', amendments: [], fires: [], misfires: 0, reviews: [], ...extra,
 });
 
 describe('걸렸나 — 판정은 전부 결정론이다', () => {

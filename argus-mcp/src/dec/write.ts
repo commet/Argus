@@ -3,7 +3,7 @@ import { foldDecisions } from './fold.js';
 import { syncDecisionFiles, type SyncResult } from './files.js';
 import { isValidScope } from './scope.js';
 import { watchProblems } from './watch/rule.js';
-import type { DecAmendedPayload, DecFiredPayload, DecMisfirePayload, DecRepealedPayload, DecSignedPayload } from './types.js';
+import type { DecAmendedPayload, DecFiredPayload, DecMisfirePayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload } from './types.js';
 
 /**
  * 결정을 원장에 쓰는 자리 — **여기 말고는 없다.**
@@ -28,7 +28,7 @@ export interface DecWriteResult {
  */
 async function appendAndDraw(
   argusDir: string, id: string,
-  event: 'dec_signed' | 'dec_amended' | 'dec_repealed' | 'dec_fired' | 'dec_misfire',
+  event: 'dec_signed' | 'dec_amended' | 'dec_repealed' | 'dec_fired' | 'dec_misfire' | 'dec_reviewed',
   dec: unknown, now: string, check: () => void,
 ): Promise<DecWriteResult> {
   const written = await withLedgerLock(argusDir, async () => {
@@ -135,4 +135,29 @@ export async function recordMisfire(
       throw new Error(`NOT_SIGNED: ${id} 은 서명된 적이 없다`);
     }
   });
+}
+
+/**
+ * 다시 보고 닫는다 (단계 8).
+ *
+ * **다음에 볼 날 없이는 못 닫는다.** 날짜 없는 "그대로 둔다"는 다시 안 묻겠다는
+ * 뜻이고, 그러면 이 제품이 유일하게 무경쟁인 층(때가 되면 현실과 대조하는 것)이
+ * 그 결정에서 사라진다 (불변식 ⑤).
+ *
+ * 그만두는 것은 여기가 아니라 `repealDecision` 이다 — 닫는 것과 그만두는 것은
+ * 다른 행위이고, 기록에서도 갈라 둔다.
+ */
+export async function reviewDecision(
+  argusDir: string, id: string, payload: DecReviewedPayload, now: string,
+): Promise<DecWriteResult> {
+  if (payload.outcome !== 'keep' && payload.outcome !== 'later') {
+    throw new Error('BAD_OUTCOME: 그대로(keep) 나 나중에(later) 중 하나여야 한다');
+  }
+  if (!payload.next_review) {
+    throw new Error('NO_NEXT_REVIEW: 다음에 볼 날 없이는 닫을 수 없다 — 날짜 없는 "그대로"는 다시 안 묻겠다는 뜻이다');
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.next_review)) {
+    throw new Error('BAD_DATE: 다음에 볼 날은 YYYY-MM-DD 다');
+  }
+  return appendAndDraw(argusDir, id, 'dec_reviewed', payload, now, () => mustBeLive(argusDir, id));
 }

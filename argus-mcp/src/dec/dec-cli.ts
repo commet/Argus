@@ -6,12 +6,14 @@ import { clauseSentence, splitRuleFile, unmarkedBlocks, verifyClauseAnchors, typ
 import { draftWatchFromClause } from './watch/draft.js';
 import { collectPast } from './rehearse/collect.js';
 import { rehearse, sayRehearsal } from './rehearse/engine.js';
-import { recordFire, recordMisfire, signDecision } from './write.js';
+import { amendDecision, recordFire, recordMisfire, repealDecision, reviewDecision, signDecision } from './write.js';
+import { dueDecisions } from './review/due.js';
+import { sayAsk } from './review/ask.js';
 import { checkSubject } from './check/match.js';
 import { decideSpeak } from './check/speak.js';
 import { markSpoken, readSpoken } from './check/state.js';
 import { foldDecisions } from './fold.js';
-import type { DecSignedPayload, Unattended } from './types.js';
+import type { DecAmendedPayload, DecSignedPayload, Unattended } from './types.js';
 import { planInjection } from './inject/select.js';
 import { sayInjection } from './inject/say.js';
 import { markShown, readShown } from './inject/state.js';
@@ -349,4 +351,101 @@ export async function runDecMisfireCli(args: readonly string[]): Promise<void> {
     misfires: record?.misfires ?? 0,
     silenced: (record?.misfires ?? 0) >= 3,
   }) + '\n');
+}
+
+/** 다시 볼 때가 된 것을 묻는다 — **그때 쓴 문장을 먼저 보여주고 나서.** */
+export function runDecDueCli(args: readonly string[]): void {
+  const argusDir = argusDirOf(args, 'dec-due');
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const max = Number(flag(args, '--max') ?? 3);
+  const fold = foldDecisions(argusDir);
+  const due = dueDecisions(fold.records, today);
+  const shown = due.slice(0, max);
+  const say: string[] = [];
+  for (const item of shown) { say.push(...sayAsk(item, argusDir), ''); }
+  if (due.length > shown.length) say.push(`다시 볼 것이 ${due.length - shown.length}건 더 있다.`);
+  process.stdout.write(JSON.stringify({
+    due: due.map((d) => ({ id: d.record.id, reason: d.reason, days: d.days })),
+    shown: shown.map((d) => d.record.id),
+    unreadable: fold.unreadable,
+    say,
+  }) + '\n');
+}
+
+/** 닫는다 — 다음에 볼 날 없이는 못 닫는다. */
+/**
+ * 다시 보고 닫는다 — **네 갈래가 화면에 적힌 그대로 여기 있어야 한다.**
+ *
+ * 처음 쓸 때 `--sunset` 을 화면에만 적고 여기 안 만들었다. 그러면 화면대로
+ * 친 사람이 `--next-review 가 필요하다` 는 소리를 듣거나, 둘 다 치면
+ * **그만두려던 것이 조용히 "그대로"로 기록된다.** 그만두기는 다시 보기가
+ * 아니라 폐지 사건이므로 `dec_repealed` 로 나간다 (불변식 ③ 추가 전용).
+ */
+export async function runDecCloseCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-close');
+  const id = flag(args, '--id');
+  if (!id) throw new Error('dec-close requires --id <결정 번호>');
+
+  if (args.includes('--sunset')) {
+    const why = flag(args, '--why');
+    if (!why) throw new Error('dec-close --sunset requires --why <왜 그만두는지 한 줄>');
+    const result = await repealDecision(argusDir, id, {
+      why, ...(flag(args, '--succeeded-by') ? { succeeded_by: flag(args, '--succeeded-by')! } : {}),
+    }, new Date().toISOString());
+    process.stdout.write(JSON.stringify({ ...result, outcome: 'sunset', why }) + '\n');
+    return;
+  }
+
+  const nextReview = flag(args, '--next-review');
+  if (!nextReview) throw new Error('dec-close requires --next-review <YYYY-MM-DD>');
+  if (args.includes('--later') && args.includes('--keep')) {
+    throw new Error('dec-close 는 --keep 과 --later 를 함께 받지 않는다 — 둘 중 하나다');
+  }
+  const outcome = args.includes('--later') ? 'later' : 'keep';
+  const result = await reviewDecision(argusDir, id, {
+    outcome, next_review: nextReview,
+    ...(flag(args, '--lesson') ? { lesson: flag(args, '--lesson')! } : {}),
+    // 기계가 추정하지 않는다 — 사람이 적은 것만 들어온다.
+    ...(flag(args, '--prevented') ? { prevented: flag(args, '--prevented')! } : {}),
+  }, new Date().toISOString());
+  process.stdout.write(JSON.stringify({
+    ...result, outcome, next_review: nextReview,
+    lesson_written: Boolean(flag(args, '--lesson')),
+    prevented_written: Boolean(flag(args, '--prevented')),
+  }) + '\n');
+}
+
+/**
+ * 문장을 바꾼다 — 다시 묻기 화면이 세 번째로 내미는 손잡이.
+ *
+ * **덮어쓰지 않는다.** 개정은 사건으로 쌓이고, 결정 파일은 "무엇이 무엇으로"
+ * 를 보여준다. 그래서 `--why` 없이는 못 바꾼다 (write.ts 가 막는다).
+ */
+export async function runDecAmendCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-amend');
+  const id = flag(args, '--id');
+  if (!id) throw new Error('dec-amend requires --id <결정 번호>');
+  const why = flag(args, '--why');
+  if (!why) throw new Error('dec-amend requires --why <왜 바꾸는지 한 줄>');
+
+  const payload: DecAmendedPayload = { why };
+  const put = (key: 'decision' | 'scope' | 'binds' | 'review' | 'review_on_event' | 'because', name: string): void => {
+    const value = flag(args, name);
+    if (value !== null) payload[key] = value;
+  };
+  put('decision', '--decision');
+  put('scope', '--scope');
+  put('binds', '--binds');
+  put('review', '--next-review');
+  put('review_on_event', '--review-on-event');
+  put('because', '--because');
+  const unattended = flag(args, '--unattended');
+  if (unattended === 'park' || unattended === 'log' || unattended === 'deny') payload.unattended = unattended;
+
+  const changed = Object.keys(payload).filter((k) => k !== 'why');
+  if (changed.length === 0) {
+    throw new Error('dec-amend 는 바꿀 것을 하나는 받아야 한다 (--decision · --scope · --binds · --next-review · --review-on-event · --because · --unattended)');
+  }
+  const result = await amendDecision(argusDir, id, payload, new Date().toISOString());
+  process.stdout.write(JSON.stringify({ ...result, changed, why }) + '\n');
 }

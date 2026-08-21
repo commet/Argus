@@ -10,7 +10,7 @@ import type { DecisionRecord } from '../types.js';
 const base = (id: string, scope: string, extra: Partial<DecisionRecord> = {}): DecisionRecord => ({
   id, type: 'pin', decision: `${id} 의 문장`, scope, binds: '나', author: '나',
   provenance: 'user', adopted: '2026-08-01', unattended: 'park', watch: 'inject_only',
-  status: 'active', amendments: [], ...extra,
+  status: 'active', amendments: [], fires: [], misfires: 0, reviews: [], ...extra,
 });
 
 describe('지금 있는 자리에 걸리나 — 회전이 누설이 되지 않게', () => {
@@ -136,5 +136,55 @@ describe('언제 마지막으로 펴 봤나 — 무한히 안 자란다', () => 
   it('파일이 깨져 있으면 "한 번도 안 봤다"로 안전하게 돌아간다', () => {
     fs.writeFileSync(path.join(dir, 'dec-shown.json'), '{{{깨짐');
     expect(readShown(dir)).toEqual({});
+  });
+});
+
+describe('때가 된 것은 목록에 조용히 섞이지 않는다 (단계 8 의 앞쪽 절반)', () => {
+  const plan = planInjection([
+    base('D-0001', 'repo', { review: '2026-08-10' }),                    // 날짜 지남
+    base('D-0002', 'repo', { review: '2026-12-01' }),                    // 아직
+    base('D-0003', 'repo', { adopted: '2026-06-01', review: '2026-12-01' }), // 두 달 조용
+  ], { cwd_rel: 'src', today: '2026-08-21', max: 15 });
+  const text = sayInjection(plan).join('\n');
+
+  it('달력이 지난 것도, 오래 조용한 것도 같은 자리에서 뽑힌다', () => {
+    // 옛 판은 `review <= today` 만 봐서 조용한 것을 못 골랐다 — 판정을 한 군데로 모은 이유다.
+    const due = plan.picks.filter((p) => p.slot === 'due').map((p) => p.record.id);
+    expect(due).toContain('D-0001');
+    expect(due).toContain('D-0003');
+    expect(due).not.toContain('D-0002');
+  });
+
+  it('때가 됐다고 말하고, 답은 사람이 한다고 못박는다', () => {
+    expect(text).toContain('다시 볼 때가 됐다');
+    expect(text).toContain('네가 대신 닫지 마라');
+    expect(text).toContain('답은 사람이 한다');
+  });
+
+  it('때가 된 것이 없으면 그 말을 안 한다 (침묵이 기본)', () => {
+    const quiet = planInjection([base('D-0002', 'repo', { review: '2026-12-01' })],
+      { cwd_rel: 'src', today: '2026-08-21', max: 15 });
+    expect(sayInjection(quiet).join('\n')).not.toContain('다시 볼 때가 됐다');
+  });
+});
+
+describe('빈 칸 사유는 정말 비었을 때만 적는다', () => {
+  const fire = (at: string) => ({ at, channel: 'file' as const, matched: 'src/app/**', where: 'src/app/x.tsx' });
+
+  it('최근에 걸린 것이 자기 칸으로 뽑힌다 (선언만 돼 있던 슬롯 ②)', () => {
+    const plan = planInjection([
+      base('D-0001', 'repo', { review: '2026-12-01' }),
+      base('D-0002', 'repo', { review: '2026-12-01', fires: [fire('2026-08-19T09:00:00.000Z')] }),
+      base('D-0003', 'repo', { review: '2026-12-01', fires: [fire('2026-08-20T09:00:00.000Z')] }),
+    ], { cwd_rel: 'src', today: '2026-08-21', max: 15 });
+    const fired = plan.picks.filter((p) => p.slot === 'recent_fire').map((p) => p.record.id);
+    expect(fired).toEqual(['D-0003', 'D-0002']);   // 가장 최근에 걸린 것이 앞
+    expect(plan.empty_slots.map((e) => e.slot)).not.toContain('recent_fire');
+  });
+
+  it('걸린 기록이 하나도 없을 때만 "아직 걸린 기록이 없다"고 말한다', () => {
+    const plan = planInjection([base('D-0001', 'repo', { review: '2026-12-01' })],
+      { cwd_rel: 'src', today: '2026-08-21', max: 15 });
+    expect(plan.empty_slots.map((e) => e.slot)).toContain('recent_fire');
   });
 });
