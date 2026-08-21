@@ -19,6 +19,16 @@ async function main() {
     await runCaptureCli(process.argv.slice(3));
     return;
   }
+  if (process.argv[2] === 'dec-sync') {
+    const { runDecSyncCli } = await import('./dec/dec-cli.js');
+    runDecSyncCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-verify') {
+    const { runDecVerifyCli } = await import('./dec/dec-cli.js');
+    runDecVerifyCli(process.argv.slice(3));
+    return;
+  }
   if (process.argv[2] === 'capture-drain') {
     const { runCaptureDrainCli } = await import('./v2/capture-cli.js');
     await runCaptureDrainCli(process.argv.slice(3));
