@@ -97,7 +97,35 @@ export interface DecRepealedPayload {
   succeeded_by?: string;
 }
 
-export type DecPayload = DecSignedPayload | DecAmendedPayload | DecRepealedPayload;
+/** 법이 일한 순간 (§4.6). 맥락은 **복사하지 않고 가리킨다** — 요약 1줄 + 포인터. */
+export interface DecFiredPayload {
+  channel: 'file' | 'word';
+  /** 규칙의 어느 부분에 걸렸나. */
+  matched: string;
+  /** 어디였나 — 파일 경로나 세션 id. 원문은 안 싣는다. */
+  where: string;
+}
+
+/** 잘못 잡았다 — 법이 아니라 **감지기**를 고치는 입구 (§4.7). */
+export interface DecMisfirePayload {
+  /** 무엇이 잘못 걸렸나 (그 자리·그 말). */
+  matched: string;
+  where: string;
+  /** 사람이 한 줄 적었으면. 강요하지 않는다. */
+  note?: string;
+}
+
+export type DecPayload =
+  | DecSignedPayload | DecAmendedPayload | DecRepealedPayload
+  | DecFiredPayload | DecMisfirePayload;
+
+/** 법이 일한 순간 하나 — 파일 말미에 쌓인다. */
+export interface FireRecord {
+  at: string;
+  channel: 'file' | 'word';
+  matched: string;
+  where: string;
+}
 
 /** 한 건의 개정 이력 — 파일이 이걸 시간순으로 보여준다. */
 export interface Amendment {
@@ -132,6 +160,10 @@ export interface DecisionRecord {
   source?: string;
   source_origin?: string;
   amendments: Amendment[];
+  /** 이 법이 일한 순간들 (추가 전용, 기계가 기록). */
+  fires: FireRecord[];
+  /** 잘못 잡았다고 들은 횟수. 세 번이면 이 규칙은 말하기를 멈춘다. */
+  misfires: number;
   repealed_at?: string;
   repealed_why?: string;
   succeeded_by?: string;

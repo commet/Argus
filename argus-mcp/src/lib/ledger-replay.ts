@@ -272,7 +272,8 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     // likewise NOT decisions — they must never count as one.
     const metaEvent = ev['event'] === 'gate_input' || ev['event'] === 'watch_anchor' ||
       ev['event'] === 'watch_capture' || ev['event'] === 'dec_signed' ||
-      ev['event'] === 'dec_amended' || ev['event'] === 'dec_repealed';
+      ev['event'] === 'dec_amended' || ev['event'] === 'dec_repealed' ||
+      ev['event'] === 'dec_fired' || ev['event'] === 'dec_misfire';
     if (!metaEvent) ids.add(id);
     // Record inception (P1-E7): ISO timestamps compare lexicographically.
     if (typeof ev['ts'] === 'string' && ev['ts'] && (!oldestTs || ev['ts'] < oldestTs)) oldestTs = ev['ts'];
@@ -558,6 +559,8 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
       case 'dec_signed':
       case 'dec_amended':
       case 'dec_repealed':
+      case 'dec_fired':
+      case 'dec_misfire':
         break;
 
       case 'gate_input':

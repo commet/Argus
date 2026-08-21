@@ -19,6 +19,16 @@ async function main() {
     await runCaptureCli(process.argv.slice(3));
     return;
   }
+  if (process.argv[2] === 'dec-check') {
+    const { runDecCheckCli } = await import('./dec/dec-cli.js');
+    await runDecCheckCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-misfire') {
+    const { runDecMisfireCli } = await import('./dec/dec-cli.js');
+    await runDecMisfireCli(process.argv.slice(3));
+    return;
+  }
   if (process.argv[2] === 'dec-brief') {
     const { runDecBriefCli } = await import('./dec/dec-cli.js');
     runDecBriefCli(process.argv.slice(3));

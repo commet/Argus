@@ -163,6 +163,22 @@ export function renderDecisionBody(record: DecisionRecord): string {
     out.push('');
   }
 
+  if (record.fires.length > 0) {
+    // §4.6 — 맥락은 복사하지 않고 **가리킨다.** 요약 한 줄 + 어디였나.
+    out.push('## 이 규칙이 일한 때', '');
+    for (const fire of record.fires.slice(-5).reverse()) {
+      out.push(`- ${fire.at.slice(0, 10)} — ${fire.channel === 'file' ? fire.matched : `"${fire.matched}"`}${fire.where ? ` · ${fire.where}` : ''}`);
+    }
+    if (record.fires.length > 5) out.push(`- … 그전에도 ${record.fires.length - 5}번`);
+    out.push('');
+  }
+  if (record.misfires > 0) {
+    out.push(`잘못 잡았다고 ${record.misfires}번 들었다.`,
+      record.misfires >= 3
+        ? '그래서 이 규칙은 지금 말하기를 멈췄다. 어긋난 걸 아는 방법을 고치면 다시 말한다.'
+        : '', '');
+  }
+
   out.push('---', '');
   out.push('이 파일은 기록에서 자동으로 만들어진다. 여기를 고쳐도 규칙은 안 바뀐다 —');
   out.push('고친 게 보이면 다음에 "이대로 바꿀까요?" 하고 묻는다.');

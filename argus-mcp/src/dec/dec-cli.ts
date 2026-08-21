@@ -6,7 +6,10 @@ import { clauseSentence, splitRuleFile, unmarkedBlocks, verifyClauseAnchors, typ
 import { draftWatchFromClause } from './watch/draft.js';
 import { collectPast } from './rehearse/collect.js';
 import { rehearse, sayRehearsal } from './rehearse/engine.js';
-import { signDecision } from './write.js';
+import { recordFire, recordMisfire, signDecision } from './write.js';
+import { checkSubject } from './check/match.js';
+import { decideSpeak } from './check/speak.js';
+import { markSpoken, readSpoken } from './check/state.js';
 import { foldDecisions } from './fold.js';
 import type { DecSignedPayload, Unattended } from './types.js';
 import { planInjection } from './inject/select.js';
@@ -272,5 +275,78 @@ export function runDecBriefCli(args: readonly string[]): void {
     empty_slots: plan.empty_slots,
     unreadable: fold.unreadable,
     say: sayInjection(plan),
+  }) + '\n');
+}
+
+/**
+ * 지금 하려는 일이 정해 둔 것에 걸리나 — 단계 7.
+ *
+ * 두 부름을 한 기계가 받는다:
+ *  - **미는 쪽** (훅): `--file <경로>` 또는 `--text <말>`. 말할지 말지까지 판정하고,
+ *    말하기로 하면 원장에 걸린 기록을 남긴다.
+ *  - **당기는 쪽** (에이전트): `--plan <계획>` + `--quiet`. 판정만 하고
+ *    아무것도 안 남긴다 — 물어보는 것이 발화가 되면 안 된다.
+ */
+export async function runDecCheckCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-check');
+  const file = flag(args, '--file');
+  const text = flag(args, '--text') ?? flag(args, '--plan');
+  const quiet = args.includes('--quiet') || flag(args, '--plan') !== null;
+  const sessionId = flag(args, '--session-id') ?? 'unknown';
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  if (!file && !text) throw new Error('dec-check requires --file <경로> or --text/--plan <말>');
+
+  const fold = foldDecisions(argusDir);
+  const result = checkSubject(fold.records, file ? { kind: 'file', path: file } : { kind: 'text', text: text! });
+  const misfires = Object.fromEntries(fold.records.map((r) => [r.id, r.misfires]));
+  const spoken = readSpoken(argusDir, today);
+  const decision = decideSpeak({
+    result,
+    spoken_this_session: spoken.sessions[sessionId] ?? [],
+    misfires,
+    spoken_today: spoken.count,
+  });
+
+  const spoke = decision.speak && !quiet;
+  if (spoke) {
+    markSpoken(argusDir, today, sessionId, decision.match.id);
+    await recordFire(argusDir, decision.match.id, {
+      channel: decision.match.channel,
+      matched: decision.match.matched,
+      where: file ?? sessionId,
+    }, new Date().toISOString());
+  }
+
+  process.stdout.write(JSON.stringify({
+    matches: result.matches.map((m) => ({ id: m.id, channel: m.channel, matched: m.matched })),
+    // "안 걸렸다"가 "괜찮다"가 아니다 — 기계가 못 보는 법이 몇 개인지 같이 말한다.
+    unwatchable: result.unwatchable,
+    // 말만 오갈 때 자리를 몰라 못 본 법의 수 — "안 걸렸다"가 "괜찮다"가 아니다.
+    scope_unknown: result.scope_unknown,
+    considered: result.considered,
+    /** 게이트의 판정 — 말할 만한 것인가. */
+    would_speak: decision.speak,
+    /** **실제로 말했나.** 물어보는 것(--plan·--quiet)은 발화가 아니다. */
+    spoke,
+    why_silent: decision.speak ? (spoke ? null : 'asked_not_told') : decision.why,
+    say: spoke ? decision.lines : [],
+  }) + '\n');
+}
+
+/** 잘못 잡았다 — 법이 아니라 감지기를 고치는 입구. */
+export async function runDecMisfireCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-misfire');
+  const id = flag(args, '--id');
+  if (!id) throw new Error('dec-misfire requires --id <결정 번호>');
+  const result = await recordMisfire(argusDir, id, {
+    matched: flag(args, '--matched') ?? '',
+    where: flag(args, '--where') ?? '',
+    ...(flag(args, '--note') ? { note: flag(args, '--note')! } : {}),
+  }, new Date().toISOString());
+  const record = foldDecisions(argusDir).records.find((r) => r.id === id);
+  process.stdout.write(JSON.stringify({
+    ...result,
+    misfires: record?.misfires ?? 0,
+    silenced: (record?.misfires ?? 0) >= 3,
   }) + '\n');
 }

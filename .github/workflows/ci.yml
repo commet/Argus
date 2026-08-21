@@ -281,6 +281,14 @@ jobs:
       - name: Argus decision brief hook
         run: node argus-plugin-v2/hooks/dec-brief.test.mjs
 
+      # A signed rule that fires must INFORM, never block (blocking is a later,
+      # separately-signed layer). The gate that decides whether to speak runs
+      # before the wording: once per decision per session, at most three times a
+      # day, and a rule told "wrong catch" three times goes quiet until its
+      # detector is repaired — over-firing kills the tool faster than silence.
+      - name: Argus decision watch hook
+        run: node argus-plugin-v2/hooks/dec-watch.test.mjs
+
       # Enforcement is a HARD BLOCK, not advisory (CLI exits non-zero on a violation).
       - name: Argus enforcement hard-block
         run: node argus-plugin-v2/scripts/enforcement-hardblock.test.mjs

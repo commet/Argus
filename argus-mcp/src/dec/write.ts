@@ -3,7 +3,7 @@ import { foldDecisions } from './fold.js';
 import { syncDecisionFiles, type SyncResult } from './files.js';
 import { isValidScope } from './scope.js';
 import { watchProblems } from './watch/rule.js';
-import type { DecAmendedPayload, DecRepealedPayload, DecSignedPayload } from './types.js';
+import type { DecAmendedPayload, DecFiredPayload, DecMisfirePayload, DecRepealedPayload, DecSignedPayload } from './types.js';
 
 /**
  * 결정을 원장에 쓰는 자리 — **여기 말고는 없다.**
@@ -27,7 +27,8 @@ export interface DecWriteResult {
  * 그리기는 잠금 밖 — 잠금 범위는 여기까지라는 규율.
  */
 async function appendAndDraw(
-  argusDir: string, id: string, event: 'dec_signed' | 'dec_amended' | 'dec_repealed',
+  argusDir: string, id: string,
+  event: 'dec_signed' | 'dec_amended' | 'dec_repealed' | 'dec_fired' | 'dec_misfire',
   dec: unknown, now: string, check: () => void,
 ): Promise<DecWriteResult> {
   const written = await withLedgerLock(argusDir, async () => {
@@ -101,4 +102,37 @@ function mustBeLive(argusDir: string, id: string): void {
   const record = foldDecisions(argusDir).records.find((r) => r.id === id);
   if (!record) throw new Error(`NOT_SIGNED: ${id} 은 서명된 적이 없다`);
   if (record.status === 'repealed') throw new Error(`REPEALED: ${id} 은 이미 그만둔 결정이다`);
+}
+
+/**
+ * 법이 일했다 — 걸린 순간을 남긴다 (§4.6).
+ *
+ * **말한 것만 남긴다.** 매치마다 줄을 쌓으면 진짜 기록이 잡음에 묻힌다.
+ * 말할지 말지는 `check/speak.ts` 가 먼저 판정하고, 그걸 통과한 것만 여기 온다.
+ * 원문은 안 싣는다 — 요약 한 줄과 가리키는 포인터뿐이다.
+ */
+export async function recordFire(
+  argusDir: string, id: string, payload: DecFiredPayload, now: string,
+): Promise<DecWriteResult> {
+  return appendAndDraw(argusDir, id, 'dec_fired', payload, now, () => {
+    if (!foldDecisions(argusDir).records.some((r) => r.id === id)) {
+      throw new Error(`NOT_SIGNED: ${id} 은 서명된 적이 없다`);
+    }
+  });
+}
+
+/**
+ * 잘못 잡았다 — **법이 아니라 감지기를 고치는 입구** (§4.7).
+ *
+ * 이 구분이 없으면 오탐이 법을 죽인다(시뮬 3배역 전원의 사인). 세 번 들으면
+ * 그 규칙은 말하기를 멈추고, 사람이 감지기를 고칠 때까지 조용히 산다.
+ */
+export async function recordMisfire(
+  argusDir: string, id: string, payload: DecMisfirePayload, now: string,
+): Promise<DecWriteResult> {
+  return appendAndDraw(argusDir, id, 'dec_misfire', payload, now, () => {
+    if (!foldDecisions(argusDir).records.some((r) => r.id === id)) {
+      throw new Error(`NOT_SIGNED: ${id} 은 서명된 적이 없다`);
+    }
+  });
 }
