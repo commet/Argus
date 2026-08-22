@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { syncDecisionFiles, verifyDecisionFiles } from './files.js';
+import { sayHandEdited, syncDecisionFiles, verifyDecisionFiles } from './files.js';
 import fs from 'node:fs';
 import { discoverRuleFiles } from './rules/discover.js';
 import { clauseSentence, splitRuleFile, unmarkedBlocks, verifyClauseAnchors, type Clause, type SkippedBlock } from './rules/split.js';
@@ -14,7 +14,7 @@ import { checkSubject } from './check/match.js';
 import { decideBlock } from './block/decide.js';
 import { emitExport, inspectExport } from './export/emit.js';
 import { sayBlock, sayHeldBack } from './block/say.js';
-import { decideSpeak } from './check/speak.js';
+import { decideSpeak, MISFIRE_LIMIT } from './check/speak.js';
 import { markSpoken, readSpoken } from './check/state.js';
 import { foldDecisions } from './fold.js';
 import type { DecAmendedPayload, DecSignedPayload, Unattended } from './types.js';
@@ -60,7 +60,8 @@ export function runDecSyncCli(args: readonly string[]): void {
  */
 export function runDecVerifyCli(args: readonly string[]): void {
   const result = verifyDecisionFiles(argusDirOf(args, 'dec-verify'));
-  process.stdout.write(JSON.stringify(result) + '\n');
+  const handEdited = result.files.filter((f) => f.verdict === 'hand_edited').map((f) => f.id);
+  process.stdout.write(JSON.stringify({ ...result, say: sayHandEdited(handEdited) }) + '\n');
   if (!result.ok) process.exitCode = 1;
 }
 
@@ -316,13 +317,20 @@ export function runDecBriefCli(args: readonly string[]): void {
     markShown(argusDir, plan.picks.map((p) => p.record.id), new Date().toISOString(),
       fold.records.map((r) => r.id));
   }
+  // **손으로 고친 파일은 세션이 열릴 때 말한다.** 판정 10 이 약속한 회수
+  // 경로의 입구다 — 여기서 안 말하면 사람이 고친 것을 아무도 안 묻는다.
+  const handEdited = verifyDecisionFiles(argusDir).files
+    .filter((f) => f.verdict === 'hand_edited').map((f) => f.id);
+  const say = [...sayHandEdited(handEdited), ...(handEdited.length > 0 ? [''] : []), ...sayInjection(plan)];
+
   process.stdout.write(JSON.stringify({
     shown: plan.picks.map((p) => ({ id: p.record.id, slot: p.slot })),
+    hand_edited: handEdited,
     omitted: plan.omitted,
     out_of_scope: plan.out_of_scope,
     empty_slots: plan.empty_slots,
     unreadable: fold.unreadable,
-    say: sayInjection(plan),
+    say,
   }) + '\n');
 }
 
@@ -348,7 +356,7 @@ export async function runDecCheckCli(args: readonly string[]): Promise<void> {
 
   const fold = foldDecisions(argusDir);
   const result = checkSubject(fold.records, file ? { kind: 'file', path: file } : { kind: 'text', text: text! });
-  const misfires = Object.fromEntries(fold.records.map((r) => [r.id, r.misfires]));
+  const misfires = Object.fromEntries(fold.records.map((r) => [r.id, r.misfires.length]));
   const spoken = readSpoken(argusDir, today);
   const decision = decideSpeak({
     result,
@@ -396,8 +404,8 @@ export async function runDecMisfireCli(args: readonly string[]): Promise<void> {
   const record = foldDecisions(argusDir).records.find((r) => r.id === id);
   process.stdout.write(JSON.stringify({
     ...result,
-    misfires: record?.misfires ?? 0,
-    silenced: (record?.misfires ?? 0) >= 3,
+    misfires: record?.misfires.length ?? 0,
+    silenced: (record?.misfires.length ?? 0) >= MISFIRE_LIMIT,
   }) + '\n');
 }
 

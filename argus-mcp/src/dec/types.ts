@@ -177,6 +177,14 @@ export interface Amendment {
 }
 
 /** 사건들을 접어서 나온 현재 상태. 파일은 **이것만** 보고 그려진다. */
+/** 잘못 잡힌 한 장면. `note` 는 사람이 쓴 것만 들어온다. */
+export interface MisfireRecord {
+  at: string;
+  matched: string;
+  where: string;
+  note?: string;
+}
+
 export interface DecisionRecord {
   id: string;
   type: DecisionType;
@@ -204,7 +212,11 @@ export interface DecisionRecord {
   /** 이 법이 일한 순간들 (추가 전용, 기계가 기록). */
   fires: FireRecord[];
   /** 잘못 잡았다고 들은 횟수. 세 번이면 이 규칙은 말하기를 멈춘다. */
-  misfires: number;
+  /** 잘못 잡았다고 들은 것들. **개수가 아니라 장면이다** — 무엇이 잘못
+   *  걸렸는지 없이는 감지기를 못 고친다(§4.7). 초판은 `misfires: number` 로
+   *  세기만 해서 사람이 적은 `note` 가 원장에만 남고 아무 데도 안 나갔다
+   *  (2026-08-21 전수 검수에서 발견). */
+  misfires: MisfireRecord[];
   /** 다시 보고 닫은 기록들 (추가 전용). */
   /** 막기가 멈춰 있는 날짜 (YYYY-MM-DD). 지나면 저절로 다시 문다. */
   paused_until?: string;

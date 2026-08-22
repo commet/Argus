@@ -161,7 +161,7 @@ describe('갓 만든 금지는 사흘 동안 보기만 한다 (§4.7 관찰 모�
     expect(d.held_back).toHaveLength(1);
     // 관찰도 정지도 아니다 — 읽는 쪽이 "사흘 뒤엔 물겠구나"로 오해하면 안 된다.
     expect(d.held_back[0]!.why).toBe('unknown_date');
-    expect(sayHeldBack(d).join('')).toContain('오늘이 며칠인지 몰라');
+    expect(sayHeldBack(d).join('')).toContain('오늘이 며칠인지 몰랐다');
   });
 });
 
@@ -172,7 +172,7 @@ describe('사람이 멈춰 두면 안 막는다 — 그리고 그날이 지나�
     const d = decideBlock([paused], { kind: 'file', path: 'src/app/page.tsx' }, '2026-08-21');
     expect(d.block).toBe(false);
     expect(d.held_back[0]!.why).toBe('paused');
-    expect(sayHeldBack(d).join('\n')).toContain('2026-08-25까지 멈춰 두기로 해서');
+    expect(sayHeldBack(d).join('\n')).toContain('2026-08-25까지 멈춰 두기로 했다');
   });
 
   it('그날이 지나면 다시 막는다 — 다시 켜는 한 타가 따로 필요 없다', () => {
@@ -214,7 +214,7 @@ describe('멈추는 문 — 잠긴 문이 아니라 발자국이 남는 문이�
     await runDecPauseCli(['--argus-dir', dir, '--id', 'D-0001', '--until', '2026-08-25', '--why', '리팩터 중이라 온통 걸린다']);
     const after = await capture(() => runDecBlockCli(['--argus-dir', dir, '--file', 'src/app/x.tsx', '--today', TODAY]));
     expect(after['block']).toBe(false);
-    expect((after['say_held_back'] as string[]).join('\n')).toContain('멈춰 두기로 해서');
+    expect((after['say_held_back'] as string[]).join('\n')).toContain('멈춰 두기로 했다');
   });
 
   it('끝날 날 없이는 못 멈춘다 — 무기한 정지는 이름만 다른 폐지다', async () => {

@@ -55,7 +55,14 @@ export function sayAsk(item: DueItem, argusDir?: string): string[] {
     // 조용해서 묻는 것이면 머리에서 이미 말했다 — 두 번 말하지 않는다.
     lines.push('  그 뒤로 한 번도 안 걸렸다.');
   }
-  if (record.misfires > 0) lines.push(`  잘못 잡았다고 ${record.misfires}번 말했다.`);
+  if (record.misfires.length > 0) {
+    // 다시 볼 때가 **감지기를 좁힐지 정하는 자리**다. 그러려면 무엇이 잘못
+    // 걸렸는지가 눈앞에 있어야 한다 — 숫자만으로는 못 정한다.
+    const last = record.misfires.at(-1)!;
+    lines.push(`  잘못 잡았다고 ${record.misfires.length}번 말했다 (마지막 ${last.at.slice(0, 10)} · ${last.where} 에서 "${last.matched}").`);
+    const noted = record.misfires.filter((m) => m.note).at(-1);
+    if (noted) lines.push(`  그때 내가 적은 것: ${noted.note}`);
+  }
   if (record.pauses.length > 0) {
     // §4.7: 우회는 되고 감사는 남고 **다음 정산에 묻힌다.** 여기가 그 자리다.
     const last = record.pauses.at(-1)!;

@@ -2,7 +2,7 @@ import { readLedgerRaw } from '../lib/ledger-replay.js';
 import { isValidScope } from './scope.js';
 import { watchProblems, type WatchRule } from './watch/rule.js';
 import type {
-  Amendment, DecAmendedPayload, DecFiredPayload, DecPausedPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload,
+  Amendment, DecAmendedPayload, DecFiredPayload, DecMisfirePayload, DecPausedPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload,
   DecisionRecord, DecisionType, OriginPointer, Unattended, WatchMode,
 } from './types.js';
 
@@ -135,7 +135,7 @@ export function foldDecisions(argusDir: string): DecFoldResult {
         ...(str(p.source) ? { source: p.source! } : {}),
         ...(str(p.source_origin) ? { source_origin: p.source_origin! } : {}),
         ...(p.effective_now === true ? { effective_now: true } : {}),
-        amendments: [], fires: [], misfires: 0, reviews: [], pauses: [],
+        amendments: [], fires: [], misfires: [], reviews: [], pauses: [],
       });
       continue;
     }
@@ -153,7 +153,16 @@ export function foldDecisions(argusDir: string): DecFoldResult {
     }
 
     if (event === 'dec_misfire') {
-      record.misfires += 1;
+      const p = payload as Partial<DecMisfirePayload>;
+      record.misfires.push({
+        at,
+        matched: str(p.matched) ?? '무엇이 걸렸는지 안 남았다',
+        where: str(p.where) ?? '어디였는지 안 남았다',
+        // 사람이 쓴 것만. 없으면 없는 채로 둔다 — 기계가 지어내지 않는다.
+        ...(str(p.note) ? { note: p.note! } : {}),
+        // 사람이 쓴 것만. 없으면 없는 채로 둔다 — 기계가 지어내지 않는다.
+        
+      });
       continue;
     }
 

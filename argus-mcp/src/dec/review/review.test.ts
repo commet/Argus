@@ -4,9 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { dueDecisions, QUIET_DAYS } from './due.js';
 import { DEC_BIN, sayAsk } from './ask.js';
-import { signDecision, reviewDecision } from '../write.js';
+import { signDecision, reviewDecision, recordMisfire } from '../write.js';
 import { foldDecisions } from '../fold.js';
-import { runDecDueCli, runDecCloseCli, runDecAmendCli } from '../dec-cli.js';
+import { runDecDueCli, runDecCloseCli, runDecAmendCli, runDecBriefCli } from '../dec-cli.js';
 import { renderDecisionBody } from '../render.js';
 import { makeRecord } from '../test-helpers.js';
 import type { DecisionRecord, DecSignedPayload } from '../types.js';
@@ -199,6 +199,41 @@ describe('닫기 — 원장에 사건으로 쌓인다', () => {
     expect(renderDecisionBody(record)).toContain('범위를 좁게 잡으니 덜 걸렸다');
   });
 
+  /**
+   * 오탐 메모는 §4.7 이 "감지기를 고치는 입구"라 부른 것이다. 초판은 fold 가
+   * **개수만 세고** matched·where·note 를 버려서, 사람이 적은 문장이 원장에만
+   * 남고 어느 화면에도 안 나갔다 (2026-08-21 전수 검수에서 발견).
+   */
+  it('잘못 잡았다고 적은 것이 다시 물을 때 눈앞에 온다', async () => {
+    await sign('D-0001');
+    await recordMisfire(dir, 'D-0001', {
+      matched: '웹 화면', where: 'docs/note.md', note: '문서에서 말만 꺼낸 건데 걸렸다',
+    }, '2026-08-15T09:00:00.000Z');
+    const record = foldDecisions(dir).records.find((r) => r.id === 'D-0001')!;
+
+    expect(record.misfires).toHaveLength(1);
+    expect(record.misfires[0]!.note).toBe('문서에서 말만 꺼낸 건데 걸렸다');
+
+    const asked = sayAsk(dueDecisions([record], '2026-09-25')[0]!).join('\n');
+    expect(asked).toContain('docs/note.md');          // 어디였나
+    expect(asked).toContain('웹 화면');                // 무엇이 걸렸나
+    expect(asked).toContain('문서에서 말만 꺼낸 건데 걸렸다');  // 내가 적은 것
+
+    const file = renderDecisionBody(record);
+    expect(file).toContain('잘못 잡은 때');
+    expect(file).toContain('문서에서 말만 꺼낸 건데 걸렸다');
+  });
+
+  it('메모를 안 적었으면 없는 채로 둔다 — 기계가 지어내지 않는다', async () => {
+    await sign('D-0002');
+    await recordMisfire(dir, 'D-0002', { matched: '웹 화면', where: 'docs/x.md' },
+      '2026-08-15T09:00:00.000Z');
+    const record = foldDecisions(dir).records.find((r) => r.id === 'D-0002')!;
+    expect(record.misfires[0]!.note).toBeUndefined();
+    expect(sayAsk(dueDecisions([record], '2026-09-25')[0]!).join('\n'))
+      .not.toContain('그때 내가 적은 것');
+  });
+
   it('그만두기는 다시 보기가 아니라 폐지로 나간다 (화면대로 쳤을 때)', async () => {
     await sign('D-0001');
     await runDecCloseCli(['--argus-dir', dir, '--id', 'D-0001', '--sunset', '--why', '웹을 먼저 열기로 했다']);
@@ -233,6 +268,44 @@ describe('닫기 — 원장에 사건으로 쌓인다', () => {
     await sign('D-0001');
     await expect(runDecAmendCli(['--argus-dir', dir, '--id', 'D-0001', '--why', '그냥']))
       .rejects.toThrow(/바꿀 것을 하나는/);
+  });
+
+  /**
+   * 결정 파일 맨 아래가 *"고친 게 보이면 다음에 「이대로 바꿀까요?」 하고
+   * 묻는다"* 고 약속한다. 실측해 보니 **아무도 안 물었다** — 브리프도, 다음
+   * 쓰기 명령도, verify 도 (2026-08-21 전수 검수). 화면이 지키지 못할 약속을
+   * 하고 있었다.
+   */
+  it('파일을 손으로 고치면 세션이 열릴 때 그걸 말한다', async () => {
+    await sign('D-0001');
+    const file = path.join(dir, '..', 'decisions', 'D-0001.md');
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('# ', '# 내가 고친 '), 'utf8');
+
+    const write = process.stdout.write.bind(process.stdout);
+    let out = '';
+    (process.stdout as { write: unknown }).write = (chunk: string): boolean => { out += chunk; return true; };
+    try { runDecBriefCli(['--argus-dir', dir, '--cwd', path.dirname(dir), '--today', '2026-08-21', '--dry']); }
+    finally { (process.stdout as { write: unknown }).write = write; }
+
+    const parsed = JSON.parse(out) as { hand_edited: string[]; say: string[] };
+    expect(parsed.hand_edited).toEqual(['D-0001']);
+    const text = parsed.say.join('\n');
+    expect(text).toContain('손으로 고쳤다');
+    expect(text).toContain('덮어쓰지 않았다');
+    expect(text).toContain('이대로 결정을 바꿀까?');
+    expect(text).toContain('dec-amend --id D-0001');   // 약속한 그 물음이 실제 명령과 함께
+  });
+
+  it('안 고쳤으면 아무 말도 안 한다 (침묵이 기본)', async () => {
+    await sign('D-0002');
+    const write = process.stdout.write.bind(process.stdout);
+    let out = '';
+    (process.stdout as { write: unknown }).write = (chunk: string): boolean => { out += chunk; return true; };
+    try { runDecBriefCli(['--argus-dir', dir, '--cwd', path.dirname(dir), '--today', '2026-08-21', '--dry']); }
+    finally { (process.stdout as { write: unknown }).write = write; }
+    const parsed = JSON.parse(out) as { hand_edited: string[]; say: string[] };
+    expect(parsed.hand_edited).toEqual([]);
+    expect(parsed.say.join('\n')).not.toContain('손으로 고쳤다');
   });
 
   it('dec-due 가 내는 명령은 그대로 복사해서 칠 수 있다', async () => {

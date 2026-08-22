@@ -44,11 +44,16 @@ export function sayHeldBack(decision: BlockDecision): string[] {
   if (decision.held_back.length === 0) return [];
   const lines: string[] = [];
   for (const h of decision.held_back) {
+    // **법을 괄호 안에 넣지 않는다.** 처음엔 한 줄 끝에 `(${'decision'})` 로
+    // 붙였는데, 법이 200자라 터미널에서 네 줄로 접혀 읽을 수 없었다
+    // (2026-08-21 전수 검수). 막는 글(`sayBlock`)과 같은 모양으로 맞춘다.
+    lines.push(`${h.id}  ${h.decision}`);
     lines.push(h.why === 'paused'
-      ? `${h.id} 에 걸렸다. ${h.until}까지 멈춰 두기로 해서 안 막았다. (${h.decision})`
+      ? `  걸렸지만 안 막았다 — ${h.until}까지 멈춰 두기로 했다.`
       : h.why === 'observing'
-        ? `${h.id} 에 걸렸다. 아직 보고만 있다 — ${h.until}부터 막는다. (${h.decision})`
-        : `${h.id} 에 걸렸다. 오늘이 며칠인지 몰라 안 막았다. (${h.decision})`);
+        ? `  걸렸지만 안 막았다 — 아직 보고만 있다. ${h.until}부터 막는다.`
+        : '  걸렸지만 안 막았다 — 오늘이 며칠인지 몰랐다.');
+    lines.push(`  걸린 데: ${h.matched}`);
   }
   return lines;
 }

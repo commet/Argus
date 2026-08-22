@@ -131,6 +131,26 @@ export function syncDecisionFiles(argusDir: string, folded?: DecFoldResult): Syn
 /**
  * 원장에서 전부 다시 만들어 바이트로 비교한다 — 파일과 기록이 같다는 증명.
  */
+/**
+ * 손으로 고친 결정 파일을 **말로** 옮긴다.
+ *
+ * 결정 파일 맨 아래가 *"고친 게 보이면 다음에 「이대로 바꿀까요?」 하고
+ * 묻는다"* 라고 약속한다. 초판은 그 약속을 지킬 문장이 없었다 —
+ * `hand_edited` 가 JSON 에만 담기고 어느 화면에도 안 나갔다
+ * (2026-08-21 전수 검수에서 실측: 브리프도 · 다음 쓰기 명령도 · verify 도
+ * 한 마디 안 했다). 내보낸 규칙 파일 쪽에는 이미 `sayExport` 가 있었다.
+ */
+export function sayHandEdited(ids: readonly string[]): string[] {
+  if (ids.length === 0) return [];
+  const which = ids.join(' · ');
+  return [
+    `${which} 의 파일을 손으로 고쳤다. 덮어쓰지 않았다 — 고친 그대로 있다.`,
+    '이대로 결정을 바꿀까? 그러면: ' +
+      ids.map((id) => `argus-decision-mcp dec-amend --id ${id} --decision "<파일에 쓴 문장>" --why "<왜 바꾸나>"`).join(' / '),
+    '아니면 파일을 지우고 다시 그리면 원래대로 돌아온다.',
+  ];
+}
+
 export function verifyDecisionFiles(argusDir: string): VerifyResult {
   const fold = foldDecisions(argusDir);
   const dir = decisionsDir(argusDir);

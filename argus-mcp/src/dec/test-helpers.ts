@@ -19,7 +19,7 @@ export function makeRecord(id: string, extra: Partial<DecisionRecord> = {}): Dec
     id, type: 'pin', decision: `${id} 의 문장`, scope: 'repo', binds: '나', author: '나',
     provenance: 'user', adopted: '2026-08-01', unattended: 'park', watch: 'inject_only',
     status: 'active',
-    amendments: [], fires: [], misfires: 0, reviews: [], pauses: [],
+    amendments: [], fires: [], misfires: [], reviews: [], pauses: [],
     ...extra,
   };
 }

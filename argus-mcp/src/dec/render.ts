@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { scopeSay } from './scope.js';
+import { MISFIRE_LIMIT } from './check/speak.js';
 import type { DecisionRecord } from './types.js';
 
 /**
@@ -185,11 +186,19 @@ export function renderDecisionBody(record: DecisionRecord): string {
     if (record.fires.length > 5) out.push(`- … 그전에도 ${record.fires.length - 5}번`);
     out.push('');
   }
-  if (record.misfires > 0) {
-    out.push(`잘못 잡았다고 ${record.misfires}번 들었다.`,
-      record.misfires >= 3
-        ? '그래서 이 규칙은 지금 말하기를 멈췄다. 어긋난 걸 아는 방법을 고치면 다시 말한다.'
-        : '', '');
+  if (record.misfires.length > 0) {
+    out.push('## 잘못 잡은 때', '');
+    out.push(`잘못 잡았다고 ${record.misfires.length}번 적었다.`, '');
+    // **무엇이 잘못 걸렸는지를 보여준다.** 숫자만 있으면 감지기를 못 고친다.
+    for (const m of record.misfires.slice(-5)) {
+      out.push(`- **${m.at.slice(0, 10)}** — ${m.where} 에서 "${m.matched}"`
+        + (m.note ? `\n  내가 적은 것: ${m.note}` : ''));
+    }
+    if (record.misfires.length > 5) out.push(`- … 그전에도 ${record.misfires.length - 5}번`);
+    out.push('');
+    if (record.misfires.length >= MISFIRE_LIMIT) {
+      out.push('그래서 이 규칙은 지금 말하기를 멈췄다. 어긋난 걸 아는 방법을 고치면 다시 말한다.', '');
+    }
   }
 
   if (record.pauses.length > 0) {

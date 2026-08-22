@@ -5,6 +5,8 @@ import path from 'node:path';
 import { runDecSignCli } from './dec-cli.js';
 import { foldDecisions } from './fold.js';
 import { splitRuleFile } from './rules/split.js';
+import { amendDecision, signDecision } from './write.js';
+import type { DecSignedPayload } from './types.js';
 
 /**
  * 확인 한 타 (단계 5) — 이미 쓰고 있던 조항 하나를 법으로 만드는 자리.
@@ -138,5 +140,41 @@ describe('확인 한 타 — 조항 하나가 법이 된다', () => {
     await sign(['--from-clause', clauseIdFor('웹 화면은 나중에')]);
     await sign(['--from-clause', clauseIdFor('함부로 추론하거나')]);
     expect(foldDecisions(argusDir).records.map((r) => r.id)).toEqual(['D-0001', 'D-0002']);
+  });
+});
+
+describe('범위가 나쁘면 법이 되지 않는다 (다른 프로젝트 규칙이 안 섞이는 근거)', () => {
+  /**
+   * `isValidScope` 자체는 rules.test.ts 가 지킨다. 여기서 지키는 것은 **서명이
+   * 그것을 실제로 부르는가** 다 — 함수가 옳은 것과 호출처가 그것을 쓰는 것은
+   * 다른 사실이고, 이 저장소가 "생산된 필드는 dead-on-arrival" 이라 부른 병이
+   * 정확히 그 틈이다 (2026-08-21 전수 검수에서 이 자리에 테스트가 0건이었다).
+   */
+  let dir: string;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dec-scope-'));
+    fs.mkdirSync(path.join(dir, 'ledger'), { recursive: true });
+  });
+  afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+
+  const bad = ['', 'task:pr', '/etc/passwd', 'path:../밖으로', 'path:/절대경로', 'repository'];
+  for (const scope of bad) {
+    it(`"${scope}" 은 거절된다`, async () => {
+      await expect(signDecision(dir, 'D-0001', {
+        type: 'pin', decision: '무엇을 한다', scope, binds: '나', author: '나',
+        provenance: 'user', adopted: '2026-08-01', unattended: 'park',
+        watch: 'inject_only', review: '2026-09-01',
+      } as DecSignedPayload, '2026-08-01T00:00:00.000Z')).rejects.toThrow(/BAD_SCOPE/);
+    });
+  }
+
+  it('개정으로도 나쁜 범위를 밀어 넣을 수 없다', async () => {
+    await signDecision(dir, 'D-0001', {
+      type: 'pin', decision: '무엇을 한다', scope: 'repo', binds: '나', author: '나',
+      provenance: 'user', adopted: '2026-08-01', unattended: 'park',
+      watch: 'inject_only', review: '2026-09-01',
+    } as DecSignedPayload, '2026-08-01T00:00:00.000Z');
+    await expect(amendDecision(dir, 'D-0001', { scope: 'task:pr', why: '옮긴다' },
+      '2026-08-02T00:00:00.000Z')).rejects.toThrow(/BAD_SCOPE/);
   });
 });

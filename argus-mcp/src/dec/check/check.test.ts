@@ -192,7 +192,7 @@ describe('끝까지 — 걸리면 기록에 남고, 잘못 잡으면 조용해�
     for (let i = 0; i < 3; i += 1) {
       await recordMisfire(argusDir, 'D-0001', { matched: 'src/app/**', where: 'src/app/a.tsx' }, NOW);
     }
-    expect(foldDecisions(argusDir).records[0]?.misfires).toBe(3);
+    expect(foldDecisions(argusDir).records[0]?.misfires).toHaveLength(3);
     await check(['--file', 'src/app/page.tsx']);
     expect(last()).toMatchObject({ spoke: false, why_silent: 'too_many_misfires' });
     expect(fs.readFileSync(path.join(repo, 'decisions', 'D-0001.md'), 'utf8'))
