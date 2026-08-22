@@ -63,6 +63,8 @@
 로컬 초록이 CI 초록이 아니다. 두 번 다 **안 돌린 검사**에서 걸렸다.
 
 ```bash
+git fetch origin main                           # ← 먼저. 안 하면 아래 대조 검사가
+                                                #    낡은 기준으로 엉뚱한 답을 낸다 (§6-15)
 cd argus-mcp && npx tsc --noEmit && npm test    # 엔진
 cd argus-mcp && npm run verify                 # src/lib/ 를 고쳤으면 필수 (§6-9)
 npm test                                        # ← 루트. **MIT 존만 고쳤어도 돈다** (§6-12)
@@ -433,6 +435,16 @@ projection만 산다."* 우리가 예전에 같은 답에 도달했던 것이다
     그대로 치면 안 도는 형태인데, 내 테스트가 `toContain('dec misfire D-0001')`
     로 그걸 고정하고 있었다. **화면 글을 검사할 때는 "지금 나오는 것"이 아니라
     "쳐서 도는 것"을 적는다.**
+
+15. **기준을 안 받아오고 돌린 검사는 초록이든 빨강이든 뜻이 없다.** `origin/main`
+    과 대조하는 검사(`check-capability-duplication` · `zone-purity` ·
+    `check-reachability`)는 로컬 `origin/main` 이 낡으면 **엉뚱한 답**을 낸다.
+    2026-08-22 에 능력 중복 검사기가 로컬에서 *"새로 추가된 소스 파일 0개 —
+    검사할 것이 없습니다"* 로 **가짜 초록**을 냈다. 같은 원인의 위양성은
+    `docs/receipts/2026-08-16-g-agent-argus` 에 이미 기록돼 있다 (2회째).
+    **위양성보다 위음성이 나쁘다** — 빨간불은 다시 보게 만들지만 초록불은
+    그냥 넘어가게 만든다. 이런 검사를 돌리기 전에 `git fetch origin main` 을
+    먼저 친다.
 
 ## §7. 안 만들 것 (명시)
 
