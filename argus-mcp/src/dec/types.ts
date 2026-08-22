@@ -7,6 +7,11 @@
  *  - `DecisionRecord` — 그 사건들을 접어서 나온 **현재 상태** (파일이 이걸 그린다)
  *
  * 낱말은 전부 기획서 §12 낱말 상자에서 왔다. 새로 만든 것 없음.
+ *
+ * **여기는 원장을 만들지 않는다 — 원장에 실릴 것의 *모양*만 적는다.** 추가 전용
+ * 원장 자체는 `argus-mcp/src/v2/ledger.ts` 와 `method-harness/ledger.ts` 가
+ * 이미 갖고 있고, 이 제품의 쓰기는 전부 `lib/ledger-append.ts` 한 관문을
+ * 지난다(`src/dec/write.ts`). 그 구현을 다시 쓰지 않는 이유가 그것이다.
  */
 
 import type { WatchRule } from './watch/rule.js';
