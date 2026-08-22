@@ -19,6 +19,81 @@ async function main() {
     await runCaptureCli(process.argv.slice(3));
     return;
   }
+  if (process.argv[2] === 'dec-due') {
+    const { runDecDueCli } = await import('./dec/dec-cli.js');
+    runDecDueCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-close') {
+    const { runDecCloseCli } = await import('./dec/dec-cli.js');
+    await runDecCloseCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-amend') {
+    const { runDecAmendCli } = await import('./dec/dec-cli.js');
+    await runDecAmendCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-export') {
+    const { runDecExportCli } = await import('./dec/dec-cli.js');
+    runDecExportCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-pause') {
+    const { runDecPauseCli } = await import('./dec/dec-cli.js');
+    await runDecPauseCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-block') {
+    const { runDecBlockCli } = await import('./dec/dec-cli.js');
+    runDecBlockCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-check') {
+    const { runDecCheckCli } = await import('./dec/dec-cli.js');
+    await runDecCheckCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-misfire') {
+    const { runDecMisfireCli } = await import('./dec/dec-cli.js');
+    await runDecMisfireCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-brief') {
+    const { runDecBriefCli } = await import('./dec/dec-cli.js');
+    runDecBriefCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-sign') {
+    const { runDecSignCli } = await import('./dec/dec-cli.js');
+    await runDecSignCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-rehearse') {
+    const { runDecRehearseCli } = await import('./dec/dec-cli.js');
+    runDecRehearseCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-scan-rules') {
+    const { runDecScanRulesCli } = await import('./dec/dec-cli.js');
+    runDecScanRulesCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-sync') {
+    const { runDecSyncCli } = await import('./dec/dec-cli.js');
+    runDecSyncCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'dec-verify') {
+    const { runDecVerifyCli } = await import('./dec/dec-cli.js');
+    runDecVerifyCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'capture-drain') {
+    const { runCaptureDrainCli } = await import('./v2/capture-cli.js');
+    await runCaptureDrainCli(process.argv.slice(3));
+    return;
+  }
   if (process.argv[2] === 'capture-status') {
     const { runCaptureStatusCli } = await import('./v2/capture-cli.js');
     runCaptureStatusCli(process.argv.slice(3));

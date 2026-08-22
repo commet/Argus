@@ -221,6 +221,20 @@ jobs:
         if: github.event_name == 'pull_request'
         run: node scripts/check-capability-duplication.mjs "origin/${{ github.base_ref }}"
 
+      # 도달성 래칫 — 진입점에서 못 닿는 소스가 늘지 않게 막는다.
+      # 2026-08-19: 아무도 재고 있지 않아서 앱 존 13,697줄·MIT 존 2,053줄이 조용히
+      # 쌓였고, 그중 36,212줄짜리 빌드 산출물까지 커밋되어 있었다. 커버리지 래칫과
+      # 같은 방식으로 잠근다 — 기준선보다 늘면 실패. 판정은 docs/ARGUS-MAP 이 한다.
+      - name: Reachability ratchet
+        run: node scripts/check-reachability.mjs
+
+      # 런타임 순환 import 래칫 — 순환이 있으면 "누가 먼저인지"를 읽어서 알 수 없고,
+      # ARGUS-CORE.md §2 의 단 하나의 규칙(위는 아래를 알고 아래는 위를 모른다)이
+      # 그 자리에서 깨진다. 타입 순환(`import type`, 컴파일에서 지워짐)은 세지 않는다 —
+      # 합쳐 세면 3개가 19개가 되고, 과장된 경보는 꺼진 경보와 같다.
+      - name: Import cycle ratchet
+        run: node scripts/check-cycles.mjs
+
       # Enforcement gates — the architectural check that the verify / route-contract /
       # flat gates hold in session artifacts (prose rules are a floor, not enforcement).
       - name: Argus enforcement gates
@@ -249,6 +263,34 @@ jobs:
       # transcript window, caps, outcome-only path, opt-out.
       - name: Argus sense hook
         run: node argus-plugin-v2/scripts/sense-signal.test.mjs
+
+      # Conversation capture must run WITHOUT anyone asking for it (N6). The queue
+      # was already filled automatically by the SessionStart hook, but draining it
+      # — actually reading the conversation into candidates — only happened inside
+      # the check_in tool, i.e. when the model decided to call it. This Stop hook
+      # moves that trigger into deterministic wiring; the test pins that it fires,
+      # stays silent, never waits, and is actually registered in hooks.json.
+      - name: Argus capture sweep hook
+        run: node argus-plugin-v2/hooks/capture-sweep.test.mjs
+
+      # What the user has decided here must reach the agent at session start —
+      # rotated (so quiet-but-live rules don't starve), scoped to the current
+      # working directory (the rotation slot was measured as the single largest
+      # cross-project leak), and stating how many are NOT in the window so the
+      # agent never treats the visible list as the whole law.
+      - name: Argus decision brief hook
+        run: node argus-plugin-v2/hooks/dec-brief.test.mjs
+
+      # A signed rule that fires must INFORM, never block (blocking is a later,
+      # separately-signed layer). The gate that decides whether to speak runs
+      # before the wording: once per decision per session, at most three times a
+      # day, and a rule told "wrong catch" three times goes quiet until its
+      # detector is repaired — over-firing kills the tool faster than silence.
+      - name: Argus decision watch hook
+        run: node argus-plugin-v2/hooks/dec-watch.test.mjs
+
+      - name: Argus decision block hook
+        run: node argus-plugin-v2/hooks/dec-block.test.mjs
 
       # Enforcement is a HARD BLOCK, not advisory (CLI exits non-zero on a violation).
       - name: Argus enforcement hard-block

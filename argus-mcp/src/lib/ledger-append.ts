@@ -16,7 +16,12 @@ export interface LedgerEventInput {
   id: string;
   /** watch_anchor / watch_capture are 당직-loop events (BLUEPRINT §9): outside
    *  the decision state machine, so they bypass guardTransition by design. */
-  event: LedgerEventType | 'gate_input' | 'watch_anchor' | 'watch_capture';
+  event: LedgerEventType | 'gate_input' | 'watch_anchor' | 'watch_capture'
+    /** 결정 장부(기획 v5)의 사건 셋. 옛 예측 상태기계 밖이라 guardTransition 을
+     *  거치지 않는다 — `gate_input`·`watch_*` 와 같은 자리다. 접는 것은
+     *  `src/dec/fold.ts` 이고, 옛 replay 는 알면서 건너뛴다. */
+    | 'dec_signed' | 'dec_amended' | 'dec_repealed' | 'dec_fired' | 'dec_misfire' | 'dec_reviewed'
+    | 'dec_paused';
   predicate?: string;
   check_by?: string;
   decision?: string;
@@ -31,6 +36,10 @@ export interface LedgerEventInput {
   dismiss_reason?: string;
   /** gate audit (over-fire inputs) — meta event, ignored by replay (N3 counts unknowns; gate_input is known-meta) */
   gate?: Record<string, unknown>;
+  /** 결정 장부의 짐 — 한 칸에 중첩해 싣는다(`materiality_rule` 과 같은 선례).
+   *  스키마를 넓히지 않으므로 옛 판이 읽어도 깨지지 않는다. 모양은
+   *  `src/dec/types.ts` 의 DecPayload. */
+  dec?: unknown;
   // ── living premises (plan v5 §6.1) ──
   premise_id?: string;
   ordinal?: number;

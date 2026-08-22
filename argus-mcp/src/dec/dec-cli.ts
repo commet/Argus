@@ -1,0 +1,613 @@
+import path from 'node:path';
+import { sayHandEdited, syncDecisionFiles, verifyDecisionFiles } from './files.js';
+import fs from 'node:fs';
+import { discoverRuleFiles } from './rules/discover.js';
+import { clauseSentence, splitRuleFile, unmarkedBlocks, verifyClauseAnchors, type Clause, type SkippedBlock } from './rules/split.js';
+import { draftWatchFromClause } from './watch/draft.js';
+import { chooseWatch, compileWatchPrompt } from './watch/compile-prompt.js';
+import { collectPast } from './rehearse/collect.js';
+import { rehearse, sayRehearsal } from './rehearse/engine.js';
+import { amendDecision, pauseDecision, recordFire, recordMisfire, repealDecision, reviewDecision, signDecision } from './write.js';
+import { dueDecisions } from './review/due.js';
+import { sayAsk } from './review/ask.js';
+import { checkSubject } from './check/match.js';
+import { decideBlock } from './block/decide.js';
+import { emitExport, inspectExport } from './export/emit.js';
+import { sayBlock, sayHeldBack } from './block/say.js';
+import { decideSpeak, MISFIRE_LIMIT } from './check/speak.js';
+import { markSpoken, readSpoken } from './check/state.js';
+import { foldDecisions } from './fold.js';
+import type { DecAmendedPayload, DecSignedPayload, Unattended } from './types.js';
+import { planInjection } from './inject/select.js';
+import { sayInjection } from './inject/say.js';
+import { markShown, readShown } from './inject/state.js';
+
+function flag(args: readonly string[], name: string): string | null {
+  const index = args.indexOf(name);
+  return index >= 0 && typeof args[index + 1] === 'string' ? args[index + 1]! : null;
+}
+
+/**
+ * 모르는 깃발을 **조용히 무시하지 않는다.**
+ *
+ * 시운전에 `--clause <조항>` 을 줬더니 그냥 버려지고, 내가 안 물은 질문의 답이
+ * 답처럼 돌아왔다. 사람은 그게 자기 질문의 답인 줄 안다. CLAUDE.md 의
+ * LLM-glue 불변식이 이름 붙인 실패 그대로다 — **모든 공백은 크게 실패하거나
+ * 정직하게 드러난다.**
+ */
+function rejectUnknownFlags(args: readonly string[], command: string, known: readonly string[]): void {
+  const allowed = new Set(known);
+  const unknown = args.filter((a) => a.startsWith('--') && !allowed.has(a));
+  if (unknown.length > 0) {
+    throw new Error(`${command}: 모르는 깃발이다 — ${unknown.join(' ')}. 받는 것: ${known.join(' ')}`);
+  }
+}
+
+function argusDirOf(args: readonly string[], command: string): string {
+  const dir = flag(args, '--argus-dir');
+  if (!dir || !path.isAbsolute(dir)) throw new Error(`${command} requires an absolute --argus-dir`);
+  return dir;
+}
+
+/** 원장에서 결정 파일을 다시 그린다. 사람이 고친 파일은 손대지 않는다. */
+export function runDecSyncCli(args: readonly string[]): void {
+  process.stdout.write(JSON.stringify(syncDecisionFiles(argusDirOf(args, 'dec-sync'))) + '\n');
+}
+
+/**
+ * 파일과 기록이 같다는 것을 증명한다 — 전부 다시 만들어 바이트로 비교.
+ * **어긋나면 0 아닌 코드로 끝난다** (나중에 CI 관문으로 그대로 쓰인다).
+ */
+export function runDecVerifyCli(args: readonly string[]): void {
+  const result = verifyDecisionFiles(argusDirOf(args, 'dec-verify'));
+  const handEdited = result.files.filter((f) => f.verdict === 'hand_edited').map((f) => f.id);
+  process.stdout.write(JSON.stringify({ ...result, say: sayHandEdited(handEdited) }) + '\n');
+  if (!result.ok) process.exitCode = 1;
+}
+
+/**
+ * 이미 쓰고 있던 규칙 파일을 읽어 조항으로 갈라 낸다 — 역이식의 앞쪽 절반.
+ *
+ * **여기서 모델을 부르지 않는다.** 자르기만 하고, 이해하는 일(범위·어긋난 걸
+ * 아는 방법의 초안)은 사람이 확인하는 순간에 한 번 부른다.
+ *
+ * 읽을 과거가 없으면 지어내지 않고 **없다고 말한다** — 자격 거절의 재료다.
+ */
+export function runDecScanRulesCli(args: readonly string[]): void {
+  const repo = flag(args, '--repo');
+  if (!repo || !path.isAbsolute(repo)) throw new Error('dec-scan-rules requires an absolute --repo');
+  const found = discoverRuleFiles(repo);
+  const clauses: Clause[] = [];
+  const skipped: SkippedBlock[] = [];
+  const anchorsMissing: string[] = [];
+  /** 표지가 없어 후보로 안 올린 덩어리의 **원문**. 세기만 하고 감추면
+   *  "우리가 못 본 규칙"이 조용한 공백이 된다 — 다음 단계와 사람이 볼 수
+   *  있도록 그대로 돌려준다. */
+  const unmarked: Array<{ file: string; line_start: number; text: string }> = [];
+  for (const file of found.files) {
+    const source = fs.readFileSync(file.abs, 'utf8');
+    const split = splitRuleFile(file.rel, source);
+    clauses.push(...split.clauses);
+    skipped.push(...split.skipped);
+    anchorsMissing.push(...verifyClauseAnchors(source, split.clauses).missing);
+    unmarked.push(...unmarkedBlocks(source, split));
+  }
+  const skipped_by_reason: Record<string, number> = {};
+  for (const s of skipped) skipped_by_reason[s.why] = (skipped_by_reason[s.why] ?? 0) + 1;
+  // 조항 하나를 골라 `--compile-prompt <조항id>` 로 물으면, **그 조항을 어겼는지
+  // 무엇을 보면 아는지**를 에이전트에게 묻는 글이 나온다. 답은 `dec-sign
+  // --compiled '<json>'` 로 되돌아온다. 이 문이 없으면 감지 규칙은 결정론
+  // 초안 하나뿐이고, 초안은 짧은 명령 이름 같은 것을 잘 못 잡는다.
+  const wantPrompt = flag(args, '--compile-prompt');
+  const asked = wantPrompt ? clauses.find((c) => c.clause_id === wantPrompt) : undefined;
+  if (wantPrompt && !asked) throw new Error(`NO_SUCH_CLAUSE: ${wantPrompt}`);
+
+  process.stdout.write(JSON.stringify({
+    files: found.files.map((f) => ({ rel: f.rel, tool: f.tool, bytes: f.bytes })),
+    files_skipped: found.skipped,
+    clause_count: clauses.length,
+    skipped_by_reason,
+    // 원문이 파일에 그대로 있는지 바이트로 다시 본 결과. 비어 있어야 정상이다.
+    anchors_missing: anchorsMissing,
+    clauses,
+    unmarked,
+    ...(asked ? { compile_prompt: compileWatchPrompt(asked, draftWatchFromClause(asked)) } : {}),
+  }) + '\n');
+}
+
+/**
+ * 시운전 — 아직 아무것도 서명하지 않은 채로 **첫 60초**를 만드는 자리.
+ *
+ * 이미 쓰고 있던 규칙을 읽어서, 각각을 지난 기록에 대보고, 실제로 부딪힌
+ * 것들을 뜨거운 순으로 보여준다. 서명은 그걸 보고 나서 하는 일이다.
+ *
+ * 못 읽은 것이 있으면 숫자 옆에 같이 말한다 — 분모를 모르면 "5번"은 아무
+ * 뜻이 없다.
+ */
+export function runDecRehearseCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-rehearse', ['--argus-dir', '--repo', '--days', '--top', '--clause']);
+  const repo = flag(args, '--repo');
+  if (!repo || !path.isAbsolute(repo)) throw new Error('dec-rehearse requires an absolute --repo');
+  const days = Number(flag(args, '--days') ?? 30);
+  const top = Number(flag(args, '--top') ?? 5);
+  const only = flag(args, '--clause');
+  if (!Number.isFinite(days) || days <= 0) throw new Error('dec-rehearse --days must be a positive number');
+
+  const found = discoverRuleFiles(repo);
+  const all: Clause[] = [];
+  for (const file of found.files) {
+    all.push(...splitRuleFile(file.rel, fs.readFileSync(file.abs, 'utf8')).clauses);
+  }
+  // 조항 하나만 보겠다고 했으면 **그 하나가 없을 때 말해 준다** (빈 결과로 안 넘긴다).
+  if (only && !all.some((c) => c.clause_id === only)) {
+    throw new Error(`dec-rehearse --clause ${only} — 그런 조항이 이 저장소에 없다`);
+  }
+  const clauses = only ? all.filter((c) => c.clause_id === only) : all;
+
+  // 읽을 과거도 말 걸 표면도 없으면 **지어내지 않고 돌려보낸다**.
+  if (clauses.length === 0) {
+    process.stdout.write(JSON.stringify({
+      rule_files: found.files.map((f) => f.rel),
+      clause_count: 0,
+      say: ['이 도구가 읽을 규칙이 당신 환경에 없다.'],
+    }) + '\n');
+    return;
+  }
+
+  const collected = collectPast(repo, days);
+  const rehearsals = clauses.map((clause) => {
+    const draft = draftWatchFromClause(clause);
+    const result = rehearse(draft.rule, collected.past, { days, maxScenes: 3 });
+    return { clause, rule: draft.rule, result };
+  });
+
+  const collided = rehearsals.filter((r) => r.result.hit_count > 0);
+  // 뜨거운 순 — 부딪힌 날 수가 먼저다. 한 커밋에서 열 번보다 열흘에 걸쳐
+  // 세 번이 더 살아 있는 규칙이다.
+  collided.sort((a, b) =>
+    b.result.hit_days - a.result.hit_days || b.result.hit_count - a.result.hit_count);
+
+  const say: string[] = [];
+  say.push(`이미 쓰고 있던 규칙을 읽었다: ${found.files.map((f) => `${f.rel} ${all.filter((c) => c.file === f.rel).length}조`).join(' · ')}`);
+  if (only) say.push(`그중 ${only} 하나만 대 봤다.`);
+  say.push(`지난 ${days}일에 대보니 ${collided.length}건이 실제로 부딪혔다.`);
+  if (collected.gaps.length > 0) say.push(`다만 못 읽은 것이 있다: ${collected.gaps.join(' / ')}`);
+  say.push('');
+  for (const item of collided.slice(0, top)) {
+    say.push(`■ ${clauseSentence(item.clause.text, 78)}`);
+    for (const line of sayRehearsal(item.result)) say.push(`  ${line}`);
+    say.push('');
+  }
+
+  process.stdout.write(JSON.stringify({
+    rule_files: found.files.map((f) => f.rel),
+    clause_count: all.length,
+    days,
+    scanned: { file_changes: collected.past.filter((e) => e.kind === 'file_change').length,
+               utterances: collected.past.filter((e) => e.kind === 'utterance').length,
+               transcript_files: collected.sources.transcripts, git: collected.sources.git },
+    gaps: collected.gaps,
+    collided: collided.length,
+    not_watchable: rehearsals.filter((r) => r.result.not_watchable).length,
+    top: collided.slice(0, top).map((item) => ({
+      clause_id: item.clause.clause_id,
+      text: item.clause.text,
+      section: item.clause.section,
+      hit_count: item.result.hit_count,
+      hit_days: item.result.hit_days,
+      blind_spots: item.rule.blind_spots,
+      hits: item.result.hits,
+    })),
+    say,
+  }) + '\n');
+}
+
+/** 다음 결정 번호 — 이미 있는 것 중 가장 큰 수 +1. id 는 한 번 붙으면 안 바뀐다. */
+function nextDecisionId(argusDir: string): string {
+  let max = 0;
+  for (const record of foldDecisions(argusDir).records) {
+    const n = /^D-(\d+)$/.exec(record.id);
+    if (n) max = Math.max(max, Number(n[1]));
+  }
+  return `D-${String(max + 1).padStart(4, '0')}`;
+}
+
+/**
+ * 확인 한 타 — 이미 쓰고 있던 조항 하나를 **법으로 만든다.**
+ *
+ * 사람이 하는 일은 조항을 고르고 날짜를 정하는 것뿐이다. 나머지(문장·출처·
+ * 어긋난 걸 아는 방법 초안)는 기계가 조항에서 그대로 가져온다.
+ *
+ * 규율:
+ *  - **문장을 지어내지 않는다.** 결정 문장도 발원 장면도 규칙 파일에 그대로
+ *    있는 글자이고, 서명 직전에 **바이트로 다시 대조한다.**
+ *  - **이유를 강요하지 않는다.** `--because` 는 선택이다. 안 쓰면 그 자리는
+ *    비어 있고, 기계가 대신 채우지 않는다 (가장 지친 사용자가 이탈하면
+ *    소유권이 0이 된다 — 불변식은 정직한 출처지 강제 타이핑이 아니다).
+ *  - **기계가 못 잡는 조항이면 그렇게 서명된다.** 잡는 척하지 않는다.
+ */
+export async function runDecSignCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-sign');
+  const repo = flag(args, '--repo') ?? path.dirname(argusDir);
+  const clauseRef = flag(args, '--from-clause');
+  if (!clauseRef) throw new Error('dec-sign requires --from-clause <파일#조항id>');
+  const author = flag(args, '--author');
+  if (!author) throw new Error('dec-sign requires --author (서명자가 누구인지 없이 법이 되지 않는다)');
+
+  const [file] = clauseRef.split('#');
+  const target = discoverRuleFiles(repo).files.find((f) => f.rel === file);
+  if (!target) throw new Error(`NO_SUCH_RULE_FILE: ${file}`);
+  const source = fs.readFileSync(target.abs, 'utf8');
+  const clause = splitRuleFile(target.rel, source).clauses.find((c) => c.clause_id === clauseRef);
+  if (!clause) throw new Error(`NO_SUCH_CLAUSE: ${clauseRef}`);
+  // 서명 직전에 원문을 바이트로 다시 본다 — 읽은 뒤 파일이 바뀌었을 수 있다.
+  if (!source.includes(clause.text)) throw new Error(`CLAUSE_MOVED: ${clauseRef} 의 원문이 파일과 다르다`);
+
+  const draft = draftWatchFromClause(clause);
+  // 결정론 초안이 첫 안이고, **에이전트가 더 나은 답을 냈으면 그걸 쓴다**
+  // (`dec-scan-rules --compile-prompt` 가 물어보는 그 답이다). 답이 없거나
+  // 문이 안 열리면 조용히 초안으로 돌아간다 — 모델이 못 냈다고 서명이 막히면
+  // 안 되고, 못 낸 사실은 나가는 값에 적힌다.
+  const chosen = chooseWatch(draft, flag(args, '--compiled'));
+  const review = flag(args, '--review');
+  const reviewOnEvent = flag(args, '--review-on-event');
+  const unattended = (flag(args, '--unattended') ?? 'park') as Unattended;
+  const scope = flag(args, '--scope') ?? 'repo';
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const because = flag(args, '--because');
+
+  const payload: DecSignedPayload = {
+    type: (flag(args, '--type') ?? 'pin') as DecSignedPayload['type'],
+    decision: clauseSentence(clause.text),
+    scope,
+    binds: flag(args, '--binds') ?? author,
+    author,
+    provenance: 'user', // 문장이 사용자의 규칙 파일에서 그대로 왔다
+    adopted: today,
+    unattended,
+    watch: chosen.rule.mode,
+    watch_rule: chosen.rule,
+    origin: { kind: 'rule_file', ref: clauseRef, line_start: clause.line_start, line_end: clause.line_end },
+    quote: clause.text,
+    ...(review ? { review } : {}),
+    ...(reviewOnEvent ? { review_on_event: reviewOnEvent } : {}),
+    ...(because ? { because } : {}),
+  };
+
+  const id = flag(args, '--id') ?? nextDecisionId(argusDir);
+  const result = await signDecision(argusDir, id, payload, new Date().toISOString());
+  process.stdout.write(JSON.stringify({
+    ...result,
+    watch: chosen.rule.mode,
+    watch_from: chosen.source,
+    // 모델 답을 버렸으면 **왜 버렸는지** 말한다. 조용히 초안으로 돌아가면
+    // 사람은 자기가 고른 규칙이 들어간 줄 안다.
+    ...(chosen.problems.length > 0 ? { compiled_rejected: chosen.problems } : {}),
+    blind_spots: chosen.rule.blind_spots,
+    file: `decisions/${id}.md`,
+    // 사람이 안 쓴 것은 안 썼다고 말한다.
+    because_written: Boolean(because),
+  }) + '\n');
+}
+
+/**
+ * 세션이 열릴 때 펴 보일 것 — 단계 6.
+ *
+ * 회전이라 **매번 다른 것이 나온다.** 오래 안 펴 본 것부터 올라오므로, 조용히
+ * 잘 지켜지는 법이 굶어 죽지 않는다. 그리고 모든 슬롯은 지금 있는 자리에
+ * 걸리는 것부터 채운다 — 그 한 줄이 없으면 회전이 그대로 누설이 된다.
+ *
+ * `--dry` 면 펴 봤다는 표시를 안 남긴다 (사람이 그냥 보고 싶을 때).
+ */
+export function runDecBriefCli(args: readonly string[]): void {
+  const argusDir = argusDirOf(args, 'dec-brief');
+  const repoRoot = path.dirname(argusDir);
+  const cwd = flag(args, '--cwd') ?? repoRoot;
+  const cwdRel = path.relative(repoRoot, path.resolve(cwd)).replace(/\\/g, '/');
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const max = Number(flag(args, '--max') ?? 15);
+  const dry = args.includes('--dry');
+
+  const fold = foldDecisions(argusDir);
+  const plan = planInjection(fold.records, {
+    cwd_rel: cwdRel.startsWith('..') ? '' : cwdRel,
+    today, max, last_shown: readShown(argusDir),
+  });
+  if (!dry && plan.picks.length > 0) {
+    markShown(argusDir, plan.picks.map((p) => p.record.id), new Date().toISOString(),
+      fold.records.map((r) => r.id));
+  }
+  // **손으로 고친 파일은 세션이 열릴 때 말한다.** 판정 10 이 약속한 회수
+  // 경로의 입구다 — 여기서 안 말하면 사람이 고친 것을 아무도 안 묻는다.
+  const handEdited = verifyDecisionFiles(argusDir).files
+    .filter((f) => f.verdict === 'hand_edited').map((f) => f.id);
+  const say = [...sayHandEdited(handEdited), ...(handEdited.length > 0 ? [''] : []), ...sayInjection(plan)];
+
+  process.stdout.write(JSON.stringify({
+    shown: plan.picks.map((p) => ({ id: p.record.id, slot: p.slot })),
+    hand_edited: handEdited,
+    omitted: plan.omitted,
+    out_of_scope: plan.out_of_scope,
+    empty_slots: plan.empty_slots,
+    unreadable: fold.unreadable,
+    say,
+  }) + '\n');
+}
+
+/**
+ * 지금 하려는 일이 정해 둔 것에 걸리나 — 단계 7.
+ *
+ * 두 부름을 한 기계가 받는다:
+ *  - **미는 쪽** (훅): `--file <경로>` 또는 `--text <말>`. 말할지 말지까지 판정하고,
+ *    말하기로 하면 원장에 걸린 기록을 남긴다.
+ *  - **당기는 쪽** (에이전트): `--plan <계획>` + `--quiet`. 판정만 하고
+ *    아무것도 안 남긴다 — 물어보는 것이 발화가 되면 안 된다.
+ */
+export async function runDecCheckCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-check');
+  const file = flag(args, '--file');
+  const text = flag(args, '--text') ?? flag(args, '--plan');
+  const quiet = args.includes('--quiet') || flag(args, '--plan') !== null;
+  // 세션 번호를 안 주면 **모른다고 우리말로** 적는다. 'unknown' 은 나중에
+  // 다시 묻기 화면에 그대로 나갔다 — 화면에 기계 낱말을 안 쓴다(DESIGN.md).
+  const sessionId = flag(args, '--session-id') ?? '어느 세션인지 안 남았다';
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  if (!file && !text) throw new Error('dec-check requires --file <경로> or --text/--plan <말>');
+
+  const fold = foldDecisions(argusDir);
+  const result = checkSubject(fold.records, file ? { kind: 'file', path: file } : { kind: 'text', text: text! });
+  const misfires = Object.fromEntries(fold.records.map((r) => [r.id, r.misfires.length]));
+  const spoken = readSpoken(argusDir, today);
+  const decision = decideSpeak({
+    result,
+    spoken_this_session: spoken.sessions[sessionId] ?? [],
+    misfires,
+    spoken_today: spoken.count,
+  });
+
+  const spoke = decision.speak && !quiet;
+  if (spoke) {
+    markSpoken(argusDir, today, sessionId, decision.match.id);
+    await recordFire(argusDir, decision.match.id, {
+      channel: decision.match.channel,
+      matched: decision.match.matched,
+      where: file ?? sessionId,
+    }, new Date().toISOString());
+  }
+
+  process.stdout.write(JSON.stringify({
+    matches: result.matches.map((m) => ({ id: m.id, channel: m.channel, matched: m.matched })),
+    // "안 걸렸다"가 "괜찮다"가 아니다 — 기계가 못 보는 법이 몇 개인지 같이 말한다.
+    unwatchable: result.unwatchable,
+    // 말만 오갈 때 자리를 몰라 못 본 법의 수 — "안 걸렸다"가 "괜찮다"가 아니다.
+    scope_unknown: result.scope_unknown,
+    considered: result.considered,
+    /** 게이트의 판정 — 말할 만한 것인가. */
+    would_speak: decision.speak,
+    /** **실제로 말했나.** 물어보는 것(--plan·--quiet)은 발화가 아니다. */
+    spoke,
+    why_silent: decision.speak ? (spoke ? null : 'asked_not_told') : decision.why,
+    say: spoke ? decision.lines : [],
+  }) + '\n');
+}
+
+/** 잘못 잡았다 — 법이 아니라 감지기를 고치는 입구. */
+export async function runDecMisfireCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-misfire');
+  const id = flag(args, '--id');
+  if (!id) throw new Error('dec-misfire requires --id <결정 번호>');
+  const result = await recordMisfire(argusDir, id, {
+    matched: flag(args, '--matched') ?? '',
+    where: flag(args, '--where') ?? '',
+    ...(flag(args, '--note') ? { note: flag(args, '--note')! } : {}),
+  }, new Date().toISOString());
+  const record = foldDecisions(argusDir).records.find((r) => r.id === id);
+  process.stdout.write(JSON.stringify({
+    ...result,
+    misfires: record?.misfires.length ?? 0,
+    silenced: (record?.misfires.length ?? 0) >= MISFIRE_LIMIT,
+  }) + '\n');
+}
+
+/** 다시 볼 때가 된 것을 묻는다 — **그때 쓴 문장을 먼저 보여주고 나서.** */
+export function runDecDueCli(args: readonly string[]): void {
+  const argusDir = argusDirOf(args, 'dec-due');
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const max = Number(flag(args, '--max') ?? 3);
+  const fold = foldDecisions(argusDir);
+  const due = dueDecisions(fold.records, today);
+  const shown = due.slice(0, max);
+  const say: string[] = [];
+  for (const item of shown) { say.push(...sayAsk(item, argusDir), ''); }
+  if (due.length > shown.length) say.push(`다시 볼 것이 ${due.length - shown.length}건 더 있다.`);
+  process.stdout.write(JSON.stringify({
+    due: due.map((d) => ({ id: d.record.id, reason: d.reason, days: d.days })),
+    shown: shown.map((d) => d.record.id),
+    unreadable: fold.unreadable,
+    say,
+  }) + '\n');
+}
+
+/** 닫는다 — 다음에 볼 날 없이는 못 닫는다. */
+/**
+ * 다시 보고 닫는다 — **네 갈래가 화면에 적힌 그대로 여기 있어야 한다.**
+ *
+ * 처음 쓸 때 `--sunset` 을 화면에만 적고 여기 안 만들었다. 그러면 화면대로
+ * 친 사람이 `--next-review 가 필요하다` 는 소리를 듣거나, 둘 다 치면
+ * **그만두려던 것이 조용히 "그대로"로 기록된다.** 그만두기는 다시 보기가
+ * 아니라 폐지 사건이므로 `dec_repealed` 로 나간다 (불변식 ③ 추가 전용).
+ */
+export async function runDecCloseCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-close');
+  const id = flag(args, '--id');
+  if (!id) throw new Error('dec-close requires --id <결정 번호>');
+
+  if (args.includes('--sunset')) {
+    const why = flag(args, '--why');
+    if (!why) throw new Error('dec-close --sunset requires --why <왜 그만두는지 한 줄>');
+    const result = await repealDecision(argusDir, id, {
+      why, ...(flag(args, '--succeeded-by') ? { succeeded_by: flag(args, '--succeeded-by')! } : {}),
+    }, new Date().toISOString());
+    process.stdout.write(JSON.stringify({ ...result, outcome: 'sunset', why }) + '\n');
+    return;
+  }
+
+  const nextReview = flag(args, '--next-review');
+  if (!nextReview) throw new Error('dec-close requires --next-review <YYYY-MM-DD>');
+  if (args.includes('--later') && args.includes('--keep')) {
+    throw new Error('dec-close 는 --keep 과 --later 를 함께 받지 않는다 — 둘 중 하나다');
+  }
+  const outcome = args.includes('--later') ? 'later' : 'keep';
+  const result = await reviewDecision(argusDir, id, {
+    outcome, next_review: nextReview,
+    ...(flag(args, '--lesson') ? { lesson: flag(args, '--lesson')! } : {}),
+    // 기계가 추정하지 않는다 — 사람이 적은 것만 들어온다.
+    ...(flag(args, '--prevented') ? { prevented: flag(args, '--prevented')! } : {}),
+  }, new Date().toISOString());
+  process.stdout.write(JSON.stringify({
+    ...result, outcome, next_review: nextReview,
+    lesson_written: Boolean(flag(args, '--lesson')),
+    prevented_written: Boolean(flag(args, '--prevented')),
+  }) + '\n');
+}
+
+/**
+ * 문장을 바꾼다 — 다시 묻기 화면이 세 번째로 내미는 손잡이.
+ *
+ * **덮어쓰지 않는다.** 개정은 사건으로 쌓이고, 결정 파일은 "무엇이 무엇으로"
+ * 를 보여준다. 그래서 `--why` 없이는 못 바꾼다 (write.ts 가 막는다).
+ */
+export async function runDecAmendCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-amend');
+  const id = flag(args, '--id');
+  if (!id) throw new Error('dec-amend requires --id <결정 번호>');
+  const why = flag(args, '--why');
+  if (!why) throw new Error('dec-amend requires --why <왜 바꾸는지 한 줄>');
+
+  const payload: DecAmendedPayload = { why };
+  const put = (key: 'decision' | 'scope' | 'binds' | 'review' | 'review_on_event' | 'because', name: string): void => {
+    const value = flag(args, name);
+    if (value !== null) payload[key] = value;
+  };
+  put('decision', '--decision');
+  put('scope', '--scope');
+  put('binds', '--binds');
+  put('review', '--next-review');
+  put('review_on_event', '--review-on-event');
+  put('because', '--because');
+  const unattended = flag(args, '--unattended');
+  if (unattended === 'park' || unattended === 'log' || unattended === 'deny') payload.unattended = unattended;
+
+  const changed = Object.keys(payload).filter((k) => k !== 'why');
+  if (changed.length === 0) {
+    throw new Error('dec-amend 는 바꿀 것을 하나는 받아야 한다 (--decision · --scope · --binds · --next-review · --review-on-event · --because · --unattended)');
+  }
+  const result = await amendDecision(argusDir, id, payload, new Date().toISOString());
+  process.stdout.write(JSON.stringify({ ...result, changed, why }) + '\n');
+}
+
+/**
+ * 막을 것인가 — 훅이 사람의 손이 움직이기 **전에** 부른다 (단계 9, L3).
+ *
+ * `dec-check` 와 갈라 둔 이유: 저쪽은 *알린다*, 이쪽은 *막는다*. 같은 명령에
+ * 플래그로 붙이면 언젠가 알림 경로가 조용히 차단으로 승격된다.
+ *
+ * 나가는 값의 `block` 이 훅의 종료 코드를 정한다. **판정을 못 하면 안 막는다** —
+ * 원장을 못 읽었으면 `unreadable` 을 실어 보내고 `block:false` 다.
+ */
+export function runDecBlockCli(args: readonly string[]): void {
+  const argusDir = argusDirOf(args, 'dec-block');
+  // 이름은 `dec-check` 와 같게 둔다 — 훅 둘이 같은 낱말을 쓴다.
+  const file = flag(args, '--file');
+  const text = flag(args, '--text');
+  if (!file && !text) throw new Error('dec-block requires --file <파일> 또는 --text <말>');
+
+  const fold = foldDecisions(argusDir);
+  if (fold.unreadable) {
+    // 못 읽었으면 "걸린 게 없다"가 아니라 "모른다"다. 모를 때는 안 막는다.
+    process.stdout.write(JSON.stringify({
+      block: false, blocking: [], unreadable: fold.unreadable,
+      say: [], why_not: 'ledger_unreadable',
+    }) + '\n');
+    return;
+  }
+  const subject = file ? { kind: 'file' as const, path: file } : { kind: 'text' as const, text: text! };
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const decision = decideBlock(fold.records, subject, today);
+  process.stdout.write(JSON.stringify({
+    block: decision.block,
+    blocking: decision.blocking.map((m) => ({ id: m.id, matched: m.matched })),
+    held_back: decision.held_back,
+    matched_not_ban: decision.matched_not_ban,
+    unwatchable: decision.check.unwatchable,
+    scope_unknown: decision.check.scope_unknown,
+    say: sayBlock(decision),
+    say_held_back: sayHeldBack(decision),
+  }) + '\n');
+}
+
+/**
+ * 막는 것을 잠시 멈춘다 — **사람 전용 문**이지만 잠긴 문은 아니다 (§4.7).
+ *
+ * 터미널이 아니면 거절하지 않고 **기록에 `by_tty:false` 로 남긴다.** 기술로
+ * 잠그면 사람이 훅을 통째로 끄고, 그러면 아무 발자국도 안 남는다.
+ */
+export async function runDecPauseCli(args: readonly string[]): Promise<void> {
+  const argusDir = argusDirOf(args, 'dec-pause');
+  const id = flag(args, '--id');
+  if (!id) throw new Error('dec-pause requires --id <결정 번호>');
+  const until = flag(args, '--until');
+  if (!until) throw new Error('dec-pause requires --until <YYYY-MM-DD> — 끝날 날 없는 정지는 이름만 다른 폐지다');
+  const why = flag(args, '--why');
+  if (!why) throw new Error('dec-pause requires --why <왜 멈추는지 한 줄>');
+
+  const byTty = Boolean(process.stdin.isTTY);
+  const result = await pauseDecision(argusDir, id, { until, why, by_tty: byTty },
+    new Date().toISOString());
+  process.stdout.write(JSON.stringify({
+    ...result, until, by_tty: byTty,
+    say: byTty
+      ? [`${id} 을 ${until}까지 안 막는다. 그날이 지나면 저절로 다시 막는다.`]
+      : [`${id} 을 ${until}까지 안 막는다. 그날이 지나면 저절로 다시 막는다.`,
+         '터미널에서 온 것이 아니라고 기록에 남겼다 — 다음에 다시 볼 때 같이 나온다.'],
+  }) + '\n');
+}
+
+/**
+ * 규칙 파일을 내보낸다 (단계 9, N5).
+ *
+ * 평소에는 사람이 이걸 칠 일이 없다 — 장부가 바뀌면 `write.ts` 가 알아서
+ * 다시 방출한다. 이 명령이 있는 이유 둘: **처음 한 번**과 **손댄 걸 봤을 때**.
+ *
+ * `--check` 는 안 쓰고 상태만 본다. 손댄 것이 있으면 원장 쪽 본문과 나란히
+ * 돌려준다 — 어느 쪽을 남길지는 사람이 정한다 (개정으로 받거나, 다시 방출하거나).
+ */
+export function runDecExportCli(args: readonly string[]): void {
+  const argusDir = argusDirOf(args, 'dec-export');
+  const fold = foldDecisions(argusDir);
+  if (fold.unreadable) {
+    process.stdout.write(JSON.stringify({ unreadable: fold.unreadable, say: ['원장을 못 읽어서 내보내지 않았다.'] }) + '\n');
+    return;
+  }
+  if (args.includes('--check')) {
+    const state = inspectExport(argusDir, fold.records);
+    process.stdout.write(JSON.stringify({ ...state, say: sayExport(state.verdict, state.file) }) + '\n');
+    return;
+  }
+  const result = emitExport(argusDir, fold.records);
+  process.stdout.write(JSON.stringify({ ...result, say: sayExport(result.verdict, result.file, result.action) }) + '\n');
+}
+
+function sayExport(verdict: string, file: string, action?: string): string[] {
+  const where = path.basename(file);
+  if (verdict === 'hand_edited') {
+    return [
+      `${where} 의 아르고스 덩어리를 누가 손으로 고쳤다. 덮어쓰지 않았다.`,
+      '고친 내용을 결정으로 받으려면 `dec-amend` 로 결정을 고쳐라.',
+      '그 수정이 필요 없으면 그 덩어리를 지우고 다시 내보내면 된다.',
+    ];
+  }
+  if (action === 'unchanged') return [];
+  if (action === 'written') return [`${where} 에 정해 둔 것을 다시 적었다.`];
+  return [];
+}

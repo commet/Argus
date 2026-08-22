@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { registerRepository, readLedger } from './ledger.js';
-import { drainCaptureOnCheckIn } from './capture-runtime.js';
+import { drainCapture } from './capture-runtime.js';
 import { enqueue, readQueue } from './queue.js';
 
 let home: string;
@@ -50,7 +50,7 @@ describe('production check-in capture consumer', () => {
       itemId: 'harvest-session-1', transcriptPath: transcript(), sessionId: 'session-1',
     }, '2026-07-18T01:00:00.000Z');
 
-    const status = await drainCaptureOnCheckIn(path.join(repo, '.argus'), '2026-07-18');
+    const status = await drainCapture(path.join(repo, '.argus'), '2026-07-18');
 
     expect(status).toMatchObject({
       enabled: true,
@@ -67,7 +67,7 @@ describe('production check-in capture consumer', () => {
       itemId: 'harvest-session-2', transcriptPath: transcript(), sessionId: 'session-2',
     }, '2026-07-18T01:00:00.000Z');
 
-    const status = await drainCaptureOnCheckIn(path.join(repo, '.argus'), '2026-07-18');
+    const status = await drainCapture(path.join(repo, '.argus'), '2026-07-18');
 
     expect(status).toMatchObject({ enabled: false, queue_counts: { pending: 1 } });
     expect(status.last_drain).toBeUndefined();

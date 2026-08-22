@@ -204,6 +204,28 @@ function freshEntry(id: string): ContractEntry {
  * Fold the ledger into contract states as of `today` (YYYY-MM-DD).
  * `today` is passed in (never read here) so replay is fully deterministic.
  */
+/**
+ * 원장 파일의 줄을 **읽기만** 한다 — 접는 것은 부르는 쪽의 일이다.
+ *
+ * 이걸 따로 뽑은 이유: 결정 장부의 접기(`src/dec/fold.ts`)가 같은 파일을 읽는데,
+ * 여기 있는 읽기 규율이 사소해 보이지만 전부 사고에서 나온 것이다 —
+ * 파일 맨 앞의 BOM, **줄마다 붙는** BOM(윈도우 PowerShell 이 `>>` 로 같은 원장에
+ * 쓰면 그렇게 된다), 그리고 "없다(ENOENT)"와 "못 읽었다"의 구분. 두 번째 독자가
+ * 이걸 다시 구현하면 그 사고를 다시 겪는다.
+ */
+export function readLedgerRaw(argusDir: string): { lines: string[]; missing?: true; unreadable?: string } {
+  let raw: string;
+  try {
+    raw = deBom(fs.readFileSync(ledgerPath(argusDir), 'utf8'));
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException)?.code;
+    return code === 'ENOENT' ? { lines: [], missing: true } : { lines: [], unreadable: code ?? 'UNKNOWN' };
+  }
+  return {
+    lines: raw.split('\n').map((l) => (l.charCodeAt(0) === 0xfeff ? l.slice(1) : l)),
+  };
+}
+
 export function replayLedger(argusDir: string, today: string): LedgerState {
   const ids = new Set<string>();
   const sealedPredicates = new Set<string>();
@@ -220,30 +242,20 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   const everSealed = new Set<string>();
   const watch: WatchState = { anchors: new Map(), captures: [] };
 
-  let raw: string;
-  try {
-    raw = deBom(fs.readFileSync(ledgerPath(argusDir), 'utf8'));
-  } catch (e) {
+  const rawRead = readLedgerRaw(argusDir);
+  if (rawRead.missing || rawRead.unreadable) {
     // ENOENT is the ONLY benign case: no ledger yet, so "nothing on record" is
     // the truth. Every other errno means we could not look — and an empty fold
     // with `dropped_lines: 0` would be a lie that also unlocks a second seal
     // (deriveState sees `absent`). Carry the fact so read surfaces can say it
     // and write paths can refuse.
-    const code = (e as NodeJS.ErrnoException)?.code;
-    const benign = code === 'ENOENT';
     return {
       today, overdue: [], ids, sealedPredicates, contracts: map, stats, watch,
-      integrity: { dropped_lines: 0, skipped_unknown: 0, ...(benign ? {} : { unreadable: code ?? 'UNKNOWN' }) },
+      integrity: { dropped_lines: 0, skipped_unknown: 0, ...(rawRead.unreadable ? { unreadable: rawRead.unreadable } : {}) },
     };
   }
 
-  for (const rawLine of raw.split('\n')) {
-    // Strip a per-LINE BOM: deBom only removes one at byte 0, but a U+FEFF can
-    // ride the first line of a concatenated second file, or be prepended per
-    // append by a Windows PowerShell co-writer (>>/Out-File) sharing the ledger.
-    // JSON.parse('﻿{…}') throws, so without this a real settle line would
-    // be dropped and its outcome vanish from calibration.
-    const line = rawLine.charCodeAt(0) === 0xfeff ? rawLine.slice(1) : rawLine;
+  for (const line of rawRead.lines) {
     if (!line.trim()) continue;
     let ev: Record<string, unknown>;
     try {
@@ -258,7 +270,12 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     // opened — counting it made the first-use greeting vanish after a single
     // restrained argus_open_decision call (11 S7). Watch events (당직, §9) are
     // likewise NOT decisions — they must never count as one.
-    if (ev['event'] !== 'gate_input' && ev['event'] !== 'watch_anchor' && ev['event'] !== 'watch_capture') ids.add(id);
+    const metaEvent = ev['event'] === 'gate_input' || ev['event'] === 'watch_anchor' ||
+      ev['event'] === 'watch_capture' || ev['event'] === 'dec_signed' ||
+      ev['event'] === 'dec_amended' || ev['event'] === 'dec_repealed' ||
+      ev['event'] === 'dec_fired' || ev['event'] === 'dec_misfire' ||
+      ev['event'] === 'dec_reviewed' || ev['event'] === 'dec_paused';
+    if (!metaEvent) ids.add(id);
     // Record inception (P1-E7): ISO timestamps compare lexicographically.
     if (typeof ev['ts'] === 'string' && ev['ts'] && (!oldestTs || ev['ts'] < oldestTs)) oldestTs = ev['ts'];
 
@@ -535,6 +552,19 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         if (typeof ev['note'] === 'string') step.note = ev['note'];
         break;
       }
+
+      // 결정 장부(기획 v5)의 사건들. 이 되읽기는 예측 계약을 접는 자리라
+      // 관여하지 않는다 — 접는 것은 src/dec/fold.ts 다. **모르는 사건이 아니라
+      // 아는 남의 사건**이므로 skipped_unknown 으로 세지 않는다 (셌다면 옛
+      // 표면이 멀쩡한 원장을 두고 "모르는 줄이 쌓인다"고 말하게 된다).
+      case 'dec_signed':
+      case 'dec_amended':
+      case 'dec_repealed':
+      case 'dec_fired':
+      case 'dec_misfire':
+      case 'dec_reviewed':
+      case 'dec_paused':
+        break;
 
       case 'gate_input':
         break; // known meta event (over-fire gate audit) — not a state change, not corrupt
