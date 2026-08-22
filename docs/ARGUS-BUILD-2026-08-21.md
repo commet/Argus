@@ -70,6 +70,13 @@ node argus-plugin-v2/scripts/validate-plugin.js # 플러그인을 고쳤으면
 node argus-plugin-v2/hooks/<새 훅>.test.mjs      # 새 훅을 더했으면
 ```
 
+**`verify` 가 도는 동안 소스를 고치지 않는다** (2026-08-22 추가). 17분쯤 걸리는
+동안 손이 심심해서 다른 걸 고치면, 자기검증이 격리 사본과 원본을 바이트로
+대조하다가 *"원본을 바꿨다"* 로 죽는다. **제품이 아니라 계측이 오염된 것**이고,
+그 빨간불은 아무것도 말해 주지 않는다. 그날 실제로 그렇게 만들어 놓고 결과를
+기다릴 뻔했다 — 못 믿을 답을 기다리느니 죽이고 깨끗하게 다시 돌리는 게 빠르다
+(자기가 띄운 그 PID 만 종료한다. 이름으로 죽이지 않는다).
+
 ```bash
 node scripts/check-reachability.mjs                 # ← 새 파일을 더했으면 필수
 node scripts/check-capability-duplication.mjs origin/main
