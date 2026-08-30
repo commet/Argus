@@ -46,6 +46,35 @@ describe('결정 루프 E2E 손잡이', () => {
     });
   }
 
+  it('자격 거부 판정 문구가 앱의 실제 문구와 같다', () => {
+    // 이 정규식이 앱의 문구와 어긋나면 두 방향으로 다 나쁘다: 못 맞추면 자격
+    // 문제가 계속 제품 결함처럼 빨간불이 되고, 넓게 맞추면 진짜 로그인 회귀가
+    // 노란 경고로 묻힌다. 그래서 문구는 한 곳에서 온다.
+    const auth = read('src/lib/auth.tsx');
+    const ko = /ko:\s*'([^']*비밀번호[^']*)'/.exec(auth)?.[1];
+    expect(ko, "auth.tsx 에서 'Invalid login credentials' 한국어 문구를 못 찾았습니다").toBeTruthy();
+    expect(
+      script,
+      `E2E 의 CREDENTIALS_REJECTED 가 앱 문구("${ko}")와 어긋났습니다.`,
+    ).toContain(ko!.replace('.', '\\.'));
+  });
+
+  it('자격 거부는 앱 실패와 다른 출구로 나가고, 워크플로가 그것을 안다', () => {
+    // 한도 소진(3)과 같은 계열의 4번 출구. 한쪽만 남으면 계약이 깨진다 —
+    // 스크립트가 4로 나가는데 워크플로가 모르면 그대로 빨간불이고, 워크플로만
+    // 알면 그 분기는 영원히 죽은 코드다.
+    expect(script, 'decision-loop.mjs 에 자격 거부 출구(4)가 없습니다').toContain('process.exit(4)');
+    const workflow = read('.github/workflows/ci.yml');
+    expect(workflow, 'ci.yml 이 종료 코드 4 를 다루지 않습니다').toContain('"$code" = "4"');
+    // 그리고 그 출구는 **로그인 모드에서만** 쓸 수 있어야 한다 — 익명 경로가
+    // 자격 문제로 노랑이 되는 일은 있을 수 없다 (자격을 쓰지 않는다).
+    const anonBlock = workflow.slice(
+      workflow.indexOf('Anonymous loop reaches the seal'),
+      workflow.indexOf('Signed-in loop reaches the seal'),
+    );
+    expect(anonBlock, '익명 단계가 자격 거부 출구를 삼킵니다').not.toContain('"$code" = "4"');
+  });
+
   it('E2E 가 문구 하나에만 의존하지 않는다', () => {
     // 이름 매칭이 남아 있는 것은 괜찮다 — 손잡이가 아직 배포되지 않은 환경의
     // 폴백이다. 다만 손잡이 조회 없이 이름만 쓰면 같은 실패로 돌아간다.

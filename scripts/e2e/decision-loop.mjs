@@ -275,6 +275,37 @@ const BROKEN = /다시 시도해 주세요|막혔어요|Please try again|Hit a s
  */
 const QUOTA = /무료 체험을 모두 사용했어요|무료 사용량을 모두 썼어요|오늘 제공된 사용량을 모두 썼어요|하루 50회까지|Free trial used up|You've used your free|You’ve used the free allowance|You’ve used today’s included allowance/;
 
+/**
+ * 인증 서버가 이 자격을 거부했다는 화면 문구. `src/lib/auth.tsx` 의
+ * AUTH_ERRORS('Invalid login credentials') 와 같은 문장이어야 한다 —
+ * `e2e-loop-anchors.test.ts` 가 두 파일이 어긋나면 빨간불을 낸다.
+ */
+const CREDENTIALS_REJECTED = /이메일 또는 비밀번호가 올바르지 않습니다\.|Email or password doesn’t match\.|Email or password doesn't match\./;
+
+/**
+ * 자격증명이 **거부됐다**. 앱이 끊긴 것이 아니라 검사가 못 돈 것이므로 앱
+ * 실패(1)와 다른 코드(4)로 나간다 — 한도 소진(3)과 같은 계열이다.
+ *
+ * 왜 이것이 필요한가: 이 한 자리 때문에 `main` 의 CI 가 몇 주째 매 실행
+ * 빨간불이었다. 빨간불이 상수가 되면 그 신호는 죽는다 — 진짜 회귀가 와도
+ * 배지 색이 안 바뀐다. 이 파일 옆의 워크플로 주석이 이미 그 규칙을 적어 뒀다:
+ * *"둘을 같은 색으로 칠하면 진짜 고장이 왔을 때 아무도 안 본다."*
+ *
+ * **남는 위험은 이름 붙여 둔다**: 앱이 잘못된 자격으로 제출하게 만드는 회귀는
+ * 화면상 이것과 구분되지 않는다. 그래서 판정을 좁게 잡는다 — 로그인 화면이
+ * `Invalid login credentials` 에 해당하는 **그 문구 그대로** 말했을 때만이고,
+ * 다른 실패(폼 부재·타임아웃·다른 메시지·이후 단계)는 전부 빨간불로 남는다.
+ */
+function credentialsRejected(shown) {
+  console.log('');
+  console.log('🟡 자격증명이 거부됐다 — 앱이 끊긴 게 아니라 이 검사가 쓸 계정이 못 들어간다.');
+  console.log(`   화면 메시지: "${shown}"`);
+  console.log('   되돌리려면 DOGFOOD_EMAIL / DOGFOOD_PASSWORD 시크릿을 실제로 로그인되는 값으로 갱신한다.');
+  console.log('   (앱 쪽을 의심한다면: 같은 실행의 익명 경로가 초록인지 보고, 손으로 한 번 로그인해 본다.)');
+  console.log(`   스크린샷: ${SHOT_DIR}`);
+  process.exit(4);
+}
+
 /** 한도 소진으로 검사를 접는다. 앱 실패(1)와 다른 코드(3)로 나간다. */
 function outOfQuota() {
   console.log('');
@@ -397,7 +428,13 @@ try {
         : '로그인 페이지에 그대로 머문다 (화면에 오류 메시지도 없다 — 제출 자체가 안 갔거나 응답이 없다)';
     }
     step('0b. 로그인이 성사된다', !stillLogin, stillLogin ? reason : '');
-    if (stillLogin) throw new Error(`로그인 실패 — ${reason}`);
+    if (stillLogin) {
+      // 화면이 "이 자격으로는 못 들어온다"고 말한 경우에만 4번 출구를 쓴다.
+      // 문구는 src/lib/auth.tsx 의 AUTH_ERRORS('Invalid login credentials') 두
+      // 언어 그대로다 — 느슨한 정규식으로 넓히면 진짜 로그인 회귀까지 노랑이 된다.
+      if (CREDENTIALS_REJECTED.test(reason)) credentialsRejected(reason);
+      throw new Error(`로그인 실패 — ${reason}`);
+    }
   }
 
   // ── 1. 본선이 열린다 ─────────────────────────────────────────────────
