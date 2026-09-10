@@ -36,6 +36,12 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
+
+// 앞으로의 날짜는 **언제나 오늘로부터 센다.** 글자로 박으면 그 날이 지날 때
+// 코드를 안 고쳐도 빨간불이 된다 — 2026-09 에 `e2e-picker` 가 그렇게 무너졌고
+// 게이트는 엉뚱하게 "픽커 실발사 실패"라고 말했다 (18일 만에 발견).
+const inDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist', 'index.js');
 if (process.env.ANSWER_TIME_SKIP_BUILD !== '1') execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
@@ -87,13 +93,13 @@ const call = (n, a) => client.callTool({ name: n, arguments: { argus_dir: dir, .
 // ── A1: a seal the user confirmed slowly ────────────────────────────────────
 await call('argus_predict', {
   id: 'slow-seal', predicate: 'the record is dated when the person answered',
-  check_by: '2026-12-31', predicate_owner: 'ai_surfaced', confirm_draft: true,
+  check_by: inDays(112), predicate_owner: 'ai_surfaced', confirm_draft: true,
 });
 
 // ── A2: an open question resolved slowly ────────────────────────────────────
 await call('argus_predict', {
   id: 'slow-q', predicate: 'the open question closes at the moment it is answered',
-  check_by: '2026-12-31', predicate_owner: 'user',
+  check_by: inDays(112), predicate_owner: 'user',
 });
 await call('argus_capture', {
   id: 'slow-q', action: 'add_context',

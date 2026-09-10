@@ -115,9 +115,18 @@ check('check_in data.picker=one_tap (호스트가 픽커 지원)', ci?.data?.pic
 const SELF_VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 check('check_in data.server_version == package.json (배선이 자기 버전을 말한다)', ci?.data?.server_version === SELF_VERSION, `reported=${ci?.data?.server_version} expected=${SELF_VERSION}`);
 
+// ── 앞으로의 날짜는 **언제나 오늘로부터 센다** ────────────────────────────
+// 이 파일은 2026-08 에 이미 이 교훈을 적어 뒀다(아래 "Never pin this to a
+// calendar date"). 그런데 **한 자리만 고치고 둘을 남겨 뒀고**, 2026-09-02 에
+// `'2026-09-01'` 이 과거가 되면서 봉인이 정당하게 거절했다 — 픽커가 안 떠서
+// `elicitCount === 0` 이 되고, 게이트는 엉뚱하게 "픽커 실발사 실패"라고 말했다
+// (2026-09-10 실측, 18일 만에 발견). 교훈을 적는 것으로는 부족하고 **쓰는
+// 자리를 하나로 모아야** 반쪽 적용이 안 난다.
+const inDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+
 // 3. 예측 픽커: ai_surfaced → elicitation 실발사 → keep → sealed, owner=user
 elicitCount = 0; nextResp = { action: 'accept', content: {} };
-const seal = await callData('argus_predict', { id: 'e2e-pred', predicate: 'signup conversion passes 5% within two weeks', check_by: '2026-09-01', predicate_owner: 'ai_surfaced' });
+const seal = await callData('argus_predict', { id: 'e2e-pred', predicate: 'signup conversion passes 5% within two weeks', check_by: inDays(14), predicate_owner: 'ai_surfaced' });
 check('예측 픽커 실발사 (elicitation 왕복)', elicitCount === 1, `count=${elicitCount} msg="${lastElicitMessage.slice(0, 50)}"`);
 check('keep → sealed + owner=user', seal?.data?.status === 'sealed' && seal?.data?.predicate_owner === 'user', JSON.stringify({ st: seal?.data?.status, ow: seal?.data?.predicate_owner }));
 
@@ -141,9 +150,10 @@ const prem3 = await callData('argus_capture', { action: 'add_context', id: 'e2e-
 check('skip → 기록 안 됨 (정직한 no)', prem3?.data?.recorded === false, JSON.stringify(prem3?.data));
 
 // 7. 날짜 조정: Accept + check_by → 문장 유지, 확인일만 이동 (그 날짜 쎄 탈출구)
-elicitCount = 0; nextResp = { action: 'accept', content: { check_by: '2027-03-01' } };
-const seal2 = await callData('argus_predict', { id: 'e2e-date', predicate: 'weekly active users climb above 10k', check_by: '2026-10-01', predicate_owner: 'ai_surfaced' });
-check('날짜 조정 → 문장 유지 + 확인일 이동', seal2?.data?.status === 'sealed' && String(seal2?.data?.check_by) === '2027-03-01' && seal2?.data?.predicate === 'weekly active users climb above 10k', JSON.stringify({ cb: seal2?.data?.check_by, p: (seal2?.data?.predicate||'').slice(0,20) }));
+elicitCount = 0; const movedTo = inDays(180);
+nextResp = { action: 'accept', content: { check_by: movedTo } };
+const seal2 = await callData('argus_predict', { id: 'e2e-date', predicate: 'weekly active users climb above 10k', check_by: inDays(21), predicate_owner: 'ai_surfaced' });
+check('날짜 조정 → 문장 유지 + 확인일 이동', seal2?.data?.status === 'sealed' && String(seal2?.data?.check_by) === movedTo && seal2?.data?.predicate === 'weekly active users climb above 10k', JSON.stringify({ cb: seal2?.data?.check_by, p: (seal2?.data?.predicate||'').slice(0,20) }));
 
 // 8. 정산 픽커 자립화 — 실물 왕복 (1.9.0의 수리를 실 서버로 고정).
 //    outcome만 받고 what_happened가 없으면 픽커 뒤에서 WHAT_HAPPENED_REQUIRED로
@@ -152,7 +162,7 @@ check('날짜 조정 → 문장 유지 + 확인일 이동', seal2?.data?.status 
 // Never pin this to a calendar date. The old 2026-08-01 fixture became "today"
 // and the seal correctly refused it (check-by must be in the future); the eval
 // then blamed resolve with NO_PRIOR_SEAL even though no prior seal existed.
-const settleCheckBy = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const settleCheckBy = inDays(7);
 const settleSeal = await callData('argus_predict', { id: 'e2e-settle', predicate: 'the pinned wire reaches the next session', check_by: settleCheckBy, predicate_owner: 'user' });
 check('정산 전 예측이 먼저 봉인됨', settleSeal?.ok === true && settleSeal?.data?.status === 'sealed', JSON.stringify({ ok: settleSeal?.ok, status: settleSeal?.data?.status, err: settleSeal?.error_code }));
 elicitCount = 0;
