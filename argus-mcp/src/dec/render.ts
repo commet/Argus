@@ -92,6 +92,19 @@ const TYPE_SAY: Record<DecisionRecord['type'], string> = {
 };
 
 /** 지문을 뺀 본문. 지문은 이 본문을 해시한 값이라, 자기 자신은 셈에서 빠진다. */
+/**
+ * 자동 생성 꼬리말의 첫 줄. **여기 한 곳만 안다** — `dec leave` 가 이걸 찾아
+ * 걷어낸다. 떠난 뒤에도 "기계가 만든다 · `dec-amend` 로 고쳐라"가 남아 있으면
+ * 그건 없는 기계를 가리키는 거짓말이고, 있지도 않은 명령을 가르치는 것이다.
+ */
+export const AUTO_FOOTER_LEAD = '이 파일은 기록에서 자동으로 만들어진다.';
+
+/** 자동 꼬리말을 걷어낸 본문 (떠날 때 쓴다). 꼬리말이 없으면 그대로 돌려준다. */
+export function withoutAutoFooter(body: string): string {
+  const at = body.lastIndexOf(`---\n\n${AUTO_FOOTER_LEAD}`);
+  return at < 0 ? body : body.slice(0, at);
+}
+
 export function renderDecisionBody(record: DecisionRecord): string {
   const out: string[] = [...head(record), ''];
 
@@ -214,7 +227,7 @@ export function renderDecisionBody(record: DecisionRecord): string {
   }
 
   out.push('---', '');
-  out.push('이 파일은 기록에서 자동으로 만들어진다. 여기를 고쳐도 규칙은 안 바뀐다 —');
+  out.push(`${AUTO_FOOTER_LEAD} 여기를 고쳐도 규칙은 안 바뀐다 —`);
   out.push('고친 게 보이면 다음에 "이대로 바꿀까요?" 하고 묻는다.');
   out.push(`바꾸려면: argus-decision-mcp dec-amend --id ${record.id} --decision "<새 문장>" --why "<왜 바꾸나>"`);
 

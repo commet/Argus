@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { discoverRuleFiles } from './rules/discover.js';
 import { splitRuleFile } from './rules/split.js';
 import { draftWatchFromClause } from './watch/draft.js';
+import { foldDecisions } from './fold.js';
 import { collectPast } from './rehearse/collect.js';
 import { rehearse, TOO_BROAD } from './rehearse/engine.js';
 import { clauseSentence } from './rules/split.js';
@@ -28,7 +29,7 @@ import { clauseSentence } from './rules/split.js';
 export interface HelloResult {
   /** 할 말이 있나 — 없으면 훅은 조용히 넘어간다. */
   greet: boolean;
-  why_silent?: 'no_rule_files' | 'no_clauses' | 'already_greeted';
+  why_silent?: 'no_rule_files' | 'no_clauses' | 'already_greeted' | 'left';
   files: string[];
   clause_count: number;
   collided: number;
@@ -67,6 +68,10 @@ export function markGreeted(dataDir: string | undefined, repo: string): void {
 }
 
 export function sayHello(repo: string, days = 30, argusDir?: string): HelloResult {
+  // 떠난 저장소에는 인사하지 않는다. 나간 사람에게 현관을 다시 여는 것은
+  // 떠남을 무르는 것이다.
+  if (argusDir && foldDecisions(argusDir).left) return quiet('left');
+
   const found = discoverRuleFiles(repo);
   if (found.files.length === 0) return quiet('no_rule_files');
 

@@ -2,7 +2,7 @@ import { readLedgerRaw } from '../lib/ledger-replay.js';
 import { isValidScope } from './scope.js';
 import { watchProblems, type WatchRule } from './watch/rule.js';
 import type {
-  Amendment, DecAmendedPayload, DecFiredPayload, DecMisfirePayload, DecPausedPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload,
+  Amendment, DecAmendedPayload, DecFiredPayload, DecLeftPayload, DecMisfirePayload, DecPausedPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload,
   DecisionRecord, DecisionType, OriginPointer, Unattended, WatchMode,
 } from './types.js';
 
@@ -15,11 +15,22 @@ import type {
 
 /** 결정 장부가 원장에 쓰는 사건 이름 셋. 옛 예측 상태기계 밖이라 그 전이 검사를
  *  거치지 않는다 (`gate_input`·`watch_*` 와 같은 자리). */
-export const DEC_EVENT_TYPES = ['dec_signed', 'dec_amended', 'dec_repealed', 'dec_fired', 'dec_misfire', 'dec_reviewed', 'dec_paused'] as const;
+export const DEC_EVENT_TYPES = ['dec_signed', 'dec_amended', 'dec_repealed', 'dec_fired', 'dec_misfire', 'dec_reviewed', 'dec_paused', 'dec_left'] as const;
 export type DecEventType = (typeof DEC_EVENT_TYPES)[number];
+
+/** 떠난 기록 — 있으면 이 저장소는 평문으로 굳었다. */
+export interface LeftMark { at: string; why?: string; inlined: number }
 
 export interface DecFoldResult {
   records: DecisionRecord[];
+  /**
+   * 이 저장소에서 떠났나 (§4.7 `dec leave`).
+   *
+   * **읽는 쪽이 반드시 봐야 하는 값이다.** 떠난 뒤의 결정 파일은 지문이 없다.
+   * 이걸 안 보면 검사가 "전부 손으로 고쳤다"고 비명을 지른다 — 손댄 게 아니라
+   * 떠난 것이다. 마지막 떠남만 남긴다 (떠났다 돌아왔다 또 떠날 수 있다).
+   */
+  left?: LeftMark;
   /** 파스가 안 된 줄 수 — 조용히 0으로 만들지 않는다. */
   dropped: number;
   /** 원장을 못 읽었을 때의 errno. 있으면 결과는 "비었다"가 아니라 "모른다"다. */
@@ -93,6 +104,7 @@ export function foldDecisions(argusDir: string): DecFoldResult {
 
   const byId = new Map<string, DecisionRecord>();
   let dropped = 0;
+  let left: LeftMark | undefined;
 
   for (const line of read.lines) {
     if (!line.trim()) continue;
@@ -105,6 +117,22 @@ export function foldDecisions(argusDir: string): DecFoldResult {
     const payload = ev['dec'];
     if (!id || typeof payload !== 'object' || payload === null) { dropped++; continue; }
     const at = str(ev['ts']) ?? '';
+
+    if (event === 'dec_left') {
+      // **결정 하나에 붙는 사건이 아니다** — 저장소 전체가 떠난 것이다. 그래서
+      // `byId` 에 안 넣고 폴드 결과의 머리에 단다.
+      //
+      // **결정 조회보다 위에 있어야 한다.** 아래에 두면 `byId.get(id)` 가 못 찾아
+      // `dropped++` 로 세고 버린다 — 떠난 사실이 "깨진 줄"로 둔갑한다. 처음에
+      // 아래에 뒀다가 실측으로 잡았다.
+      const p = payload as Partial<DecLeftPayload>;
+      left = {
+        at,
+        inlined: typeof p.inlined === 'number' && p.inlined >= 0 ? p.inlined : 0,
+        ...(str(p.why) ? { why: p.why! } : {}),
+      };
+      continue;
+    }
 
     if (event === 'dec_signed') {
       if (byId.has(id)) continue; // 재서명은 개정으로 온다
@@ -160,8 +188,6 @@ export function foldDecisions(argusDir: string): DecFoldResult {
         where: str(p.where) ?? '어디였는지 안 남았다',
         // 사람이 쓴 것만. 없으면 없는 채로 둔다 — 기계가 지어내지 않는다.
         ...(str(p.note) ? { note: p.note! } : {}),
-        // 사람이 쓴 것만. 없으면 없는 채로 둔다 — 기계가 지어내지 않는다.
-        
       });
       continue;
     }
@@ -222,5 +248,9 @@ export function foldDecisions(argusDir: string): DecFoldResult {
     if (str(p.succeeded_by)) record.succeeded_by = p.succeeded_by!;
   }
 
-  return { records: [...byId.values()].sort((a, b) => a.id.localeCompare(b.id)), dropped };
+  return {
+    records: [...byId.values()].sort((a, b) => a.id.localeCompare(b.id)),
+    dropped,
+    ...(left ? { left } : {}),
+  };
 }

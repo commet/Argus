@@ -161,9 +161,28 @@ export interface DecPausedPayload {
   by_tty: boolean;
 }
 
+/**
+ * 이 저장소에서 떠났다 (§4.7 `dec leave`) — **출구도 사건이다.**
+ *
+ * 입구는 둘인데 출구가 0이었다. 떠나는 것을 기록하는 이유는 둘이다:
+ *  ① 원장은 추가 전용이다(불변식 ③). 떠남을 안 남기면 지문 없는 파일만
+ *     남아, 나중에 누가 검사를 돌리면 **"전부 손으로 고쳤다"고 비명을 지른다.**
+ *     그건 거짓 경보다 — 손댄 게 아니라 떠난 것이다.
+ *  ② 다시 돌아올 수 있다. 떠난 적 있다는 사실이 그때 필요하다.
+ *
+ * **떠남은 지움이 아니다.** 원장은 그대로 있고, 지우는 것은 사람이 한다.
+ */
+export interface DecLeftPayload {
+  /** 왜 떠나나. 안 물어본다 — 적었으면 남기고, 없으면 없는 대로 둔다. */
+  why?: string;
+  /** 무엇을 평문으로 바꿨나 (파일 수). 되돌아볼 때 규모를 안다. */
+  inlined: number;
+}
+
 export type DecPayload =
   | DecSignedPayload | DecAmendedPayload | DecRepealedPayload
-  | DecFiredPayload | DecMisfirePayload | DecReviewedPayload | DecPausedPayload;
+  | DecFiredPayload | DecMisfirePayload | DecReviewedPayload | DecPausedPayload
+  | DecLeftPayload;
 
 /** 법이 일한 순간 하나 — 파일 말미에 쌓인다. */
 export interface FireRecord {

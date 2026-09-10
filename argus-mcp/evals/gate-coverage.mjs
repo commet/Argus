@@ -81,6 +81,14 @@ const WAIVED = new Map([
     'axis-effects',
     'deterministic analysis instrument over recorded first-user-journey outputs (no API, no LLM, no product contract): reports per-axis behavioral effects, confound warnings, and individuation features for receipts; intentionally not merge-blocking',
   ],
+  [
+    'future-clock',
+    'preload module, not a gate: it only shifts globalThis.Date forward so a suite can be re-run against a later calendar. It asserts no product contract of its own — the contract it serves is the vitest suite that runs under it (test-future)',
+  ],
+  [
+    'test-future',
+    'runner that re-runs the vitest suite under a shifted calendar to find deadlines pinned to date literals; it is merge-blocking through its own CI step (npm --prefix argus-mcp run test:future) rather than through verify-all, because it spawns the whole suite and would double verify time. Its ability to turn red was mutation-proven by hand before merge: restoring the literal `2027-01-01` to loop.test.ts made 5 tests fail, and removing it made them pass',
+  ],
   ['codex-elicit-wire-probe', 'wire investigation tool that reports observations and asserts no product contract'],
   ['discover', 'raw host-payload investigation tool, superseded as a gate by host-matrix and picker-surfaces'],
   ['live-roundtrip', 'real-network investigation kept outside deterministic pre-merge verification'],

@@ -21,6 +21,12 @@ import type { DecisionRecord } from '../types.js';
  * 둔다. 표시가 없으면 파일 끝에 붙인다.
  */
 
+/**
+ * 기계가 쓴다는 문장의 첫 줄. **여기 한 곳만 안다** — `dec leave` 가 이걸 찾아
+ * 걷어낸다. 떠난 뒤에도 남아 있으면 없는 기계를 가리키는 거짓말이 된다.
+ */
+export const MACHINE_NOTE_LEAD = '이 덩어리는 기계가 쓴다.';
+
 export const BEGIN = '<!-- argus:decisions begin -->';
 export const END = '<!-- argus:decisions end -->';
 const PRINT = '<!-- argus:fingerprint sha256:';
@@ -57,7 +63,7 @@ export function renderExportBody(records: readonly DecisionRecord[]): string {
   out.push('여기 적힌 것은 **읽히는 법이지 감시되는 법이 아니다.** 이 파일을 읽는 도구는');
   out.push('어긋나도 알려주지 않는다 — 알림과 막는 것은 아르고스가 붙어 있는 자리에서만 돈다.');
   out.push('');
-  out.push('이 덩어리는 기계가 쓴다. 손으로 고치면 다음 방출 때 알아채고 묻는다 —');
+  out.push(`${MACHINE_NOTE_LEAD} 손으로 고치면 다음 방출 때 알아채고 묻는다 —`);
   out.push('고칠 것이 있으면 결정을 고쳐라(`dec-amend`).');
   return out.join('\n') + '\n';
 }

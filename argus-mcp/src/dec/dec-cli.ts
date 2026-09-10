@@ -15,7 +15,8 @@ import { draftWatchFromClause } from './watch/draft.js';
 import { chooseWatch, compileWatchPrompt } from './watch/compile-prompt.js';
 import { collectPast } from './rehearse/collect.js';
 import { rehearse, sayRehearsal } from './rehearse/engine.js';
-import { amendDecision, pauseDecision, recordFire, recordMisfire, repealDecision, reviewDecision, signDecision } from './write.js';
+import { amendDecision, leaveRepo, pauseDecision, recordFire, recordMisfire, repealDecision, reviewDecision, signDecision } from './write.js';
+import { applyLeave, planLeave } from './leave.js';
 import { dueDecisions } from './review/due.js';
 import { sayAsk } from './review/ask.js';
 import { checkSubject } from './check/match.js';
@@ -68,7 +69,25 @@ export function runDecSyncCli(args: readonly string[]): void {
  * **어긋나면 0 아닌 코드로 끝난다** (나중에 CI 관문으로 그대로 쓰인다).
  */
 export function runDecVerifyCli(args: readonly string[]): void {
-  const result = verifyDecisionFiles(argusDirOf(args, 'dec-verify'));
+  const argusDir = argusDirOf(args, 'dec-verify');
+
+  // **떠난 저장소를 고장이라고 부르지 않는다.** 떠나면 지문을 걷으므로 모든
+  // 파일이 `hand_edited` 로 보인다 — 손댄 게 아니라 떠난 것이다. 이걸 안 보면
+  // 검사가 사람에게 있지도 않은 사고를 신고한다.
+  const left = foldDecisions(argusDir).left;
+  if (left) {
+    process.stdout.write(JSON.stringify({
+      ok: true, left, files: [],
+      say: [
+        `이 저장소는 ${left.at.slice(0, 10)} 에 아르고스에서 떠났다.`,
+        '결정 파일은 평문이다 — 지문이 없는 것이 정상이고, 검사할 것이 없다.',
+        ...(left.why ? [`떠난 이유로 적어 둔 것: ${left.why}`] : []),
+      ],
+    }) + '\n');
+    return;
+  }
+
+  const result = verifyDecisionFiles(argusDir);
   const handEdited = result.files.filter((f) => f.verdict === 'hand_edited').map((f) => f.id);
   process.stdout.write(JSON.stringify({ ...result, say: sayHandEdited(handEdited) }) + '\n');
   if (!result.ok) process.exitCode = 1;
@@ -378,6 +397,12 @@ export function runDecBriefCli(args: readonly string[]): void {
   const dry = args.includes('--dry');
 
   const fold = foldDecisions(argusDir);
+  // 떠난 저장소에서는 아무 말도 안 한다. 기계가 없다고 해 놓고 세션마다
+  // 말을 거는 것은 떠남을 무르는 것이다.
+  if (fold.left) {
+    process.stdout.write(JSON.stringify({ left: fold.left, shown: [], say: [] }) + '\n');
+    return;
+  }
   const plan = planInjection(fold.records, {
     cwd_rel: cwdRel.startsWith('..') ? '' : cwdRel,
     today, max, last_shown: readShown(argusDir),
@@ -620,6 +645,16 @@ export function runDecBlockCli(args: readonly string[]): void {
     }) + '\n');
     return;
   }
+  // **떠난 저장소는 안 막는다.** 훅은 저장소 밖(플러그인)에 깔려 있어서
+  // 떠난 뒤에도 계속 불릴 수 있다. 여기서 안 보면 나간 사람을 계속 붙잡는
+  // 것이고, 그러면 출구는 있는 척만 하는 것이다.
+  if (fold.left) {
+    process.stdout.write(JSON.stringify({
+      block: false, blocking: [], left: fold.left,
+      say: [], why_not: 'left',
+    }) + '\n');
+    return;
+  }
   const subject = file ? { kind: 'file' as const, path: file } : { kind: 'text' as const, text: text! };
   const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
   const decision = decideBlock(fold.records, subject, today);
@@ -659,6 +694,76 @@ export async function runDecPauseCli(args: readonly string[]): Promise<void> {
       ? [`${id} 을 ${until}까지 안 막는다. 그날이 지나면 저절로 다시 막는다.`]
       : [`${id} 을 ${until}까지 안 막는다. 그날이 지나면 저절로 다시 막는다.`,
          '터미널에서 온 것이 아니라고 기록에 남겼다 — 다음에 다시 볼 때 같이 나온다.'],
+  }) + '\n');
+}
+
+/**
+ * 이 저장소에서 떠난다 (§4.7 `dec leave`) — **출구**.
+ *
+ * 기본은 **보여만 준다.** 떠나는 것은 되돌리기 번거로운 일이고, 무엇이
+ * 평문이 되는지 먼저 눈으로 보는 값이 크다. 실제로 하려면 `--yes`.
+ *
+ * 순서가 중요하다: **원장에 먼저 남기고 파일을 손댄다.** 반대로 하면 파일은
+ * 평문인데 원장이 모르는 상태가 생기고, 다음 검사가 "전부 손으로 고쳤다"고
+ * 비명을 지른다 — 손댄 게 아니라 떠난 것인데.
+ */
+export async function runDecLeaveCli(args: readonly string[]): Promise<void> {
+  rejectUnknownFlags(args, 'dec-leave', ['--argus-dir', '--yes', '--why']);
+  const argusDir = argusDirOf(args, 'dec-leave');
+  const plan = planLeave(argusDir);
+  const why = flag(args, '--why');
+
+  const willInline = (plan.rule_file?.action === 'inline' ? 1 : 0);
+  const willPlain = plan.decisions.filter((d) => d.action === 'plain').length;
+
+  if (!args.includes('--yes')) {
+    process.stdout.write(JSON.stringify({
+      dry_run: true, plan,
+      say: [
+        '아직 아무것도 안 했다. 떠나면 이렇게 된다:',
+        ...(plan.rule_file?.action === 'inline'
+          ? [`· ${path.basename(plan.rule_file.file)} — 우리 표시와 지문을 걷고 글만 남긴다.`] : []),
+        ...(willPlain > 0 ? [`· decisions/ 파일 ${willPlain}개 — 지문과 꼬리말을 걷는다. 글은 그대로다.`] : []),
+        ...(plan.hooks ? [`· ${path.basename(plan.hooks.file)} — 우리 훅 ${plan.hooks.removed.length}개를 뺀다.`] : []),
+        '',
+        '그대로 두는 것:',
+        ...plan.keeps.map((k) => `· ${k}`),
+        '',
+        '여기서 못 하는 것:',
+        ...plan.cannot.map((c) => `· ${c}`),
+        '',
+        '진짜로 하려면 같은 명령에 --yes 를 붙인다.',
+      ],
+    }) + '\n');
+    return;
+  }
+
+  // ① 원장 먼저. 파일 손질이 도중에 죽어도 "떠났다"는 사실은 남는다.
+  const written = await leaveRepo(argusDir, {
+    inlined: willInline + willPlain,
+    ...(why ? { why } : {}),
+  }, new Date().toISOString());
+
+  // ② 그 다음 파일.
+  const result = applyLeave(plan);
+
+  process.stdout.write(JSON.stringify({
+    ...result, ...written,
+    say: [
+      '떠났다. 여기 있던 것은 전부 그냥 글이 됐다.',
+      ...(result.rule_file ? [`· ${path.basename(result.rule_file)} — 평문으로 굳혔다.`] : []),
+      ...(result.decisions_plain > 0 ? [`· decisions/ 파일 ${result.decisions_plain}개 — 평문.`] : []),
+      ...(result.hooks_removed > 0 ? [`· 저장소에 걸린 훅 ${result.hooks_removed}개를 뺐다.`] : []),
+      ...(result.failed.length > 0
+        ? ['', '못 한 것 (조용히 넘기지 않는다):',
+           ...result.failed.map((f) => `· ${f.file} — ${f.why}`)]
+        : []),
+      '',
+      '아직 남은 것은 당신 몫이다:',
+      ...plan.cannot.map((c) => `· ${c}`),
+      '',
+      `기록은 ${path.relative(path.dirname(argusDir), path.join(argusDir, 'ledger')).replace(/\\/g, '/')} 에 그대로 있다. 지우는 것은 당신이 정한다.`,
+    ],
   }) + '\n');
 }
 

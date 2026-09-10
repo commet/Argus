@@ -4,7 +4,7 @@ import { emitExport, type EmitResult } from './export/emit.js';
 import { syncDecisionFiles, type SyncResult } from './files.js';
 import { isValidScope } from './scope.js';
 import { watchProblems } from './watch/rule.js';
-import type { DecAmendedPayload, DecFiredPayload, DecMisfirePayload, DecPausedPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload } from './types.js';
+import type { DecAmendedPayload, DecFiredPayload, DecLeftPayload, DecMisfirePayload, DecPausedPayload, DecRepealedPayload, DecReviewedPayload, DecSignedPayload } from './types.js';
 
 /**
  * 결정을 원장에 쓰는 자리 — **여기 말고는 없다.**
@@ -44,6 +44,31 @@ export async function pauseDecision(
     throw new Error('BAD_DATE: 언제까지 멈추나 (YYYY-MM-DD). 끝날 날 없는 정지는 이름만 다른 폐지다');
   }
   return appendAndDraw(argusDir, id, 'dec_paused', payload, now, () => mustBeLive(argusDir, id));
+}
+
+/** 떠남을 원장에 남기는 자리 — 이 저장소 전체에 붙는 사건이라 결정 id 가 없다. */
+export const LEAVE_ID = '_repo';
+
+/**
+ * 이 저장소에서 떠났다고 남긴다 (§4.7 `dec leave`).
+ *
+ * **여기만 `appendAndDraw` 를 안 쓴다.** 다른 쓰기는 쓰고 나서 결정 파일과
+ * 방출본을 다시 그리는데, 떠남은 **그리기를 그만두는 것**이다. 그려 버리면
+ * 방금 평문으로 굳힌 파일에 지문이 도로 박히고, 떠난 사람은 자기가 지운 것이
+ * 되살아나는 걸 본다. 파일 손질은 부르는 쪽(`leave.ts`)이 이 뒤에 한다.
+ *
+ * 쓰기 관문은 그대로다 — `appendLedger` 하나만 부른다 (단계 0 의 관문 단일성).
+ */
+export async function leaveRepo(
+  argusDir: string, payload: DecLeftPayload, now: string,
+): Promise<{ written: number }> {
+  const written = await withLedgerLock(argusDir, async () => {
+    const outcome = await appendLedger(argusDir, [
+      { id: LEAVE_ID, event: 'dec_left', dec: payload, ts: now },
+    ], now);
+    return outcome.written;
+  });
+  return { written };
 }
 
 async function appendAndDraw(

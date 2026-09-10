@@ -21,7 +21,7 @@ export interface LedgerEventInput {
      *  거치지 않는다 — `gate_input`·`watch_*` 와 같은 자리다. 접는 것은
      *  `src/dec/fold.ts` 이고, 옛 replay 는 알면서 건너뛴다. */
     | 'dec_signed' | 'dec_amended' | 'dec_repealed' | 'dec_fired' | 'dec_misfire' | 'dec_reviewed'
-    | 'dec_paused';
+    | 'dec_paused' | 'dec_left';
   predicate?: string;
   check_by?: string;
   decision?: string;

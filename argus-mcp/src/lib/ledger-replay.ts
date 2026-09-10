@@ -274,7 +274,8 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
       ev['event'] === 'watch_capture' || ev['event'] === 'dec_signed' ||
       ev['event'] === 'dec_amended' || ev['event'] === 'dec_repealed' ||
       ev['event'] === 'dec_fired' || ev['event'] === 'dec_misfire' ||
-      ev['event'] === 'dec_reviewed' || ev['event'] === 'dec_paused';
+      ev['event'] === 'dec_reviewed' || ev['event'] === 'dec_paused' ||
+      ev['event'] === 'dec_left';
     if (!metaEvent) ids.add(id);
     // Record inception (P1-E7): ISO timestamps compare lexicographically.
     if (typeof ev['ts'] === 'string' && ev['ts'] && (!oldestTs || ev['ts'] < oldestTs)) oldestTs = ev['ts'];
@@ -564,6 +565,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
       case 'dec_misfire':
       case 'dec_reviewed':
       case 'dec_paused':
+      case 'dec_left':
         break;
 
       case 'gate_input':
