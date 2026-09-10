@@ -131,8 +131,11 @@ export function sayHello(repo: string, days = 30, argusDir?: string): HelloResul
   if (past.gaps.length > 0) say.push(`  못 읽은 것: ${past.gaps.join(' / ')}`);
   say.push('');
   say.push('  아직 아무 구속력도 없다 — 읽기만 했다. 법이 되는 것은 사람이 서명한 것뿐이다.');
-  say.push('  전부 보기:  argus-decision-mcp dec-rehearse --repo ' + repo
-    + (argusDir ? ` --argus-dir ${argusDir}` : ''));
+  // **`dec-rehearse` 는 `--argus-dir` 를 안 받는다** — 지난 기록(git·대화)만 보고
+  // 원장은 안 읽는다. 여기에 붙여 두면 화면이 **죽는 명령을 가르친다.** 실제로
+  // 그랬다: 2026-09-10 에 그 깃발을 rehearse 의 목록에서 빼면서 **찍는 자리를
+  // 안 봤고**, 한 바퀴 돌려 화면을 읽다가 잡았다.
+  say.push(`  전부 보기:  argus-decision-mcp dec-rehearse --repo ${repo}`);
   say.push('  이 말은 이 저장소에서 한 번만 한다.');
 
   return { greet: true, files: found.files.map((f) => f.rel), clause_count: clauses.length, collided, gaps: past.gaps, say };

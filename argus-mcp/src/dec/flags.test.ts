@@ -86,3 +86,51 @@ describe('CLI 깃발 — 조용한 무시가 없다', () => {
     expect(commandBodies().length).toBeGreaterThan(10);
   });
 });
+
+/** `src/dec/` 전체의 화면 글에서 "명령 + 깃발" 을 뽑는다 (주석은 걷는다). */
+function screenCommands(): { file: string; command: string; flags: string[] }[] {
+  const root = path.resolve(HERE);
+  const out: { file: string; command: string; flags: string[] }[] = [];
+  const walk = (dir: string): void => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) { walk(full); continue; }
+      if (!/\.ts$/.test(e.name) || /\.test\.ts$/.test(e.name)) continue;
+      const text = fs.readFileSync(full, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')   // 블록 주석
+        .replace(/^\s*\/\/.*$/gm, '');       // 줄 주석
+      for (const line of text.split('\n')) {
+        // 한 줄에 명령이 둘일 수 있다 — 각 명령부터 줄 끝까지를 그 명령의 몫으로 본다.
+        const hits = [...line.matchAll(/\b(dec-[a-z-]+)\b/g)];
+        hits.forEach((hit, i) => {
+          const until = i + 1 < hits.length ? hits[i + 1]!.index! : line.length;
+          const tail = line.slice(hit.index! + hit[1]!.length, until);
+          const flags = [...tail.matchAll(/(--[a-z-]+)/g)].map((m) => m[1]!);
+          if (flags.length > 0) out.push({ file: path.relative(root, full), command: hit[1]!, flags });
+        });
+      }
+    }
+  };
+  walk(root);
+  return out;
+}
+
+describe('화면이 가르치는 명령은 그대로 쳐서 돈다', () => {
+  it('화면에 적힌 깃발을 그 명령이 실제로 받는다', () => {
+    // 명령 이름 → 받는 깃발
+    const accepts = new Map<string, string[]>();
+    for (const { body } of commandBodies()) {
+      const call = /rejectUnknownFlags\(args,\s*'([a-z-]+)',\s*\[([^\]]*)\]\)/.exec(body);
+      if (call) accepts.set(call[1]!, [...call[2]!.matchAll(/'(--[a-z-]+)'/g)].map((m) => m[1]!));
+    }
+
+    const broken: string[] = [];
+    for (const { file, command, flags } of screenCommands()) {
+      const known = accepts.get(command);
+      if (!known) continue; // 이 저장소 밖 명령이거나 이름만 언급한 것
+      const bad = flags.filter((f) => !known.includes(f));
+      if (bad.length > 0) broken.push(`${file}: ${command} ${bad.join(' ')}`);
+    }
+    expect(broken, `화면이 안 받는 깃발을 가르친다: ${broken.join(' · ')}`).toEqual([]);
+  });
+});

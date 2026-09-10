@@ -48,7 +48,7 @@ export function sayInjection(plan: InjectionPlan): string[] {
   lines.push('');
   if (plan.omitted > 0) {
     lines.push(`이 창에 안 들어온 것이 ${plan.omitted}건 더 있다 — 없어진 게 아니라 안 펴진 것이다.`);
-    lines.push('이 목록을 전부라고 믿지 마라. 걸릴 것 같으면 `dec-check --plan "<하려는 일>"` 으로 물어라.');
+    lines.push('이 목록을 전부라고 믿지 마라.');
   }
   if (plan.out_of_scope > 0) {
     lines.push(`다른 자리에만 걸리는 것 ${plan.out_of_scope}건은 일부러 뺐다.`);
@@ -59,5 +59,11 @@ export function sayInjection(plan: InjectionPlan): string[] {
   }
   lines.push('서로 어긋나 보이면 **네가 고르지 마라.** 사람에게 물어라.');
   lines.push('여기 없는 일은 모르는 일이다. 모르면 하지 마라 — 지어내지 마라.');
+  // **묻는 길은 늘 알려 준다.** 전에는 이 줄이 `omitted > 0` 안에 있어서, 결정이
+  // 창(15건)보다 적은 저장소에서는 **에이전트가 이 동사가 있다는 것을 영영 몰랐다.**
+  // 첫 사용자가 정확히 그 경우다. 기획서가 이 동사를 만든 이유가 *"인터페이스가
+  // 전부 push 라 pull 이 0이었다"* 인데, 안 알리면 pull 은 다시 0 이다.
+  // 바로 윗줄이 "모르면 하지 마라"로 끝나는 것도 반쪽이었다 — 막다른 길 대신 문을 준다.
+  lines.push('걸릴 것 같은데 여기 없으면 `dec-check --plan "<하려는 일>"` 으로 물어라.');
   return lines;
 }

@@ -101,6 +101,23 @@ describe('에이전트에게 가는 글 — 계약 넷을 반드시 말한다', 
     expect(text).toContain('1건 더 있다');
     expect(text).toContain('전부라고 믿지 마라');
   });
+
+  /**
+   * **묻는 길은 창이 넘치든 아니든 늘 알린다.**
+   *
+   * 전에는 이 줄이 `omitted > 0` 안에 있었다. 그래서 결정이 창(15건)보다 적은
+   * 저장소에서는 에이전트가 **이 동사가 있다는 것을 영영 몰랐다** — 첫 사용자가
+   * 정확히 그 경우다. 기획서가 이 동사를 만든 이유가 *"인터페이스가 전부 push 라
+   * pull 이 0이었다"* 인데, 안 알리면 pull 은 다시 0 이다. 한 바퀴 돌려 보다가
+   * 잡았다 (2026-09-10).
+   */
+  it('창이 안 넘쳐도 묻는 길을 알려 준다 (pull 이 다시 0 이 되지 않게)', () => {
+    const small = planInjection([base('D-0001', 'repo')], {
+      cwd_rel: '', today: '2026-08-21', max: 15,
+    });
+    expect(small.omitted).toBe(0);
+    expect(sayInjection(small).join('\n')).toContain('dec-check --plan');
+  });
   it('기계가 못 잡는 것을 창에서도 말한다', () => {
     expect(sayInjection(plan).join('\n')).toContain('기계가 못 잡는 것: 다른 이름의 틀은 못 잡는다');
   });
