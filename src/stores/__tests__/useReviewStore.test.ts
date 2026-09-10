@@ -13,6 +13,12 @@ import { useReviewStore } from '../useReviewStore';
 import { ingest, runDocumentReview, type JudgmentReceipt } from '@/lib/review';
 import { type ReviewLLM, type ReviewLLMArgs } from '@/lib/review';
 
+
+/** 미래 날짜를 글자로 박지 않는다 — 그 날이 지나면 코드를 안 고쳐도 빨간불이 된다
+ *  (2026-09 에 실제로 겪었다. `no-future-date-literals.test.ts` 가 지킨다). */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+
 const DOC = '# 전략\n\n온보딩을 리빌드한다.\n\n## 근거\n\n- retention이 낮다';
 
 function mock(artifactUnitId: string): ReviewLLM {
@@ -29,7 +35,7 @@ function mock(artifactUnitId: string): ReviewLLM {
       if (args.system.includes('"종합"')) {
         return { core_question: 'q', current_heading: 'h',
           judgment_obligations: [{ statement: '우선순위인가', owner: '사용자', why_human: 'x', evidence_needed: 'y', unit_ids: [artifactUnitId] }],
-          followups: [{ predicate: '2주 안에 데이터 확보', pass_condition: '확보', fail_condition: '없음', check_by: '2027-01-01' }] } as T;
+          followups: [{ predicate: '2주 안에 데이터 확보', pass_condition: '확보', fail_condition: '없음', check_by: daysFromNow(120).slice(0, 10) }] } as T;
       }
       return {} as T;
     },
@@ -72,7 +78,7 @@ describe('useReviewStore', () => {
     expect(fu.predicate_owner).toBe('ai_surfaced'); // drafted before seal
     s.sealFollowup(r.receipt_id, fu.followup_id, {
       predicate: '내 말로 다시 쓴 예측', predicate_owner: 'user',
-      pass_condition: 'p', fail_condition: 'f', check_by: '2027-02-01',
+      pass_condition: 'p', fail_condition: 'f', check_by: daysFromNow(150).slice(0, 10),
     });
     const after = useReviewStore.getState().getReceipt(r.receipt_id)!;
     const sealed = after.falsifiable_followups[0];
@@ -91,7 +97,7 @@ describe('useReviewStore', () => {
     const fu = r.falsifiable_followups[0];
     s.sealFollowup(r.receipt_id, fu.followup_id, {
       predicate: fu.predicate, predicate_owner: 'ai_surfaced',
-      pass_condition: 'p', fail_condition: 'f', check_by: '2027-02-01',
+      pass_condition: 'p', fail_condition: 'f', check_by: daysFromNow(150).slice(0, 10),
     });
     const sealed = useReviewStore.getState().getReceipt(r.receipt_id)!.falsifiable_followups[0];
     expect(sealed.sealed_at).toBeTruthy(); // 그대로 채택은 허용된 탈출구
@@ -104,7 +110,7 @@ describe('useReviewStore', () => {
     const s = useReviewStore.getState();
     s.saveReceipt(r);
     const fuId = r.falsifiable_followups[0].followup_id;
-    s.sealFollowup(r.receipt_id, fuId, { predicate: 'p', predicate_owner: 'user', pass_condition: 'a', fail_condition: 'b', check_by: '2027-02-01' });
+    s.sealFollowup(r.receipt_id, fuId, { predicate: 'p', predicate_owner: 'user', pass_condition: 'a', fail_condition: 'b', check_by: daysFromNow(150).slice(0, 10) });
     s.settleFollowup(r.receipt_id, fuId, 'partial', '절반만 확보됨', '다음엔 데이터부터 본다');
     const after = useReviewStore.getState().getReceipt(r.receipt_id)!;
     const f = after.falsifiable_followups[0];
@@ -122,7 +128,7 @@ describe('useReviewStore', () => {
     const fuId = r.falsifiable_followups[0].followup_id;
     s.sealFollowup(r.receipt_id, fuId, {
       predicate: 'p', predicate_owner: 'user', lean: '그래도 지금이 맞다', key_assumption: '이탈 원인은 온보딩',
-      pass_condition: 'a', fail_condition: 'b', check_by: '2027-02-01',
+      pass_condition: 'a', fail_condition: 'b', check_by: daysFromNow(150).slice(0, 10),
     });
     const f = useReviewStore.getState().getReceipt(r.receipt_id)!.falsifiable_followups[0];
     expect(f.lean).toBe('그래도 지금이 맞다');
@@ -134,7 +140,7 @@ describe('useReviewStore', () => {
     const s = useReviewStore.getState();
     s.saveReceipt(r);
     const fuId = r.falsifiable_followups[0].followup_id;
-    s.sealFollowup(r.receipt_id, fuId, { predicate: 'p', predicate_owner: 'user', pass_condition: 'a', fail_condition: 'b', check_by: '2027-02-01' });
+    s.sealFollowup(r.receipt_id, fuId, { predicate: 'p', predicate_owner: 'user', pass_condition: 'a', fail_condition: 'b', check_by: daysFromNow(150).slice(0, 10) });
     s.reviseFollowup(r.receipt_id, fuId, '2027-03-15');
     const after = useReviewStore.getState().getReceipt(r.receipt_id)!;
     expect(after.falsifiable_followups[0].check_by).toBe('2027-03-15');

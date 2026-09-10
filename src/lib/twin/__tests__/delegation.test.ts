@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+
+/** 미래 날짜를 글자로 박지 않는다 — 그 날이 지나면 코드를 안 고쳐도 빨간불이 된다
+ *  (2026-09 에 실제로 겪었다. `no-future-date-literals.test.ts` 가 지킨다). */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+
 // TWIN Phase 4 — 범위 위임. 이 파일의 테스트는 대부분 **거부 경로**다.
 //
 // 위임은 기계가 사람의 판단 자리에 가장 가까이 가는 표면이므로, 실패 형태는
@@ -77,7 +83,7 @@ function row(over: Record<string, unknown> = {}) {
     scope_domain: '채용',
     scope_condition: '현금이 빠듯할 때의 인력 결정',
     user_words: '앞으로 현금 빠듯하면 무조건 계약직으로 가자',
-    expires_at: '2026-12-31T00:00:00Z',
+    expires_at: daysFromNow(120),
     status: 'active',
     applications: 0,
     supported: 0,

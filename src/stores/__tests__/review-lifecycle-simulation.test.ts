@@ -8,6 +8,12 @@ vi.mock('@/lib/review-sync', () => ({
 }));
 
 import { useReviewStore } from '../useReviewStore';
+
+/** 미래 날짜를 글자로 박지 않는다 — 그 날이 지나면 코드를 안 고쳐도 빨간불이 된다
+ *  (2026-09 에 실제로 겪었다. `no-future-date-literals.test.ts` 가 지킨다). */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+
 import {
   ingest,
   runDocumentReview,
@@ -41,7 +47,7 @@ function mock(artifact: CanonicalArtifact, findingTitles: string[] = ['근거 �
         return {
           core_question: '핵심 질문', current_heading: '확인 뒤 정하세요',
           judgment_obligations: [{ statement: '우선순위 결정', owner: '사용자', why_human: 'x', evidence_needed: 'y', unit_ids: [uid] }],
-          followups: [{ predicate: '2주 내 지표 상승', pass_condition: '+5%', fail_condition: '변화없음', check_by: '2027-01-01' }],
+          followups: [{ predicate: '2주 내 지표 상승', pass_condition: '+5%', fail_condition: '변화없음', check_by: daysFromNow(120).slice(0, 10) }],
         } as T;
       }
       return {} as T;
@@ -71,7 +77,7 @@ describe('review lifecycle simulation — a full session', () => {
 
     // seal with user-owned lean + assumption
     const fu = r.falsifiable_followups[0];
-    s.sealFollowup(r.receipt_id, fu.followup_id, { predicate: '내 말로 쓴 예측', predicate_owner: 'user', lean: '지금이 맞다', key_assumption: '온보딩이 원인', pass_condition: 'p', fail_condition: 'f', check_by: '2027-02-01' });
+    s.sealFollowup(r.receipt_id, fu.followup_id, { predicate: '내 말로 쓴 예측', predicate_owner: 'user', lean: '지금이 맞다', key_assumption: '온보딩이 원인', pass_condition: 'p', fail_condition: 'f', check_by: daysFromNow(150).slice(0, 10) });
     let cur = useReviewStore.getState().getReceipt(r.receipt_id)!;
     expect(cur.state).toBe('sealed');
     expect(cur.falsifiable_followups[0].predicate_owner).toBe('user');
@@ -112,7 +118,7 @@ describe('review lifecycle simulation — a full session', () => {
     // sealed, future
     const c = await reviewInto('# C\n본문');
     s.saveReceipt(c);
-    s.sealFollowup(c.receipt_id, c.falsifiable_followups[0].followup_id, { predicate: 'p', predicate_owner: 'user', pass_condition: '', fail_condition: '', check_by: '2026-12-01' });
+    s.sealFollowup(c.receipt_id, c.falsifiable_followups[0].followup_id, { predicate: 'p', predicate_owner: 'user', pass_condition: '', fail_condition: '', check_by: daysFromNow(90).slice(0, 10) });
     // settled
     const d = await reviewInto('# D\n본문');
     s.saveReceipt(d);
