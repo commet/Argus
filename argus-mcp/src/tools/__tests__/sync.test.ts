@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { sync } from '../sync.js';
 import { seal } from '../seal.js';
-import { tmpArgusDir } from '../../test-helpers.js';
+import { inDays, tmpArgusDir } from '../../test-helpers.js';
 
 const ORIG = process.env.ARGUS_TOKEN;
 beforeEach(() => { delete process.env.ARGUS_TOKEN; vi.restoreAllMocks(); });
@@ -102,7 +102,7 @@ describe('argus_sync', () => {
     const dir = tmpArgusDir();
     await seal.handler({
       argus_dir: dir, id: 'migrate-db',
-      predicate: 'Cutover downtime is under 5 minutes', check_by: '2027-01-01', predicate_owner: 'user',
+      predicate: 'Cutover downtime is under 5 minutes', check_by: inDays(120), predicate_owner: 'user',
     });
 
     // Account: the same judgment (mcp_ prefix) was settled on the WEB.

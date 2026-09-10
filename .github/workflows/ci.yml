@@ -42,6 +42,15 @@ jobs:
           npm audit --omit=dev
           npm pack --dry-run
 
+      # 달력을 밀어 놓고 같은 스위트를 다시 돌린다. `check_by` 같은 기한은
+      # 실제 시계와 대조되므로, 시험에 "미래"라 적어 둔 날짜는 그 날이 지나면
+      # 과거가 되어 **코드가 안 바뀌었는데** 빨간불이 된다 — 2026-09 에
+      # `e2e-picker` 가 그랬고 게이트는 "픽커 실발사 실패"라고 틀린 곳을
+      # 가리켰다 (18일 걸렸다). 글자를 훑는 검사는 놓치기도 헛짚기도 해서
+      # (실측) 그냥 돌린다.
+      - name: 달력을 밀어도 초록인가 (시한폭탄)
+        run: npm --prefix argus-mcp run test:future
+
       # Antefact 표준 존 적합성 스위트. vitest는 antefact/**를 제외하므로
       # (자체 하네스: node --test) 이 스텝이 없으면 골든 벡터·CLI·스포크
       # 회귀가 CI에 보이지 않는다 — #368이 존을 들여올 때 이 배선이 빠져
@@ -210,6 +219,18 @@ jobs:
       # Argus spine eval — STATIC layer (deterministic, no API key). Gates every PR
       # on the gross zero-judgment violations. The live LLM-judged layer runs
       # nightly in argus-eval.yml. See argus-plugin-v2/evals/README.md.
+      # 위 스텝의 주석이 "plain vitest run 을 또 돌리면 CI 시간만 두 배"라고
+      # 경고하는데, 이것은 그 중복이 아니다 — **같은 스위트로 다른 것을 잰다.**
+      # 커버리지 래칫은 "무엇이 실행됐나"를, 이것은 "달력이 지나도 초록인가"를
+      # 잰다. 기한은 실제 시계와 대조되므로 시험에 박아 둔 미래 날짜는 그 날이
+      # 오면 **코드가 안 바뀌었는데** 빨간불이 되고, 그 빨간불은 엉뚱한 곳을
+      # 가리킨다 (2026-09 에 18일 걸렸다). 2.5분이 그것보다 싸다.
+      - name: 달력을 밀어도 초록인가 (시한폭탄)
+        run: npm run test:future
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+
       - name: Argus spine static gate
         run: node argus-plugin-v2/evals/static-gate.test.mjs
 

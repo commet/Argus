@@ -10,7 +10,7 @@
  * in resolve-tool-argus-dir.test.ts.)
  */
 import { describe, it, expect } from 'vitest';
-import { tmpArgusDir, body } from '../../test-helpers.js';
+import { inDays, tmpArgusDir, body } from '../../test-helpers.js';
 import { openDecision } from '../open-decision.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
@@ -19,7 +19,7 @@ import { checkIn } from '../check-in.js';
 import { premises } from '../premises.js';
 import { humanizeSyncReason } from '../../lib/surfaces.js';
 
-const FUTURE = '2027-01-01';
+const FUTURE = inDays(120);
 
 // NOTE deliberately no argus_init in the locale tests: init seeds config.yaml
 // with the MACHINE's locale (env/Intl), and an explicit config always wins —
@@ -97,7 +97,7 @@ describe('M0 · check_in stays bounded after a long gap (§9.4 경계 수리)', 
     for (let i = 0; i < 25; i++) {
       await sealOne(dir, `d-${String(i).padStart(2, '0')}`, `prediction number ${i} comes true`);
     }
-    const res = body(await checkIn.handler({ argus_dir: dir, today_override: '2027-02-01' }));
+    const res = body(await checkIn.handler({ argus_dir: dir, today_override: inDays(150) }));
     expect(res['ok']).toBe(true);
     const data = res['data'] as Record<string, unknown>;
     expect((data['due'] as unknown[]).length).toBe(20);

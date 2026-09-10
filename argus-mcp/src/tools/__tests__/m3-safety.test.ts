@@ -13,7 +13,7 @@
  *     업로드 금지).
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { tmpArgusDir, body, isError } from '../../test-helpers.js';
+import { inDays, tmpArgusDir, body, isError } from '../../test-helpers.js';
 import { openDecision } from '../open-decision.js';
 import { premises } from '../premises.js';
 import { seal } from '../seal.js';
@@ -47,7 +47,7 @@ describe('M3 · BS-1 — 두 원장, 같은 slug, 계정 충돌 0', () => {
     for (const dir of [dirA, dirB]) {
       await seal.handler({
         argus_dir: dir, id: 'migrate-db', predicate: 'cutover downtime stays under 5 minutes',
-        check_by: '2027-01-01', predicate_owner: 'user',
+        check_by: inDays(120), predicate_owner: 'user',
       });
     }
     const pushedIds = bodies.map((b) => String(b['id']));
@@ -102,7 +102,7 @@ describe('M3 · 전제 opt-in — 스위치 없이는 한 건도 안 나간다',
     });
     return seal.handler({
       argus_dir: dir, id, predicate: '분기 안에 조달 조건이 유지된다',
-      check_by: '2027-01-01', predicate_owner: 'user',
+      check_by: inDays(120), predicate_owner: 'user',
     });
   }
 

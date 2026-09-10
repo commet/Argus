@@ -41,7 +41,8 @@
     "card:preview": "node scripts/preview-judgment-card.mjs",
     "e2e:surfaces": "node scripts/e2e/public-surfaces.mjs",
     "e2e:loop": "node scripts/e2e/decision-loop.mjs",
-    "e2e:loop:signed-in": "node -e \"process.env.E2E_MODE='signed-in';import('./scripts/e2e/decision-loop.mjs')\""
+    "e2e:loop:signed-in": "node -e \"process.env.E2E_MODE='signed-in';import('./scripts/e2e/decision-loop.mjs')\"",
+    "test:future": "node scripts/test-future.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

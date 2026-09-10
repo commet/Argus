@@ -30,7 +30,8 @@
     "copy": "npm run build && node evals/copy-audit.mjs",
     "prepack": "npm run build",
     "prepublishOnly": "npm run typecheck && npm test && npm audit --omit=dev",
-    "verify": "node evals/verify-all.mjs"
+    "verify": "node evals/verify-all.mjs",
+    "test:future": "node evals/test-future.mjs"
   },
   "keywords": [
     "mcp",
