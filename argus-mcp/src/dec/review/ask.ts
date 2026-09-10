@@ -1,4 +1,5 @@
 import type { DueItem } from './due.js';
+import { asSigned, wasAmended } from '../vintage.js';
 
 /**
  * 다시 물을 때 화면에 나가는 글.
@@ -27,7 +28,9 @@ export function sayAsk(item: DueItem, argusDir?: string): string[] {
     `${DEC_BIN} ${rest}${argusDir ? ` --argus-dir ${argusDir}` : ''}`;
   const lines: string[] = [];
 
-  lines.push(`${record.id}  ${record.decision}`);
+  // **그때 쓴 문장이다** — 접힌 기록의 `decision` 은 개정이 덮어쓴 지금 값이라
+  // 그것을 여기 놓으면 위 주석의 규율을 말로만 지키게 된다 (2026-09-10 실측 수리).
+  lines.push(`${record.id}  ${asSigned(record, 'decision') ?? record.decision}`);
   lines.push(`  ${REASON_SAY[item.reason](item.days)}`);
   if (item.reason === 'event' && record.review_on_event) {
     lines.push(`  그 일: ${record.review_on_event}`);
@@ -36,14 +39,25 @@ export function sayAsk(item: DueItem, argusDir?: string): string[] {
 
   // ── 먼저 보여주는 것: 그때의 당신 ──────────────────────────────────
   lines.push(`  ${record.adopted}에 정했다.`);
-  if (record.because) lines.push(`  그때 쓴 이유: ${record.because}`);
+  const signedBecause = asSigned(record, 'because');
+  if (signedBecause) lines.push(`  그때 쓴 이유: ${signedBecause}`);
   if (record.quote) {
     const quoted = record.quote.replace(/\s+/g, ' ').trim();
     lines.push(`  그때 이렇게 적혀 있었다: "${quoted.length > 120 ? `${quoted.slice(0, 119)}…` : quoted}"`);
   }
-  if (!record.because && !record.quote) {
+  if (!signedBecause && !record.quote) {
     // 없는 것을 있는 척하지 않는다.
     lines.push('  그때 남긴 이유는 없다.');
+  }
+  // **지금 무엇이 힘을 갖고 있는지도 말한다.** 그때 것만 보여주고 물으면 이번엔
+  // 반대로 속인다 — 사람이 이미 고쳐 놓은 문장을 모르고 답하게 된다.
+  if (wasAmended(record, 'decision')) {
+    lines.push(`  그 뒤로 고쳤다. 지금 문장: ${record.decision}`);
+    const last = [...record.amendments].reverse().find((a) => a.changed.some((c) => c.field === 'decision'));
+    if (last) lines.push(`  고친 이유: ${last.why}`);
+  }
+  if (wasAmended(record, 'because') && record.because && record.because !== signedBecause) {
+    lines.push(`  지금 적혀 있는 이유: ${record.because}`);
   }
   lines.push('');
 

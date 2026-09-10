@@ -31,12 +31,28 @@ const dayDiff = (from: string, to: string): number => {
   return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / 86_400_000) : 0;
 };
 
-/** 마지막으로 무슨 일이든 있었던 날 (서명·개정·걸림 중 가장 나중). */
+/**
+ * 마지막으로 **무슨 일이든** 있었던 날.
+ *
+ * 여기 빠진 사건이 있으면 그 사건은 "아무 일도 없었다"로 세어진다. 2026-09-10
+ * 까지 **재확인과 멈춤이 빠져 있었고**, 그래서 이런 일이 났다 (실측):
+ *
+ *   어제 `dec-close --keep --next-review 2026-10-10` 으로 답했는데,
+ *   오늘 그 결정이 *"72일 동안 아무 일도 없었다"* 며 다시 올라왔다.
+ *
+ * 사람이 답한 것이 일이 아니라고 세었기 때문이다. **답한 다음 날 같은 것을
+ * 다시 묻는 것은 과발화**이고(거울 조항: 사용자가 닫은 결정을 다시 열지 않는다),
+ * 게다가 그 문장은 거짓이다 — 무슨 일이 있었다. 사람이 답했다.
+ */
 function lastTouched(record: DecisionRecord): string {
   const dates = [
     record.adopted,
     ...record.amendments.map((a) => a.at.slice(0, 10)),
     ...record.fires.map((f) => f.at.slice(0, 10)),
+    // 사람이 답한 날. 이것이 빠져 있어서 답이 "아무 일 없음"으로 세어졌다.
+    ...record.reviews.map((r) => r.at.slice(0, 10)),
+    // 멈춘 날도 일이다 — 멈춤은 사람만 하고, 다음 정산에서 묻힌다 (§4.7).
+    ...record.pauses.map((p) => p.at.slice(0, 10)),
   ].filter(Boolean);
   return dates.sort().at(-1) ?? record.adopted;
 }

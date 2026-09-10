@@ -173,6 +173,10 @@ export function applyLeave(plan: LeavePlan): LeaveResult {
       const text = fs.readFileSync(target.file, 'utf8');
       const split = splitDecisionFile(text);
       if (!split) continue;
+      // **사람이 고친 파일도 그대로 굳힌다.** 이 저장소의 규율은 "고친 파일을
+      // 덮어쓰지 않는다"인데, 여기서 쓰는 것은 원장이 다시 그린 본문이 아니라
+      // **디스크에 있는 그대로**(`split.body`)다. 그의 글은 한 글자도 안 바뀌고
+      // 지문과 꼬리말만 빠진다 — 떠나는 순간 디스크에 있는 것이 곧 그의 기록이다.
       replaceFile(target.file, `${withoutAutoFooter(split.body).replace(/\n*$/, '')}\n${LEFT_NOTE}`);
       plain++;
     } catch (e) { failed.push({ file: target.file, why: String((e as Error).message ?? e) }); }

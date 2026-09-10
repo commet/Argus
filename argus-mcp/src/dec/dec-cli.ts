@@ -19,6 +19,7 @@ import { amendDecision, leaveRepo, pauseDecision, recordFire, recordMisfire, rep
 import { applyLeave, planLeave } from './leave.js';
 import { dueDecisions } from './review/due.js';
 import { sayAsk } from './review/ask.js';
+import { sayReceipt } from './review/receipt.js';
 import { checkSubject } from './check/match.js';
 import { decideBlock } from './block/decide.js';
 import { emitExport, inspectExport } from './export/emit.js';
@@ -61,6 +62,7 @@ function argusDirOf(args: readonly string[], command: string): string {
 
 /** 원장에서 결정 파일을 다시 그린다. 사람이 고친 파일은 손대지 않는다. */
 export function runDecSyncCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-sync', ['--argus-dir']);
   process.stdout.write(JSON.stringify(syncDecisionFiles(argusDirOf(args, 'dec-sync'))) + '\n');
 }
 
@@ -69,6 +71,7 @@ export function runDecSyncCli(args: readonly string[]): void {
  * **어긋나면 0 아닌 코드로 끝난다** (나중에 CI 관문으로 그대로 쓰인다).
  */
 export function runDecVerifyCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-verify', ['--argus-dir']);
   const argusDir = argusDirOf(args, 'dec-verify');
 
   // **떠난 저장소를 고장이라고 부르지 않는다.** 떠나면 지문을 걷으므로 모든
@@ -102,6 +105,7 @@ export function runDecVerifyCli(args: readonly string[]): void {
  * 읽을 과거가 없으면 지어내지 않고 **없다고 말한다** — 자격 거절의 재료다.
  */
 export function runDecScanRulesCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-scan-rules', ['--repo', '--compile-prompt']);
   const repo = flag(args, '--repo');
   if (!repo || !path.isAbsolute(repo)) throw new Error('dec-scan-rules requires an absolute --repo');
   const found = discoverRuleFiles(repo);
@@ -153,7 +157,7 @@ export function runDecScanRulesCli(args: readonly string[]): void {
  * 뜻이 없다.
  */
 export function runDecRehearseCli(args: readonly string[]): void {
-  rejectUnknownFlags(args, 'dec-rehearse', ['--argus-dir', '--repo', '--days', '--top', '--clause']);
+  rejectUnknownFlags(args, 'dec-rehearse', ['--repo', '--days', '--top', '--clause']);
   const repo = flag(args, '--repo');
   if (!repo || !path.isAbsolute(repo)) throw new Error('dec-rehearse requires an absolute --repo');
   const days = Number(flag(args, '--days') ?? 30);
@@ -258,6 +262,7 @@ function nextDecisionId(argusDir: string): string {
  *  - **기계가 못 잡는 조항이면 그렇게 서명된다.** 잡는 척하지 않는다.
  */
 export async function runDecSignCli(args: readonly string[]): Promise<void> {
+  rejectUnknownFlags(args, 'dec-sign', ['--argus-dir', '--repo', '--from-clause', '--decision', '--author', '--binds', '--id', '--type', '--scope', '--review', '--review-on-event', '--unattended', '--because', '--provenance', '--origin-session', '--compiled', '--today']);
   const argusDir = argusDirOf(args, 'dec-sign');
   const repo = flag(args, '--repo') ?? path.dirname(argusDir);
   const clauseRef = flag(args, '--from-clause');
@@ -371,6 +376,7 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
  * 횟수도 다르다(브리프는 매 세션, 인사는 평생 한 번).
  */
 export function runDecHelloCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-hello', ['--argus-dir', '--data-dir', '--days', '--dry', '--repo']);
   const repo = flag(args, '--repo');
   if (!repo || !path.isAbsolute(repo)) throw new Error('dec-hello requires an absolute --repo');
   const dataDir = flag(args, '--data-dir') ?? undefined;
@@ -388,6 +394,7 @@ export function runDecHelloCli(args: readonly string[]): void {
 }
 
 export function runDecBriefCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-brief', ['--argus-dir', '--cwd', '--dry', '--max', '--today']);
   const argusDir = argusDirOf(args, 'dec-brief');
   const repoRoot = path.dirname(argusDir);
   const cwd = flag(args, '--cwd') ?? repoRoot;
@@ -438,6 +445,7 @@ export function runDecBriefCli(args: readonly string[]): void {
  *    아무것도 안 남긴다 — 물어보는 것이 발화가 되면 안 된다.
  */
 export async function runDecCheckCli(args: readonly string[]): Promise<void> {
+  rejectUnknownFlags(args, 'dec-check', ['--argus-dir', '--file', '--text', '--plan', '--quiet', '--session-id', '--today']);
   const argusDir = argusDirOf(args, 'dec-check');
   const file = flag(args, '--file');
   const text = flag(args, '--text') ?? flag(args, '--plan');
@@ -487,6 +495,7 @@ export async function runDecCheckCli(args: readonly string[]): Promise<void> {
 
 /** 잘못 잡았다 — 법이 아니라 감지기를 고치는 입구. */
 export async function runDecMisfireCli(args: readonly string[]): Promise<void> {
+  rejectUnknownFlags(args, 'dec-misfire', ['--argus-dir', '--id', '--matched', '--where', '--note']);
   const argusDir = argusDirOf(args, 'dec-misfire');
   const id = flag(args, '--id');
   if (!id) throw new Error('dec-misfire requires --id <결정 번호>');
@@ -505,6 +514,7 @@ export async function runDecMisfireCli(args: readonly string[]): Promise<void> {
 
 /** 다시 볼 때가 된 것을 묻는다 — **그때 쓴 문장을 먼저 보여주고 나서.** */
 export function runDecDueCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-due', ['--argus-dir', '--max', '--today']);
   const argusDir = argusDirOf(args, 'dec-due');
   const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
   const max = Number(flag(args, '--max') ?? 3);
@@ -532,6 +542,7 @@ export function runDecDueCli(args: readonly string[]): void {
  * 아니라 폐지 사건이므로 `dec_repealed` 로 나간다 (불변식 ③ 추가 전용).
  */
 export async function runDecCloseCli(args: readonly string[]): Promise<void> {
+  rejectUnknownFlags(args, 'dec-close', ['--argus-dir', '--id', '--keep', '--later', '--sunset', '--why', '--next-review', '--lesson', '--prevented', '--succeeded-by']);
   const argusDir = argusDirOf(args, 'dec-close');
   const id = flag(args, '--id');
   if (!id) throw new Error('dec-close requires --id <결정 번호>');
@@ -542,7 +553,13 @@ export async function runDecCloseCli(args: readonly string[]): Promise<void> {
     const result = await repealDecision(argusDir, id, {
       why, ...(flag(args, '--succeeded-by') ? { succeeded_by: flag(args, '--succeeded-by')! } : {}),
     }, new Date().toISOString());
-    process.stdout.write(JSON.stringify({ ...result, outcome: 'sunset', why }) + '\n');
+    process.stdout.write(JSON.stringify({
+      ...result, outcome: 'sunset', why,
+      say: sayReceipt(argusDir, {
+        id, outcome: 'sunset', lesson_written: false, prevented_written: false,
+        exported: result.exported,
+      }, new Date().toISOString().slice(0, 10)),
+    }) + '\n');
     return;
   }
 
@@ -558,10 +575,18 @@ export async function runDecCloseCli(args: readonly string[]): Promise<void> {
     // 기계가 추정하지 않는다 — 사람이 적은 것만 들어온다.
     ...(flag(args, '--prevented') ? { prevented: flag(args, '--prevented')! } : {}),
   }, new Date().toISOString());
+  const lessonWritten = Boolean(flag(args, '--lesson'));
+  const preventedWritten = Boolean(flag(args, '--prevented'));
   process.stdout.write(JSON.stringify({
     ...result, outcome, next_review: nextReview,
-    lesson_written: Boolean(flag(args, '--lesson')),
-    prevented_written: Boolean(flag(args, '--prevented')),
+    lesson_written: lessonWritten,
+    prevented_written: preventedWritten,
+    // 영수증 — 닫고 나면 무엇이 달라졌는지 말한다 (기획 v5 §"정산").
+    say: sayReceipt(argusDir, {
+      id, outcome, next_review: nextReview,
+      lesson_written: lessonWritten, prevented_written: preventedWritten,
+      exported: result.exported,
+    }, new Date().toISOString().slice(0, 10)),
   }) + '\n');
 }
 
@@ -572,6 +597,7 @@ export async function runDecCloseCli(args: readonly string[]): Promise<void> {
  * 를 보여준다. 그래서 `--why` 없이는 못 바꾼다 (write.ts 가 막는다).
  */
 export async function runDecAmendCli(args: readonly string[]): Promise<void> {
+  rejectUnknownFlags(args, 'dec-amend', ['--argus-dir', '--id', '--why', '--decision', '--scope', '--binds', '--next-review', '--review-on-event', '--because', '--unattended', '--redraft-watch']);
   const argusDir = argusDirOf(args, 'dec-amend');
   const id = flag(args, '--id');
   if (!id) throw new Error('dec-amend requires --id <결정 번호>');
@@ -630,6 +656,7 @@ export async function runDecAmendCli(args: readonly string[]): Promise<void> {
  * 원장을 못 읽었으면 `unreadable` 을 실어 보내고 `block:false` 다.
  */
 export function runDecBlockCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-block', ['--argus-dir', '--file', '--text', '--today']);
   const argusDir = argusDirOf(args, 'dec-block');
   // 이름은 `dec-check` 와 같게 둔다 — 훅 둘이 같은 낱말을 쓴다.
   const file = flag(args, '--file');
@@ -677,6 +704,7 @@ export function runDecBlockCli(args: readonly string[]): void {
  * 잠그면 사람이 훅을 통째로 끄고, 그러면 아무 발자국도 안 남는다.
  */
 export async function runDecPauseCli(args: readonly string[]): Promise<void> {
+  rejectUnknownFlags(args, 'dec-pause', ['--argus-dir', '--id', '--until', '--why']);
   const argusDir = argusDirOf(args, 'dec-pause');
   const id = flag(args, '--id');
   if (!id) throw new Error('dec-pause requires --id <결정 번호>');
@@ -777,6 +805,7 @@ export async function runDecLeaveCli(args: readonly string[]): Promise<void> {
  * 돌려준다 — 어느 쪽을 남길지는 사람이 정한다 (개정으로 받거나, 다시 방출하거나).
  */
 export function runDecExportCli(args: readonly string[]): void {
+  rejectUnknownFlags(args, 'dec-export', ['--argus-dir', '--check']);
   const argusDir = argusDirOf(args, 'dec-export');
   const fold = foldDecisions(argusDir);
   if (fold.unreadable) {
