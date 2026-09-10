@@ -59,6 +59,11 @@ async function main() {
     await runDecMisfireCli(process.argv.slice(3));
     return;
   }
+  if (process.argv[2] === 'dec-hello') {
+    const { runDecHelloCli } = await import('./dec/dec-cli.js');
+    runDecHelloCli(process.argv.slice(3));
+    return;
+  }
   if (process.argv[2] === 'dec-brief') {
     const { runDecBriefCli } = await import('./dec/dec-cli.js');
     runDecBriefCli(process.argv.slice(3));

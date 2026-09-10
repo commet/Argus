@@ -25,6 +25,7 @@ import { sayBlock, sayHeldBack } from './block/say.js';
 import { decideSpeak, MISFIRE_LIMIT } from './check/speak.js';
 import { markSpoken, readSpoken } from './check/state.js';
 import { foldDecisions } from './fold.js';
+import { alreadyGreeted, markGreeted, sayHello } from './hello.js';
 import type { DecAmendedPayload, DecSignedPayload, Unattended } from './types.js';
 import { planInjection } from './inject/select.js';
 import { sayInjection } from './inject/say.js';
@@ -343,6 +344,30 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
  *
  * `--dry` 면 펴 봤다는 표시를 안 남긴다 (사람이 그냥 보고 싶을 때).
  */
+/**
+ * 첫 인사 — 결정이 0건인 저장소에서 **한 번만** 한다.
+ *
+ * 브리프와 갈라 둔 이유: 브리프는 *정해 둔 것을 편다*, 이쪽은 *아직 아무것도
+ * 안 정한 사람에게 여기 규칙이 있다고 알린다*. 조건도 다르고(원장 유무),
+ * 횟수도 다르다(브리프는 매 세션, 인사는 평생 한 번).
+ */
+export function runDecHelloCli(args: readonly string[]): void {
+  const repo = flag(args, '--repo');
+  if (!repo || !path.isAbsolute(repo)) throw new Error('dec-hello requires an absolute --repo');
+  const dataDir = flag(args, '--data-dir') ?? undefined;
+  const days = Number(flag(args, '--days') ?? 30);
+
+  if (alreadyGreeted(dataDir, repo)) {
+    process.stdout.write(JSON.stringify({ greet: false, why_silent: 'already_greeted', say: [] }) + '\n');
+    return;
+  }
+  const result = sayHello(repo, days, flag(args, '--argus-dir') ?? undefined);
+  // **말한 뒤에만 표식을 남긴다.** 조용히 넘어간 것을 "인사했다"로 적으면
+  // 규칙 파일이 나중에 생긴 사람은 영영 인사를 못 받는다.
+  if (result.greet && !args.includes('--dry')) markGreeted(dataDir, repo);
+  process.stdout.write(JSON.stringify(result) + '\n');
+}
+
 export function runDecBriefCli(args: readonly string[]): void {
   const argusDir = argusDirOf(args, 'dec-brief');
   const repoRoot = path.dirname(argusDir);

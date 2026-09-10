@@ -12,7 +12,7 @@
  *
  * Run: node argus-plugin-v2/hooks/dec-brief.test.mjs
  */
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, chmodSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, chmodSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -44,9 +44,10 @@ function world({ withLedger = true } = {}) {
   return repo;
 }
 
-function runHook(repo, { bin, cwd } = {}) {
+function runHook(repo, { bin, cwd, data } = {}) {
   const env = { ...process.env };
   if (bin) env.ARGUS_MCP_BIN = bin; else delete env.ARGUS_MCP_BIN;
+  if (data) env.CLAUDE_PLUGIN_DATA = data; else delete env.CLAUDE_PLUGIN_DATA;
   const r = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify({ session_id: 's1', cwd: cwd ?? repo, hook_event_name: 'SessionStart' }),
     encoding: 'utf8', env,
@@ -110,6 +111,36 @@ testCase('훅이 hooks.json 의 SessionStart 에 실제로 걸려 있다 (안 �
   const commands = (cfg.hooks.SessionStart || []).flatMap((e) => (e.hooks || []).map((h) => h.command || ''));
   assert.ok(commands.some((c) => c.includes('dec-brief.js')),
     'hooks.json 의 SessionStart 에 dec-brief.js 가 없다 — 파일만 있고 배선이 없는 상태다');
+});
+
+/**
+ * 첫 인사 (2026-09-09) — 원장이 없는 저장소에서 **평생 한 번**.
+ * 이걸 짓기 전에는 여기서 그냥 돌아섰고, 갓 설치한 사람은 아무 말도 못 들었다.
+ */
+testCase('원장이 없으면 첫 인사를 한다 (현관)', () => {
+  const repo = world({ withLedger: false });
+  const data = tmp('argus-plugin-data-');
+  const out = runHook(repo, { bin: fakeEngine({ greet: true, say: ['이 저장소에는 이미 규칙이 적혀 있다.'] }), data });
+  assert.ok(out.includes('이미 규칙이 적혀 있다'), `첫 인사가 안 나왔다: ${out}`);
+});
+
+testCase('엔진이 인사할 것 없다고 하면 조용하다', () => {
+  const repo = world({ withLedger: false });
+  const data = tmp('argus-plugin-data-');
+  assert.equal(runHook(repo, { bin: fakeEngine({ greet: false, why_silent: 'no_rule_files', say: [] }), data }), '');
+});
+
+testCase('플러그인 데이터 자리가 없으면 인사도 안 한다 (매번 말하느니 안 한다)', () => {
+  const repo = world({ withLedger: false });
+  assert.equal(runHook(repo, { bin: fakeEngine({ greet: true, say: ['안 나와야 한다'] }) }), '');
+});
+
+testCase('인사는 저장소에 폴더를 만들지 않는다 (안 쓸 저장소를 안 더럽힌다)', () => {
+  const repo = world({ withLedger: false });
+  rmSync(join(repo, '.argus'), { recursive: true, force: true });
+  const data = tmp('argus-plugin-data-');
+  runHook(repo, { bin: fakeEngine({ greet: false, say: [] }), data });
+  assert.ok(!existsSync(join(repo, '.argus')), '인사만 하고 .argus 를 만들었다');
 });
 
 if (failures) { console.error(`\n${failures}건 실패`); process.exit(1); }

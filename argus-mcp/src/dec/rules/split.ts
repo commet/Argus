@@ -79,7 +79,18 @@ function markersIn(text: string): string[] {
 const bare = (text: string): string => text.replace(/[*_`>#[\]()|-]/g, '').trim();
 
 export function splitRuleFile(file: string, source: string): SplitResult {
-  const lines = source.split('\n');
+  // **아르고스가 쓴 덩어리는 규칙이 아니다.** `dec-export` 가 AGENTS.md 에
+  // 넣은 블록을 다시 조항으로 읽으면, 우리 출력이 "이미 적혀 있던 규칙" 으로
+  // 되돌아온다 — 첫 인사가 자기 목소리를 남의 목소리로 들려준다
+  // (2026-09-09 실측: 갓 만든 AGENTS.md 가 "1조" 로 세어졌다).
+  // **줄 번호는 그대로 둔다** — 서명이 원문을 바이트로 대조하고 줄 번호를
+  // 남기므로, 지워서 줄이 밀리면 앵커가 깨진다. 같은 줄 수의 빈 줄로 바꾼다.
+  const masked = source.replace(
+    /<!-- argus:decisions begin -->[\s\S]*?<!-- argus:decisions end -->/g,
+    (block) => '\n'.repeat((block.match(/\n/g) ?? []).length),
+  );
+
+  const lines = masked.split('\n');
   const clauses: Clause[] = [];
   const skipped: SkippedBlock[] = [];
   const seen = new Map<string, number>();
@@ -225,7 +236,10 @@ export function unmarkedBlocks(
  * `# - **웹 화면은 나중에.** ...` 로 나왔다 (2026-08-21 눈으로 보고 발견).
  */
 export function clauseSentence(text: string, max = 200): string {
-  let out = text.replace(/\s+/g, ' ').trim();
+  // **인용 표지는 줄을 합치기 전에 걷는다.** 뒤에 걷으면 `^>` 만 잡혀서
+  // 접힌 인용의 둘째 줄 표지가 문장 한가운데 남는다 — "현행 제품에 > 유효하되"
+  // 가 첫 인사 화면에 그대로 나갔다 (2026-09-09 실측).
+  let out = text.replace(/^\s*>\s?/gm, '').replace(/\s+/g, ' ').trim();
   out = out.replace(/^(?:[-*+]|\d+[.)])\s+/, '');   // 목록 기호
   out = out.replace(/\*\*(.+?)\*\*/g, '$1');        // 굵게
   out = out.replace(/(?<![*\w])\*(?!\*)(.+?)(?<!\*)\*(?![*\w])/g, '$1'); // 기울임

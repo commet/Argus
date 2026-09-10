@@ -54,7 +54,7 @@ export interface RehearseOptions {
 }
 
 /** 이 이상 부딪히면 규칙을 좁히라고 말한다 (30일 기준 하루 한 번꼴). */
-const TOO_BROAD = 30;
+export const TOO_BROAD = 30;
 
 const clip = (text: string, max: number): string =>
   text.length <= max ? text : `${text.slice(0, max - 1)}…`;

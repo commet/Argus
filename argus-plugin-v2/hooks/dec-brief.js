@@ -74,13 +74,44 @@ function localToday() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/**
+ * 첫 인사 — 원장이 없는 저장소에서 **평생 한 번.**
+ *
+ * 표식은 저장소가 아니라 **플러그인 자기 자리**(`CLAUDE_PLUGIN_DATA`)에 남긴다.
+ * 아르고스를 안 쓸 저장소에 폴더를 만들지 않으려는 것이다. 자리가 없으면
+ * (플러그인 데이터가 꺼져 있으면) 인사도 안 한다 — 매번 말하느니 안 한다.
+ */
+function firstHello(root) {
+  const dataDir = process.env.CLAUDE_PLUGIN_DATA;
+  if (!dataDir) return null;
+  const engine = resolveEngine();
+  if (!engine.ok) return null;                  // 찬 npx 를 세션 시작에 기다리지 않는다
+
+  let raw;
+  try {
+    raw = execFileSync(engine.cmd, ["dec-hello", "--repo", root, "--data-dir", dataDir], {
+      cwd: root, encoding: "utf8", timeout: BUDGET_MS, maxBuffer: 4 * 1024 * 1024,
+    });
+  } catch { return null; }                      // 인사 못 한 것이 세션을 막지 않는다
+
+  const result = parseJson(String(raw).trim());
+  if (!result || result.greet !== true || !Array.isArray(result.say) || result.say.length === 0) return null;
+  return result.say.join("\n");
+}
+
 function main(stdinText) {
   const payload = parseJson(stdinText) || {};
   const cwd = typeof payload.cwd === "string" && payload.cwd ? payload.cwd : process.cwd();
   const root = findProjectRoot(cwd);
   if (!root) return null;                       // 저장소 밖 — 펼 것이 없다
   const argusDir = path.join(root, ".argus");
-  if (!fs.existsSync(path.join(argusDir, "ledger", "ledger.jsonl"))) return null; // 아직 아무것도 안 정했다
+  const hasLedger = fs.existsSync(path.join(argusDir, "ledger", "ledger.jsonl"));
+
+  // **아직 아무것도 안 정한 사람에게 한 번은 말한다.**
+  // 이걸 짓기 전에는 여기서 그냥 돌아섰고, 그래서 갓 설치한 사람은 세션을
+  // 열어도 · 무엇을 타이핑해도 · 세션을 닫아도 아무 말도 못 들었다. 작동하는
+  // 현관에 손잡이가 없었다 (2026-09-09 실측).
+  if (!hasLedger) return firstHello(root);
 
   const engine = resolveEngine();
   if (!engine.ok) {
