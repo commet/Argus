@@ -1,4 +1,12 @@
 import path from 'node:path';
+
+/**
+ * **저자성 판정(`ai_surfaced`)을 여기서 다시 만들지 않는다.** 같은 뜻의 판정이
+ * 앱 존 `src/lib/judgment-authorship.ts` 에 이미 있고, 값 집합도 같다
+ * (`user` · `ai_surfaced`). 재사용하지 않는 이유는 하나뿐 — **MIT 존은 앱 존을
+ * import 하지 않는다** (CLAUDE.md 라이선스 경계). `src/dec/types.ts` 가 같은
+ * 질문에 같은 답을 적어 두고 있다.
+ */
 import { sayHandEdited, syncDecisionFiles, verifyDecisionFiles } from './files.js';
 import fs from 'node:fs';
 import { discoverRuleFiles } from './rules/discover.js';
@@ -156,7 +164,10 @@ export function runDecRehearseCli(args: readonly string[]): void {
 
   const collected = collectPast(repo, days);
   const rehearsals = clauses.map((clause) => {
-    const draft = draftWatchFromClause(clause);
+    // **금지형이 아닌 조항을 말로 잡으면 순종이 위반으로 세어진다.**
+    // 시운전의 숫자가 곧 사람이 서명을 정하는 근거라, 여기서 부풀면 잘못된
+    // 규칙이 뜨거워 보인다. 조항이 이미 갖고 있는 표지로 가른다.
+    const draft = draftWatchFromClause(clause, clause.markers.includes('금지') ? 'ban' : 'pin');
     const result = rehearse(draft.rule, collected.past, { days, maxScenes: 3 });
     return { clause, rule: draft.rule, result };
   });
@@ -230,20 +241,50 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
   const argusDir = argusDirOf(args, 'dec-sign');
   const repo = flag(args, '--repo') ?? path.dirname(argusDir);
   const clauseRef = flag(args, '--from-clause');
-  if (!clauseRef) throw new Error('dec-sign requires --from-clause <파일#조항id>');
+  const spoken = flag(args, '--decision');
+  if (!clauseRef && !spoken) {
+    throw new Error('dec-sign 은 --from-clause <파일#조항id> 또는 --decision "<문장>" 중 하나를 받는다');
+  }
+  if (clauseRef && spoken) {
+    throw new Error('dec-sign 은 --from-clause 와 --decision 을 함께 받지 않는다 — 문장의 출처가 둘일 수 없다');
+  }
   const author = flag(args, '--author');
   if (!author) throw new Error('dec-sign requires --author (서명자가 누구인지 없이 법이 되지 않는다)');
 
-  const [file] = clauseRef.split('#');
-  const target = discoverRuleFiles(repo).files.find((f) => f.rel === file);
-  if (!target) throw new Error(`NO_SUCH_RULE_FILE: ${file}`);
-  const source = fs.readFileSync(target.abs, 'utf8');
-  const clause = splitRuleFile(target.rel, source).clauses.find((c) => c.clause_id === clauseRef);
-  if (!clause) throw new Error(`NO_SUCH_CLAUSE: ${clauseRef}`);
-  // 서명 직전에 원문을 바이트로 다시 본다 — 읽은 뒤 파일이 바뀌었을 수 있다.
-  if (!source.includes(clause.text)) throw new Error(`CLAUSE_MOVED: ${clauseRef} 의 원문이 파일과 다르다`);
+  // ── 문장이 어디서 왔나 ────────────────────────────────────────────────
+  // 두 길뿐이고, 둘의 **출처 기록이 다르다**. 규칙 파일에서 온 것은 바이트로
+  // 대조되고 줄 번호가 남는다. 사람이 그 자리에서 말한 것은 대조할 원본이
+  // 없으므로 **원문을 지어내지 않는다** — `quote` 를 비워 둔다.
+  let clause: Clause;
+  let origin: DecSignedPayload['origin'];
+  let quote: string | undefined;
 
-  const draft = draftWatchFromClause(clause);
+  if (clauseRef) {
+    const [file] = clauseRef.split('#');
+    const target = discoverRuleFiles(repo).files.find((f) => f.rel === file);
+    if (!target) throw new Error(`NO_SUCH_RULE_FILE: ${file}`);
+    const source = fs.readFileSync(target.abs, 'utf8');
+    const found = splitRuleFile(target.rel, source).clauses.find((c) => c.clause_id === clauseRef);
+    if (!found) throw new Error(`NO_SUCH_CLAUSE: ${clauseRef}`);
+    // 서명 직전에 원문을 바이트로 다시 본다 — 읽은 뒤 파일이 바뀌었을 수 있다.
+    if (!source.includes(found.text)) throw new Error(`CLAUSE_MOVED: ${clauseRef} 의 원문이 파일과 다르다`);
+    clause = found;
+    origin = { kind: 'rule_file', ref: clauseRef, line_start: found.line_start, line_end: found.line_end };
+    quote = found.text;
+  } else {
+    const text = spoken!.trim();
+    if (text.length < 4) throw new Error('DECISION_TOO_SHORT: 법이 될 문장이 너무 짧다');
+    // 감지 규칙 초안은 **말한 문장 자체**를 읽어서 뽑는다 — 조항에서 뽑을 때와
+    // 같은 함수를 쓴다. 자리·줄번호는 없으므로 0 이 아니라 **없는 값**이다.
+    clause = { clause_id: '', file: '', line_start: 0, line_end: 0, text, section: '', markers: [], kind: 'paragraph' };
+    const session = flag(args, '--origin-session');
+    if (session) origin = { kind: 'conversation', ref: session };
+    // quote 는 비워 둔다. 사람이 방금 한 말을 "그때 이렇게 적혀 있었다" 로
+    // 되돌려 주면, 대조된 적 없는 문장에 대조의 무게를 싣는 것이 된다.
+  }
+
+  const type = (flag(args, '--type') ?? 'pin') as DecSignedPayload['type'];
+  const draft = draftWatchFromClause(clause, type);
   // 결정론 초안이 첫 안이고, **에이전트가 더 나은 답을 냈으면 그걸 쓴다**
   // (`dec-scan-rules --compile-prompt` 가 물어보는 그 답이다). 답이 없거나
   // 문이 안 열리면 조용히 초안으로 돌아간다 — 모델이 못 냈다고 서명이 막히면
@@ -257,18 +298,21 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
   const because = flag(args, '--because');
 
   const payload: DecSignedPayload = {
-    type: (flag(args, '--type') ?? 'pin') as DecSignedPayload['type'],
+    type,
     decision: clauseSentence(clause.text),
     scope,
     binds: flag(args, '--binds') ?? author,
     author,
-    provenance: 'user', // 문장이 사용자의 규칙 파일에서 그대로 왔다
+    // **저자성에 거짓말하지 않는다** (Zero-Judgment Gate 1항). 규칙 파일에서
+    // 온 것은 사용자가 쓴 것이고, 대화 후보에서 올라온 것은 아르고스가 꺼낸
+    // 것이다. 뒤쪽을 `user` 로 적으면 사용자가 안 쓴 문장을 그의 것으로 만든다.
+    provenance: flag(args, '--provenance') === 'ai_surfaced' ? 'ai_surfaced' : 'user',
     adopted: today,
     unattended,
     watch: chosen.rule.mode,
     watch_rule: chosen.rule,
-    origin: { kind: 'rule_file', ref: clauseRef, line_start: clause.line_start, line_end: clause.line_end },
-    quote: clause.text,
+    ...(origin ? { origin } : {}),
+    ...(quote ? { quote } : {}),
     ...(review ? { review } : {}),
     ...(reviewOnEvent ? { review_on_event: reviewOnEvent } : {}),
     ...(because ? { because } : {}),
@@ -498,9 +542,29 @@ export async function runDecAmendCli(args: readonly string[]): Promise<void> {
   const unattended = flag(args, '--unattended');
   if (unattended === 'park' || unattended === 'log' || unattended === 'deny') payload.unattended = unattended;
 
+  // ── 법은 그대로 두고 **감지기만** 고치는 길 (기획서 §4.7) ──────────────
+  // 오탐이 법을 죽이지 않게 하려면 이 입구가 있어야 한다. 없으면 사람은
+  // 잘못 잡는 규칙을 통째로 폐지하는 수밖에 없다.
+  if (args.includes('--redraft-watch')) {
+    const fold = foldDecisions(argusDir);
+    const record = fold.records.find((r) => r.id === id);
+    if (!record) throw new Error(`NO_SUCH_DECISION: ${id}`);
+    // 바뀐 문장이 있으면 그것으로, 없으면 지금 법으로 다시 뽑는다.
+    const text = payload.decision ?? record.decision;
+    // **종류는 안 바꾼다.** 금지를 선택 고정으로 바꾸는 것은 감지기 수리가
+    // 아니라 다른 법이다 — 폐지하고 다시 서명하는 자리다 (AMENDABLE 목록이
+    // `type` 을 뺀 이유).
+    const redrafted = draftWatchFromClause(
+      { clause_id: '', file: '', line_start: 0, line_end: 0, text, section: '', markers: [], kind: 'paragraph' },
+      record.type,
+    );
+    payload.watch_rule = redrafted.rule;
+    payload.watch = redrafted.rule.mode;
+  }
+
   const changed = Object.keys(payload).filter((k) => k !== 'why');
   if (changed.length === 0) {
-    throw new Error('dec-amend 는 바꿀 것을 하나는 받아야 한다 (--decision · --scope · --binds · --next-review · --review-on-event · --because · --unattended)');
+    throw new Error('dec-amend 는 바꿀 것을 하나는 받아야 한다 (--decision · --scope · --binds · --next-review · --review-on-event · --because · --unattended · --redraft-watch)');
   }
   const result = await amendDecision(argusDir, id, payload, new Date().toISOString());
   process.stdout.write(JSON.stringify({ ...result, changed, why }) + '\n');

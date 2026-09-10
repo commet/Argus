@@ -1,4 +1,11 @@
+/**
+ * **여기의 `candidate` 는 후보 추출(`v2/candidate-capture.ts`)과 다른 것이다.**
+ * 저쪽은 대화에서 *결정 후보*를 줍고, 여기는 한 조항 안에서 *감지 규칙에 쓸
+ * 토막*(백틱·따옴표 안의 말)을 고른다. 같은 영어 낱말을 쓸 뿐 입력도 출력도
+ * 겹치지 않는다 — 합칠 것이 없다.
+ */
 import type { Clause } from '../rules/split.js';
+import type { DecisionType } from '../types.js';
 import { isUsablePhrase, type WatchRule } from './rule.js';
 
 /**
@@ -55,17 +62,43 @@ export interface WatchDraft {
   from: { paths_from: string[]; phrases_from: string[] };
 }
 
-export function draftWatchFromClause(clause: Clause): WatchDraft {
+/**
+ * **금지가 아닌 결정은 자기 말로 잡을 수 없다.**
+ *
+ * 이 초안기는 금지형을 위해 지어졌다 — 금지에서는 인용된 토막이 곧 위반이다
+ * (`pkill claude` 라고 말하는 것 자체가 어긋남). 그런데 선택 고정(`pin`)에서는
+ * 인용된 말이 **지켜야 할 것**이다. 그대로 잡으면 **순종할 때 울리고 어길 때
+ * 조용하다.**
+ *
+ * 실측 (2026-09-09, 이 저장소의 첫 실서명):
+ *   결정  "아르고스를 «결정 장부»로 재조준한다"
+ *   초안  이 말이 나오면: "결정 장부"
+ *   → "결정 장부 설계대로 짓자"(순종)  → **걸림**
+ *   → "예전 커널 방식으로 되돌리자"(위반) → 조용
+ *
+ * 그래서 금지형이 아니면 말 채널을 쓰지 않는다. 자리(파일 경로)는 종류와
+ * 무관하게 유효하다 — "여기서는 이렇게 한다" 는 그 자리를 건드릴 때 읽어
+ * 주면 되기 때문이다. 잡을 것이 없으면 `inject_only` 로 정직하게 내려간다.
+ */
+export function draftWatchFromClause(clause: Clause, type: DecisionType = 'ban'): WatchDraft {
   const ticks = collect(clause.text, BACKTICK);
   const quotes = collect(clause.text, QUOTED);
 
   const paths = uniq(ticks.filter(looksLikePath));
   // 백틱 안의 명령·표현 + 따옴표 안의 말이 전부 "말" 채널이다.
   const candidates = uniq([...ticks.filter((t) => !looksLikePath(t)), ...quotes]);
-  const phrases = candidates.filter(isUsablePhrase);
-  const dropped = candidates.filter((c) => !isUsablePhrase(c));
+  // 금지형만 말로 잡는다 (위 주석의 실측 참조).
+  const phrases = type === 'ban' ? candidates.filter(isUsablePhrase) : [];
+  const dropped = type === 'ban' ? candidates.filter((c) => !isUsablePhrase(c)) : [];
 
   const blind: string[] = [];
+  if (type !== 'ban' && candidates.length > 0) {
+    blind.push(
+      '이건 하지 말라는 규칙이 아니라 이렇게 하라는 규칙이라, '
+      + '적힌 말로는 못 잡는다 — 그 말이 나오는 건 지키는 때이기도 하다. '
+      + '어긋난 걸 아는 방법은 사람이 따로 적어야 한다.',
+    );
+  }
   if (paths.length === 0 && phrases.length > 0) {
     blind.push('어느 파일을 건드렸는지로는 못 잡는다. 말이 나올 때만 걸린다.');
   }

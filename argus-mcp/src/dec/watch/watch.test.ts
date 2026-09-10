@@ -249,3 +249,46 @@ describe('컴파일된 규칙이 실제로 서명까지 간다 (도달성 게이
     fs.rmSync(repo, { recursive: true, force: true });
   });
 });
+
+describe('금지가 아닌 결정은 자기 말로 잡지 않는다 (순종에 울리면 안 된다)', () => {
+  /**
+   * 2026-09-09 이 저장소의 첫 실서명에서 실측한 것:
+   *   결정  "아르고스를 «결정 장부»로 재조준한다"  (type: pin)
+   *   초안  이 말이 나오면: "결정 장부"
+   *   → "결정 장부 설계대로 짓자"(순종)   → **걸림**
+   *   → "예전 커널 방식으로 되돌리자"(위반) → 조용
+   * 정확히 거꾸로였고, 테스트 201개가 전부 초록인 채로 그랬다.
+   */
+  const clause = (text: string): Clause => ({
+    clause_id: 'X#1', file: 'X.md', line_start: 1, line_end: 1,
+    text, section: '', markers: [], kind: 'paragraph',
+  });
+
+  it('선택 고정은 인용된 말을 위반 신호로 삼지 않는다', () => {
+    const c = clause('아르고스를 "결정 장부"로 재조준하고, v5 설계로 짓는다');
+    const pin = draftWatchFromClause(c, 'pin');
+    expect(pin.rule.phrases).toEqual([]);
+    expect(pin.rule.mode).toBe('inject_only');
+    // 왜 못 잡는지 사람에게 말한다 — 조용히 비워 두지 않는다.
+    expect(pin.rule.blind_spots.join(' ')).toContain('지키는 때이기도 하다');
+  });
+
+  it('금지형은 그대로 인용된 말로 잡는다 (기존 동작 유지)', () => {
+    const c = clause('`pkill claude` 는 전면 금지다');
+    const ban = draftWatchFromClause(c, 'ban');
+    expect(ban.rule.phrases).toContain('pkill claude');
+    expect(ban.rule.mode).toBe('machine');
+  });
+
+  it('종류를 안 주면 금지형으로 본다 (옛 호출처가 안 깨진다)', () => {
+    const c = clause('`pkill claude` 는 전면 금지다');
+    expect(draftWatchFromClause(c).rule.phrases).toContain('pkill claude');
+  });
+
+  it('자리는 종류와 무관하게 살아 있다 — "여기서는 이렇게 한다" 는 그 자리에서 읽어준다', () => {
+    const c = clause('`src/app/**` 안에서는 이 방식으로 짓는다');
+    const pin = draftWatchFromClause(c, 'pin');
+    expect(pin.rule.paths).toContain('src/app/**');
+    expect(pin.rule.mode).toBe('machine');
+  });
+});
