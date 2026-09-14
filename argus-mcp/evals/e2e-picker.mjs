@@ -117,7 +117,11 @@ check('check_in data.server_version == package.json (배선이 자기 버전을 
 
 // 3. 예측 픽커: ai_surfaced → elicitation 실발사 → keep → sealed, owner=user
 elicitCount = 0; nextResp = { action: 'accept', content: {} };
-const seal = await callData('argus_predict', { id: 'e2e-pred', predicate: 'signup conversion passes 5% within two weeks', check_by: '2026-09-01', predicate_owner: 'ai_surfaced' });
+// check_by는 오늘보다 뒤여야 봉인된다(validateSeal: date <= today이면 BAD_CHECK_BY).
+// 이 E2E는 today_override 없이 실제 시계로 돌기 때문에, 날짜를 박아 두면 그날이 지나는
+// 순간 픽커가 발사되지 않는다. 2026-09-14에 '2026-09-01'이 지나 main으로 가는 모든 PR의 CI가 막혔다.
+const FUTURE_CHECK_BY = new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10);
+const seal = await callData('argus_predict', { id: 'e2e-pred', predicate: 'signup conversion passes 5% within two weeks', check_by: FUTURE_CHECK_BY, predicate_owner: 'ai_surfaced' });
 check('예측 픽커 실발사 (elicitation 왕복)', elicitCount === 1, `count=${elicitCount} msg="${lastElicitMessage.slice(0, 50)}"`);
 check('keep → sealed + owner=user', seal?.data?.status === 'sealed' && seal?.data?.predicate_owner === 'user', JSON.stringify({ st: seal?.data?.status, ow: seal?.data?.predicate_owner }));
 
