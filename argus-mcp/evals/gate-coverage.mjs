@@ -70,6 +70,10 @@ const WAIVED = new Map([
     'installs the PUBLISHED tarball from npm and drives a persona through the whole install→seal→restart→return→settle journey: needs ANTHROPIC_API_KEY and network, and a first-user journey has no pass/fail contract a merge can block on — its value is the friction it surfaces, recorded in docs/receipts/2026-08-11-first-user-journey/',
   ],
   [
+    'loop-demo',
+    '사람이 눈으로 보는 데모(npm run loop:demo): 실물 서버를 논리 날짜로 걸어 루프 전 구간의 표면을 그대로 찍는다. 관문 11개를 스스로 검사하고 실패 시 exit 1 이라 회귀는 잡지만, 배터리 S47~S49 가 같은 불변식을 더 좁게 이미 지키므로 머지 차단 게이트로 중복 배치하지 않는다',
+  ],
+  [
     'plan-clock',
     'pure deterministic date picker for the journey harness (reads plan_adopt dues from a ledger dir), not a gate; it exists as a module precisely so it can be measured WITHOUT the model — its properties (earliest-due choice, null on undated/absent plans, never throws on a missing ledger, ignores unparsable lines) are vitest-guarded by plan-clock.test.ts, and both directions were mutation-proven before merge',
   ],
