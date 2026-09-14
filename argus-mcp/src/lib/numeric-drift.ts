@@ -476,3 +476,295 @@ function numParam(v: unknown, fallback: number): number {
 function isNearZero(prev: number, mod: RuleModifiers | undefined, resolution: number): boolean {
   return Math.abs(prev) < nearZeroCut(prev, mod, resolution);
 }
+
+
+// ── 감시 문답 → 임계·계열 판정 (2026-08-18, 재정초 §6 봉인 시공 PR-A2) ──────
+//
+// 왜 여기에 사는가. 이 파일은 두 스냅샷(prev, next)만 보고 "이 한 걸음이
+// 실질적 변화인가"를 판정한다. 그런데 `stateful` 분기가 스스로 적어둔 대로,
+// 경로·변동성은 두 점으로 판정할 수 없고 **관측 이력이 필요하다**. 아래가
+// 그 이력 위의 판정(CUSUM, Page 1954)이고, 같은 파일에 두는 이유는 임계가
+// 두 판정 사이에서 갈라지면 안 되기 때문이다.
+//
+// ── 사람에게 무엇을 묻는가, 그리고 무엇을 묻지 않는가 ──
+//
+// 첫 판은 여섯을 물었다: 무엇을·어디서·평소 값·평소 출렁임(σ)·깨지는 값·왜.
+// 실데이터로 답변가능성을 실측하고 그 절반을 버렸다.
+//
+//   전체 사용자 작성 텍스트 321건 중 변동성을 언급한 것 **1건**.
+//   기록된 전제 579개 중 출렁임 수치를 가진 것 **0개**.
+//   `decision_items` 23개 전제 중 numeric_value **0**, materiality_rule **0**.
+//   창업자 자신의 실관찰은 n=2, n=3 — σ 가 미기록인 게 아니라 **추정 불가**다.
+//
+// 즉 σ 를 묻는 것은 이 제품의 어떤 사용자도 낸 적 없는 값을 요구하는 일이고,
+// 더 나쁘게는 아래 거절 규칙이 그 답을 요구하는 바람에 **지금까지 기록된 모든
+// 전제가 그 질문에서 막혔을 것**이다. 답할 수 없는 것을 물으면 남는 길은
+// 둘뿐이다 — 사용자가 지어내거나, 모델이 대신 메우거나. 둘 다 이 제품이
+// 금지한 일이다(정직한 공백 > 조작).
+//
+// 문구를 고쳐 살릴 수도 없었다. "평소에도 이만큼은 왔다갔다 한다"는 최소 넷으로
+// 읽힌다 — σ, 반범위, 전체 최고-최저 폭, 판독 간 변화폭. 어느 쪽으로 읽느냐에
+// 따라 h=4×답 이 실제로는 4σ 도 되고 15σ 도 되며, 그 사이에서 오경보 간격이
+// 열 자릿수 넘게 벌어진다. 확인 못 하는 자기보고에 그만큼 민감한 값을 걸 수 없다.
+// (유도 문헌도 같은 말을 한다: 물어야 할 것은 **관측 가능한 양**이지 분포의
+// 모수가 아니다. Garthwaite·Kadane·O'Hagan 2005 §2.2.)
+//
+// 그래서 묻는 것은 넷이다: **무엇을·어디서·이 값이면 깨진 것·왜.**
+// 이 넷은 사람이 아는 것이다. 실측에서 가장 좋은 실제 전제도 what 과 broken 은
+// 갖고 있었다("2주차 재방문율이 25%를 넘으면").
+//
+// 평소 값과 출렁임은 **묻지 않고 판독에서 추정한다.** 자기보고보다 데이터가
+// 낫기도 하지만, 더 중요하게는 그것이 정직한 순서다 — 기준선은 관측의 산물이지
+// 사용자가 선언할 사전 믿음이 아니다. 반대로 **깨지는 값은 반드시 사람이 정한다.**
+// 그것은 데이터에서 도출되지 않는 가치 판단이고(P6), 도구가 대신 정하면 숨은
+// 기본값이 판단을 대체한다.
+//
+// 숫자는 **명시 값만** 받는다. 이 파일 머리의 규율 그대로다: 산문에서
+// 정규식으로 뽑으면 "2026년 기준금리 3.5%"를 2026 으로 읽어 가짜 drift 를
+// 제조한다. 호출자가 숫자를 지목하고, 여기는 비교만 한다.
+//
+// 출처: `src/lib/cognition/watch.ts`·`detect.ts` 의 순수 로직을 이 핀된 쌍으로
+// 옮긴 것. 그리고 **이 파일이 그 로직의 정본이다** — 원본은 소비자 0인
+// 라이브러리로, 봉인된 §6 결정 ③("엔진 편입 + 화면 철거")이 이리로 오게 했다.
+// 두 곳에 파일-대조 핀을 걸지 않는 이유: 핀은 은퇴시키기로 한 파일을 두 번째
+// 권위로 만들고, 그러면 같은 답이 두 임계를 갖는다.
+
+/**
+ * 여유 k = 0.5σ. 표준 tabular CUSUM 관례로 "1σ 지속 이동을 탐지한다"는 뜻이다.
+ *
+ * 처음엔 k 를 `|평소 − 깨짐| / 2` 로 뒀다. 교과서의 "탐지하려는 이동폭의 절반"을
+ * 옮긴 것인데, **탐지하려는 이동폭을 임계까지의 거리로 읽은 것이 오독**이었다.
+ * 그러면 임계가 멀수록(평소 100·깨짐 50·σ 5 → 10σ) k 가 5σ 로 커져 계열이
+ * 귀머거리가 된다. 실측: 100→76 으로 무너지는 계열의 누적합 최고가 **0** 이었다.
+ * 임계로 곧장 달려가는 붕괴에 침묵하면서, 한 번 튀고 마는 이상치에는 울렸다.
+ *
+ * k 는 **잡음 규모**에 건다. 얼마나 큰 이동이 결정에 중요한가(임계까지의 거리)와
+ * 얼마나 큰 이동을 잡음에서 구별할 수 있는가(σ)는 다른 질문이고, k 는 후자의
+ * 답이다. 전자는 스냅샷 규칙의 선이 맡는다.
+ */
+export const SLACK_RATIO = 0.5;
+/** 결정 구간 h = 4σ. 관례의 아래끝(4~5σ) — 데이터에서 나온 값이 아니라 고른 값.
+ *  k=0.5σ·h=4σ 단방향의 오경보 간격(ARL0)은 관례상 판독 ~170건 수준이다. */
+export const DECISION_SIGMA = 4;
+/**
+ * 기준선을 추정하기 위한 최소 판독 수.
+ *
+ * 교과서(SPC Phase I)는 20~25건을 원한다. 이 제품의 판독 주기에서 그건 몇 년이라
+ * 8 로 낮췄고, 낮춘 대가를 숨기지 않는다: 8건이면 이동범위 7개로 σ 를 추정하므로
+ * 그 추정 자체가 30% 안팎으로 흔들린다. 그래서 계열 판정은 **보조**이고, 전제가
+ * 깨졌는지는 사용자가 정한 선(스냅샷 규칙)이 판독 1건부터 답한다.
+ *
+ * 이 숫자를 낮추면 판정이 일찍 나오는 게 아니라 **근거 없는 판정이 일찍 나온다.**
+ */
+export const MIN_BASELINE_READINGS = 8;
+/** 이동범위 편향보정 상수 d2 (n=2). 평균이동범위를 쓸 때의 σ̂ = MR̄ / d2. */
+export const MR_D2 = 1.128;
+/**
+ * 이상치에 견디는 σ̂ = 1.047 × median(MR) (Cryer & Ryan). **기본 추정자.**
+ *
+ * 평균 이동범위를 먼저 썼다가 실측에서 갈아탔다: 한 번 튀고 마는 이상치 하나가
+ * 이동범위 둘을 거대하게 만들어 σ̂ 를 3배로 부풀리고, **그 이상치가 스스로를
+ * 숨겼다**(SPC 의 masking). 기준선이 이상치에 끌려가면 그 뒤에 오는 진짜
+ * 표류까지 안 보인다.
+ */
+export const MR_ROBUST = 1.047;
+
+/** 사람이 답할 수 있는 것만. 평소 값·출렁임은 여기 없다 — 판독에서 추정한다. */
+export interface WatchAnswers {
+  /** 무엇을 보나 ("2주차 재방문율"). */
+  what: string;
+  /** 어디서 보나 ("대시보드 A"). 답할 수 없으면 그 감시는 허구다. */
+  where: string;
+  /** 이 값이면 전제가 깨진 것. **사람만이 정할 수 있는 값.** */
+  broken: number;
+  /** 왜 그 값인가. 근거 없는 임계는 나중에 검토될 수 없다. */
+  why: string;
+  /** 표시용 단위 ("%", "원"). 판정에는 쓰지 않는다. */
+  unit?: string;
+}
+
+/**
+ * 감시를 만들 수 없는 이유를 **전부** 돌려준다. 하나만 주면 사용자가 한 번에
+ * 하나씩 고치며 여러 번 튕긴다.
+ *
+ * 첫 판에는 여기 "깨진 값이 평소 출렁임 안에 있다(δ≤σ)" 거절이 있었다. 옳은
+ * 걱정이지만 **틀린 자리**였다 — 자기보고한 σ 로 판정했으니, 사용자가 σ 를 작게
+ * 답하면 통과하고 크게 답하면 막혔다. 같은 걱정은 이제 판독이 쌓인 뒤
+ * `cusumSeries` 가 `indistinguishable` 로 답한다. 데이터가 말하게 하고,
+ * 만들기 전에 지어낸 숫자로 막지 않는다.
+ */
+export function watchAnswerBlocks(w: WatchAnswers): string[] {
+  const out: string[] = [];
+  if (!(w.what || '').trim()) out.push('무엇을 볼지 적어주세요.');
+  if (!(w.where || '').trim()) out.push('그 숫자를 어디서 보는지 적어주세요. 볼 곳이 없으면 지켜지지 않습니다.');
+  if (!Number.isFinite(w.broken)) out.push('어떤 값이면 이 전제가 깨진 건지 숫자로 적어주세요.');
+  if (!(w.why || '').trim()) out.push('왜 그 값이면 깨진 건지 한 줄 적어주세요. 나중에 이 기준을 다시 볼 때 필요합니다.');
+  return out;
+}
+
+/** 판독에서 추정한 기준선. 자기보고가 아니라 관측의 산물이다. */
+export interface Baseline {
+  /** 중앙값. 이상치 한 건에 끌려가지 않게 평균이 아니다. */
+  center: number;
+  /** σ̂ = MR̄ / d2. 연속 판독의 차이에서 나오므로 느린 추세에 덜 부풀려진다. */
+  sigma: number;
+  sample: number;
+}
+
+function median(xs: readonly number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 === 0 ? (s[mid - 1]! + s[mid]!) / 2 : s[mid]!;
+}
+
+/** 판독이 모자라거나 전혀 안 움직이면 null — 없는 기준선을 지어내지 않는다. */
+export function estimateBaseline(values: readonly number[]): Baseline | null {
+  const vs = (values ?? []).filter((v) => Number.isFinite(v));
+  if (vs.length < MIN_BASELINE_READINGS) return null;
+  const mr: number[] = [];
+  for (let i = 1; i < vs.length; i += 1) mr.push(Math.abs(vs[i]! - vs[i - 1]!));
+  // 견고 추정자가 기본. 다만 계열의 절반 이상이 완전히 붙어 있으면 중앙값이 0이
+  // 되어 σ 가 사라지므로, 그때만 평균 이동범위로 물러난다 (둘 다 0이면 기준선 없음).
+  let sigma = MR_ROBUST * median(mr);
+  if (!(sigma > 0)) sigma = (mr.reduce((a, b) => a + b, 0) / mr.length) / MR_D2;
+  if (!(sigma > 0)) return null;
+  return { center: median(vs), sigma, sample: vs.length };
+}
+
+/**
+ * 스냅샷 규칙. `broken` 이 단일 정본이고, 사람이 읽는 문장과 이 규칙이 거기서
+ * 나온다. 파생이지 두 번째 저장이 아니다.
+ *
+ * `direction` 을 첫 판독에서 얻는 이유: 어느 쪽으로 가는 게 나쁜지는 지금 어디에
+ * 있는지를 알아야 정해진다. 이건 자기보고가 아니라 사실이므로 물을 것이 아니라
+ * 읽을 것이다. 기본값 `'cross'` 로 두면 안 되는 이유는 따로 있다 — `'cross'`
+ * 분기는 `boundary` 를 **아예 안 읽어서**(threshold 분기의 `direction !== 'cross'`
+ * 게이트), 선에 정확히 닿는 값의 운명이 선언이 아니라 `Math.sign(0)` 이라는
+ * 우연에 걸린다.
+ */
+export function deriveMaterialityRule(w: WatchAnswers, currentValue: number): MaterialityRule | null {
+  if (watchAnswerBlocks(w).length > 0) return null;
+  if (!Number.isFinite(currentValue) || currentValue === w.broken) return null;
+  return {
+    type: 'threshold',
+    params: { line: w.broken, direction: w.broken < currentValue ? 'below' : 'above' },
+    modifiers: { boundary: 'inclusive' },
+  };
+}
+
+/** 계열 판정 결과. `insufficient` 는 "괜찮다"가 아니라 "아직 모른다"이다. */
+export interface SeriesVerdict {
+  status: 'alert' | 'holds' | 'insufficient' | 'indistinguishable';
+  /** 사람이 읽는 한 줄. 사실 진술만 — 권고·평가 어휘 금지. */
+  statement: string;
+  /** 누적합의 최고점. 결정 구간과 비교할 수 있게 함께 준다. */
+  statistic: number;
+  /** 경보가 처음 성립한 판독 번호 (1부터). 없으면 -1. */
+  alert_at_index: number;
+  sample: number;
+  /** 추정된 기준선. 판정의 근거를 함께 돌려준다 (숨은 숫자 금지). */
+  baseline?: Baseline;
+}
+
+/**
+ * 누적합 관리도 (Page 1954). **단방향** — 사용자가 깨진다고 말한 쪽으로 가는
+ * 이동만 누적한다. 기준선은 판독에서 추정한다.
+ *
+ * 한 걸음이 선을 안 넘어도 같은 방향으로 조금씩 계속 새면 누적합이 결정 구간을
+ * 넘는다. 이것이 스냅샷 판정이 원리적으로 못 보는 것이고, `stateful` 분기가
+ * "관측 이력이 필요하다"고 적어둔 자리다.
+ *
+ * 왜 양방향이 아닌가. 양방향은 **건강하게 성장하는 지표에 경보를 낸다** — 매달
+ * 4%씩 잘 크는 숫자가 4번째 판독에서 울린다(실측). 사용자가 "이 값이면 깨진
+ * 것"이라 말한 반대쪽 이동은 그가 걱정한 사건이 아니고, 그걸 알림으로 만드는
+ * 것은 개입 여부를 사용자 대신 판정하는 과발화다.
+ *
+ * 그래서 감시하지 않는 절반이 생긴다. 깨지는 값을 **하나만** 받으므로 양쪽이 다
+ * 위험한 전제는 구조적으로 표현되지 않는다. 숨기지 않는다 — 판정 문장이
+ * "{broken} 쪽으로 새는 것만 봅니다"라고 밝힌다.
+ */
+export function cusumSeries(values: readonly number[], w: WatchAnswers): SeriesVerdict {
+  const vs = (values ?? []).filter((v) => Number.isFinite(v));
+  const side = `${w.broken}${w.unit ?? ''} 쪽으로 새는 것만 봅니다.`;
+  const base = estimateBaseline(vs);
+  if (!base) {
+    return {
+      status: 'insufficient',
+      statement: `수치 판독이 ${vs.length}건입니다 (기준선 추정에 ${MIN_BASELINE_READINGS}건 필요). `
+        + `계열은 아직 판정하지 않습니다. "괜찮다"가 아니라 "아직 모른다"입니다. `
+        + `전제가 깨졌는지는 ${w.broken}${w.unit ?? ''} 선이 판독마다 답합니다.`,
+      statistic: 0, alert_at_index: -1, sample: vs.length,
+    };
+  }
+  // 선이 잡음 안에 있으면 이 감시는 흔들린 것과 깨진 것을 구별하지 못한다.
+  // 첫 판은 이걸 만들기 전에 자기보고 σ 로 막았다. 이제 데이터가 말한다.
+  const delta = Math.abs(base.center - w.broken);
+  if (delta <= base.sigma) {
+    return {
+      status: 'indistinguishable',
+      statement: `판독 ${base.sample}건에서 평소는 ${round4(base.center)}${w.unit ?? ''}, `
+        + `평소 출렁임은 ${round4(base.sigma)} 정도입니다. 깨진다고 하신 ${w.broken}${w.unit ?? ''}이 `
+        + `그 출렁임 안에 있어서, 이 숫자로는 흔들린 것과 깨진 것을 구별할 수 없습니다.`,
+      statistic: 0, alert_at_index: -1, sample: base.sample, baseline: base,
+    };
+  }
+  const toward: 'up' | 'down' = w.broken < base.center ? 'down' : 'up';
+  const slack = base.sigma * SLACK_RATIO;
+  const h = base.sigma * DECISION_SIGMA;
+  let sum = 0;
+  let peak = 0;
+  let crossedAt = -1;
+  for (let i = 0; i < vs.length; i += 1) {
+    // 깨짐 쪽으로의 이탈을 양수로. 반대쪽 이동은 음수라 누적합을 깎는다.
+    const raw = toward === 'down' ? base.center - vs[i]! : vs[i]! - base.center;
+    // 한 판독의 기여를 결정 구간에서 자른다. 자르지 않으면 한 번 튀고 마는
+    // 이상치가 누적합을 h 의 열 배로 밀어올리고, 값이 정상으로 돌아온 뒤에도
+    // 여유 k 씩만 빠지므로 **수십 판독 동안 경보가 걸린 채로 남는다.**
+    // 큰 한 방은 사용자가 정한 선(스냅샷 규칙)이 잡는 몫이고, 여기는 작은
+    // 이동이 꾸준히 쌓이는 것을 본다 (Shewhart–CUSUM 병용의 그 분업).
+    const d = Math.min(raw, h);
+    sum = Math.max(0, sum + d - slack);
+    if (sum > peak) peak = sum;
+    if (crossedAt < 0 && sum > h) crossedAt = i + 1;
+  }
+  const cur = round4(sum);
+  const stat = round4(peak);
+  const basis = `평소 ${round4(base.center)}${w.unit ?? ''}, 출렁임 ${round4(base.sigma)} 기준 (판독에서 추정). ${side}`;
+  // 판정은 **지금 상태**다. 한때 넘었다가 돌아온 것은 사실로 함께 적되 경보로
+  // 남기지 않는다 — 끝난 일로 계속 부르는 것은 과발화다.
+  if (sum > h) {
+    return {
+      status: 'alert',
+      statement: `판독 ${vs.length}건에서 누적합이 결정 구간(${round4(h)})을 넘어 ${cur}입니다`
+        + `${crossedAt > 0 ? ` (${crossedAt}번째부터)` : ''}. ${basis}`,
+      statistic: stat, alert_at_index: crossedAt, sample: vs.length, baseline: base,
+    };
+  }
+  return {
+    status: 'holds',
+    statement: `판독 ${vs.length}건에서 누적합은 지금 ${cur}, 결정 구간(${round4(h)}) 안입니다`
+      + `${crossedAt > 0 ? `. ${crossedAt}번째에 한 번 넘었다가 돌아왔습니다 (최고 ${stat})` : ''}. ${basis}`,
+    statistic: stat, alert_at_index: crossedAt, sample: vs.length, baseline: base,
+  };
+}
+
+/**
+ * 감시를 사람에게 한 문장으로 돌려준다. 확인창·리시트가 이걸 읽는다.
+ *
+ * 마지막 절이 중요하다. 우리가 근거를 길게 설명하는 것은 계열 판정의 관례
+ * 상수(k·h)인데, **사용자가 실제로 받는 알림은 거의 전부 선 쪽에서 나온다** —
+ * 판독 한 건이 닿기만 해도 울리므로 계열보다 두 자릿수 배 자주 발화한다.
+ * 자주 우는 쪽을 설명 안 하고 조용한 쪽만 설명하면, 사용자는 자기가 받는
+ * 알림의 출처를 틀리게 안다.
+ */
+export function watchStatement(w: WatchAnswers): string | null {
+  if (watchAnswerBlocks(w).length > 0) return null;
+  const u = w.unit ?? '';
+  return `${w.what}을(를) ${w.where}에서 봅니다. ${w.broken}${u}이면 깨진 것 (${w.why.trim()}). `
+    + `이 선은 판독 한 건이 닿기만 해도 알립니다. `
+    + `${w.broken}${u} 쪽으로 조금씩 새는 것은 판독 ${MIN_BASELINE_READINGS}건이 쌓인 뒤부터 따로 봅니다.`;
+}
+
+function round4(n: number): number {
+  return Math.round(n * 1e4) / 1e4;
+}
