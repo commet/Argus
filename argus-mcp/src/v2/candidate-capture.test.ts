@@ -160,6 +160,25 @@ describe('CandidateCapture single brain', () => {
     expect(readTranscriptTurns(raw).map((turn) => turn.content)).toEqual(['kept', 'also kept']);
   });
 
+  it('기계가 쓴 글은 사람 말로 받지 않는다 — 이어붙이기 요약·화면 전용 행', () => {
+    // 실측(2026-08-21): 한 세션의 기록에 `isCompactSummary` 행이 8개 있었고
+    // 전부 사람 말로 들어오고 있었다. 그 안에는 "~하기로 했다" 류 문장이
+    // 가득해 후보로 뽑히기 딱 좋다 — 그러면 제품이 사용자에게 **그가 쓰지
+    // 않은 문장을 그의 말이라며** 보여준다.
+    const raw = Buffer.from([
+      JSON.stringify({ type: 'user', message: { role: 'user', content: '내가 친 말' } }),
+      JSON.stringify({
+        type: 'user', isCompactSummary: true,
+        message: { role: 'user', content: 'This session is being continued… 저장 구조는 B+로 확정했다.' },
+      }),
+      JSON.stringify({
+        type: 'user', isVisibleInTranscriptOnly: true,
+        message: { role: 'user', content: '화면에만 뜨는 줄' },
+      }),
+    ].join('\n'));
+    expect(readTranscriptTurns(raw).map((turn) => turn.content)).toEqual(['내가 친 말']);
+  });
+
   it('recognizes high-risk secret categories without returning the secret', () => {
     expect(sensitiveCategories('password = super-secret-value')).toEqual(['assigned_secret']);
     expect(sensitiveCategories('비밀번호는 super-secret-value')).toEqual(['assigned_secret']);

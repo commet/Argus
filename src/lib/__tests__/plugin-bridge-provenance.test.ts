@@ -3,6 +3,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseLedger } from '../plugin-parse';
 
+
+/** 미래 날짜를 글자로 박지 않는다 — 그 날이 지나면 코드를 안 고쳐도 빨간불이 된다
+ *  (2026-09 에 실제로 겪었다. `no-future-date-literals.test.ts` 가 지킨다). */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+
 /**
  * MCP↔web parity (BLUEPRINT §5) for the ONE fact the spine will not compromise:
  * who authored the sealed line.
@@ -29,7 +35,7 @@ describe('plugin bridge — provenance survives the crossing', () => {
   it("carries a user-dictated seal across as the user's", () => {
     const out = parseLedger(ledger([
       { event: 'harvest', id: 'd2', decision: 'Hold the price', at: '2026-07-20T09:00:00Z' },
-      { event: 'seal', id: 'd2', predicate: 'No price change before Q4', check_by: '2026-10-01', predicate_owner: 'user', at: '2026-07-20T09:05:00Z' },
+      { event: 'seal', id: 'd2', predicate: 'No price change before Q4', check_by: daysFromNow(60).slice(0, 10), predicate_owner: 'user', at: '2026-07-20T09:05:00Z' },
     ]));
     expect(out[0].predicate_owner).toBe('user');
   });

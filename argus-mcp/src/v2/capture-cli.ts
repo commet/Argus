@@ -4,6 +4,7 @@ import { contextFor } from './bridge.js';
 import { gitCommonDirOf } from './git-discovery.js';
 import { captureTranscriptFile } from './candidate-capture.js';
 import { purge, purgeAll, readQueue, type QueueItemStatus } from './queue.js';
+import { drainCapture } from './capture-runtime.js';
 
 function flag(args: readonly string[], name: string): string | null {
   const index = args.indexOf(name);
@@ -71,4 +72,30 @@ export function runCapturePurgeCli(args: readonly string[]): void {
     ? purgeAll(dataDir, now)
     : { purged: purge(dataDir, itemId, now) ? 1 : 0, leased_skipped: 0 };
   process.stdout.write(JSON.stringify({ item_id: itemId, ...outcome }) + '\n');
+}
+
+/**
+ * capture-drain — 큐를 한 건 비운다 (N6: 대화 수집을 자동으로 돌리는 자리).
+ *
+ * 왜 새 명령인가. 큐에 **넣는** 것은 이미 SessionStart 훅이 자동으로 한다
+ * (argus-plugin-v2/hooks/session-start.js). 그런데 **비우는** 것은
+ * `check_in` 도구 안에서만 돌았다 — 즉 AI 가 그 도구를 부르기로 마음먹어야
+ * 대화가 후보로 바뀌었다. CLAUDE.md 가 금지한 모양이다(라우팅은 결정론 구조가
+ * 갖는다). 이 명령이 그 배선을 훅으로 옮긴다.
+ *
+ * 두뇌는 하나다 — `check_in` 과 **같은** drainCapture 를 부른다. 하루 1회·주
+ * 2건 캡, 리스·재시도, "절대 던지지 않음"이 전부 그 안에 이미 있다.
+ */
+export async function runCaptureDrainCli(args: readonly string[]): Promise<void> {
+  const argusDir = flag(args, '--argus-dir');
+  const dataDir = flag(args, '--data-dir');
+  const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  if (!argusDir || !path.isAbsolute(argusDir)) {
+    throw new Error('capture-drain requires an absolute --argus-dir');
+  }
+  if (dataDir && !path.isAbsolute(dataDir)) {
+    throw new Error('capture-drain --data-dir must be absolute');
+  }
+  const status = await drainCapture(argusDir, today, 'stop_hook_bounded', dataDir ?? undefined);
+  process.stdout.write(JSON.stringify(status) + '\n');
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { tmpArgusDir, body, isError } from '../../test-helpers.js';
+import { inDays, tmpArgusDir, body, isError } from '../../test-helpers.js';
 import { init } from '../init-config.js';
 import { openDecision } from '../open-decision.js';
 import { seal } from '../seal.js';
@@ -9,7 +9,7 @@ import { settle } from '../settle.js';
 import { recall } from '../recall.js';
 import { checkIn } from '../check-in.js';
 
-const FUTURE = '2027-01-01';
+const FUTURE = inDays(120);
 const PAST = '2026-01-01';
 
 describe('seal → settle happy path', () => {

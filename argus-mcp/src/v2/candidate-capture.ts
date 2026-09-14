@@ -99,9 +99,20 @@ export function readTranscriptTurns(raw: Buffer): TranscriptTurn[] {
         type?: string;
         isSidechain?: boolean;
         isMeta?: boolean;
+        /** 이어붙이기 요약 — 기계가 쓴 글이 `type:'user'` 행에 담겨 온다. */
+        isCompactSummary?: boolean;
+        /** 화면에만 뜨는 행 (사람이 친 말이 아니다). */
+        isVisibleInTranscriptOnly?: boolean;
         message?: { role?: string; content?: unknown };
       };
-      if (record.isSidechain || record.isMeta || record.type === 'attachment') continue;
+      // `isCompactSummary` 를 안 거르고 있었다 (2026-08-21 실측: 한 세션에서
+      // 8행, 전부 사람 말로 들어왔다). 이어붙이기 요약은 **기계가 쓴 글**인데
+      // `type:'user'` + `role:'user'` + 문자열 본문이라 그대로 통과했고, 그
+      // 안에는 "~하기로 했다" 류 문장이 가득해 후보로 뽑히기 딱 좋다. 그러면
+      // 제품이 사용자에게 **그가 쓰지 않은 문장을 그의 말이라며** 보여준다 —
+      // 인용이 바이트로 대조된다는 사실이 오히려 그 거짓을 그럴듯하게 만든다.
+      if (record.isSidechain || record.isMeta || record.type === 'attachment'
+        || record.isCompactSummary || record.isVisibleInTranscriptOnly) continue;
       if (record.type === 'user' && record.message?.role === 'user') {
         const content = record.message.content;
         const texts = typeof content === 'string'

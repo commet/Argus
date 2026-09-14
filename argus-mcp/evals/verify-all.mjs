@@ -367,7 +367,14 @@ selfTest(
 selfTest(
   '자기검증 ⑤ 못 읽는 원장 회귀를 잡는가',
   'src/lib/ledger-replay.ts',
-  (s) => s.replace("    const benign = code === 'ENOENT';", "    const benign = true;"),
+  // 심는 회귀: "못 읽었다"를 "없다"로 뭉갠다. 그러면 읽기가 빈 원장으로
+  // 보이고 두 번째 봉인이 통과해 버린다. 2026-08-21 에 이 판정이
+  // readLedgerRaw 로 옮겨졌고, 그때 이 줄도 같이 따라왔다 — 옛 자리를
+  // 겨냥하고 있던 탓에 "회귀를 심지 못했다"로 CI 가 빨간불을 냈다.
+  (s) => s.replace(
+    "    return code === 'ENOENT' ? { lines: [], missing: true } : { lines: [], unreadable: code ?? 'UNKNOWN' };",
+    '    return { lines: [], missing: true };',
+  ),
   'node evals/unreadable-ledger.mjs',
 );
 selfTest(

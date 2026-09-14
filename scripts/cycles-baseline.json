@@ -1,0 +1,7 @@
+{
+  "runtime": [
+    "antefact/cli/antefact.mjs → antefact/cli/spokes.mjs",
+    "src/components/workspace/progressive/AgentSidebar.tsx → src/components/workspace/progressive/WorkerPanel.tsx",
+    "src/lib/context-builder.ts → src/lib/epistemic/control-plane.ts → src/lib/epistemic/prompt-renderer.ts → src/lib/persona-prompt.ts"
+  ]
+}

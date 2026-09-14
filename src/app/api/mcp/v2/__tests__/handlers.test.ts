@@ -84,12 +84,26 @@ vi.mock('../store', () => ({
 // 이 둘은 실제로는 service role DB 와 LLM 을 탄다. mock 하지 않으면 try/catch 가
 // 삼켜서 **조용히 아무 일도 없는 것처럼** 통과하고, 배선이 맞는지 아무것도
 // 증명하지 못한다 (이 파일이 존재하는 이유와 정확히 같은 함정).
+/**
+ * **미래 날짜를 글자로 박지 않는다.**
+ *
+ * 이 파일은 2026-08 에 `2026-09-01` 을 "미래"라고 적었다. 09-02 부터 그것은
+ * 과거가 됐고, 기한을 미래로만 받는 핸들러가 거절하기 시작해 테스트 둘이
+ * 조용히 빨간불이 됐다 — **코드는 그대로인데 달력이 지나서** 깨진 것이다
+ * (2026-09-09 발견, 18일 만에). 상대 날짜로 적으면 다시 안 터진다.
+ *
+ * 일부러 과거인 것(`2020-01-01`)은 그대로 둔다 — 그건 "지난 약속"이라는
+ * 뜻이지 실수가 아니다.
+ */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+
 const sealed: Array<{ lean?: string }> = [];
 let delegationMatch: { delegation: { id: string; policy: string }; text: string } | null = null;
 let delegationCreate: { ok: true; id: string; expiresAt: string } | { ok: false; reason: string } = {
   ok: true,
   id: 'deleg-1',
-  expiresAt: '2026-09-05T00:00:00Z',
+  expiresAt: daysFromNow(30),
 };
 const marked: Array<{ caseId: string; delegationId: string }> = [];
 // 열 때 꺼내진 위임의 서버 기록 (결정론 백스톱) — 모델의 에코와 무관하게 남는다.
@@ -175,7 +189,7 @@ beforeEach(() => {
   delegationMatch = null;
   cruxText = '';
   cruxCalls = 0;
-  delegationCreate = { ok: true, id: 'deleg-1', expiresAt: '2026-09-05T00:00:00Z' };
+  delegationCreate = { ok: true, id: 'deleg-1', expiresAt: daysFromNow(30) };
 });
 
 async function openCase(utterance = '가격을 올릴까 말까 고민이야') {
@@ -322,7 +336,7 @@ describe('argus_plan — 마일스톤이 곧 돌아보기 약속', () => {
     const id = await openCase();
     const res = await handlePlan(U, {
       caseId: id,
-      steps: [{ what: 'a', kind: 'execute', byOrWhen: '내일', dueDate: '2026-09-01T00:00:00Z' }],
+      steps: [{ what: 'a', kind: 'execute', byOrWhen: '내일', dueDate: daysFromNow(7) }],
     });
     expect(isErr(res)).toBe(true);
     expect(text(res)).toMatch(/PLAN_WITHOUT_ADOPTED_CARD|채택/);
@@ -343,8 +357,8 @@ describe('argus_plan — 마일스톤이 곧 돌아보기 약속', () => {
     const res = await handlePlan(U, {
       caseId: id,
       steps: [
-        { what: '가격표 갱신', kind: 'prepare', byOrWhen: '이번 주', dueDate: '2026-09-01T00:00:00Z' },
-        { what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주 뒤', dueDate: '2026-09-15T00:00:00Z' },
+        { what: '가격표 갱신', kind: 'prepare', byOrWhen: '이번 주', dueDate: daysFromNow(7) },
+        { what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주 뒤', dueDate: daysFromNow(14) },
         { what: '기록만 하는 단계', kind: 'prepare', byOrWhen: '언젠가' },
       ],
       openQuestions: ['확인 필요: 경쟁사 가격'],
@@ -361,7 +375,7 @@ describe('argus_plan — 마일스톤이 곧 돌아보기 약속', () => {
     const res = await handlePlan(U, {
       caseId: id,
       steps: [
-        { what: 'a', kind: 'execute', byOrWhen: '1', dueDate: '2026-09-01T00:00:00Z' },
+        { what: 'a', kind: 'execute', byOrWhen: '1', dueDate: daysFromNow(7) },
         { what: 'b', kind: 'execute', byOrWhen: '2' },
       ],
     });
@@ -376,7 +390,7 @@ describe('argus_return — 순서가 규칙이다', () => {
     await handleAdopt(U, { caseId: id, choiceOrPolicy: '10% 인상' });
     await handlePlan(U, {
       caseId: id,
-      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: '2026-09-01T00:00:00Z' }],
+      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: daysFromNow(7) }],
     });
     return id;
   }
@@ -692,7 +706,7 @@ describe('argus_open — 위임 적용', () => {
     await handleAdopt(U, { caseId: id, choiceOrPolicy: '10% 인상' });
     await handlePlan(U, {
       caseId: id,
-      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: '2026-09-01T00:00:00Z' }],
+      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: daysFromNow(7) }],
     });
     // 서버 기록(offered)은 있는데 모델이 appliedDelegationId 를 빼먹은 상황.
     offeredId = 'deleg-1';
