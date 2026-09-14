@@ -186,6 +186,12 @@ async function openCase(utterance = '가격을 올릴까 말까 고민이야') {
 }
 
 // ── fire-gate 가 장식이 아니어야 한다 ────────────────────────────────────
+// 기한은 실제 시계 기준으로 늘 미래여야 한다. 날짜를 박아 두면 그날이 지나는 순간
+// 계획·정산 경로가 거절돼 테스트가 빨개진다(2026-09-14에 '2026-09-01'이 지나 실제로 일어남).
+const daysFromNow = (days: number) => `${new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`;
+const DUE_SOON = daysFromNow(30);
+const DUE_LATER = daysFromNow(44);
+
 describe('argus_open — 발동 관문', () => {
   it('평평한 말에는 결정을 열지 않는다 (모델이 불렀다는 사실만으로 통과하지 않는다)', async () => {
     const res = await handleOpen(U, { utterance: '오늘 점심 뭐 먹지 딱히 상관없어' });
@@ -322,7 +328,7 @@ describe('argus_plan — 마일스톤이 곧 돌아보기 약속', () => {
     const id = await openCase();
     const res = await handlePlan(U, {
       caseId: id,
-      steps: [{ what: 'a', kind: 'execute', byOrWhen: '내일', dueDate: '2026-09-01T00:00:00Z' }],
+      steps: [{ what: 'a', kind: 'execute', byOrWhen: '내일', dueDate: DUE_SOON }],
     });
     expect(isErr(res)).toBe(true);
     expect(text(res)).toMatch(/PLAN_WITHOUT_ADOPTED_CARD|채택/);
@@ -343,8 +349,8 @@ describe('argus_plan — 마일스톤이 곧 돌아보기 약속', () => {
     const res = await handlePlan(U, {
       caseId: id,
       steps: [
-        { what: '가격표 갱신', kind: 'prepare', byOrWhen: '이번 주', dueDate: '2026-09-01T00:00:00Z' },
-        { what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주 뒤', dueDate: '2026-09-15T00:00:00Z' },
+        { what: '가격표 갱신', kind: 'prepare', byOrWhen: '이번 주', dueDate: DUE_SOON },
+        { what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주 뒤', dueDate: DUE_LATER },
         { what: '기록만 하는 단계', kind: 'prepare', byOrWhen: '언젠가' },
       ],
       openQuestions: ['확인 필요: 경쟁사 가격'],
@@ -361,7 +367,7 @@ describe('argus_plan — 마일스톤이 곧 돌아보기 약속', () => {
     const res = await handlePlan(U, {
       caseId: id,
       steps: [
-        { what: 'a', kind: 'execute', byOrWhen: '1', dueDate: '2026-09-01T00:00:00Z' },
+        { what: 'a', kind: 'execute', byOrWhen: '1', dueDate: DUE_SOON },
         { what: 'b', kind: 'execute', byOrWhen: '2' },
       ],
     });
@@ -376,7 +382,7 @@ describe('argus_return — 순서가 규칙이다', () => {
     await handleAdopt(U, { caseId: id, choiceOrPolicy: '10% 인상' });
     await handlePlan(U, {
       caseId: id,
-      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: '2026-09-01T00:00:00Z' }],
+      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: DUE_SOON }],
     });
     return id;
   }
@@ -692,7 +698,7 @@ describe('argus_open — 위임 적용', () => {
     await handleAdopt(U, { caseId: id, choiceOrPolicy: '10% 인상' });
     await handlePlan(U, {
       caseId: id,
-      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: '2026-09-01T00:00:00Z' }],
+      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: DUE_SOON }],
     });
     // 서버 기록(offered)은 있는데 모델이 appliedDelegationId 를 빼먹은 상황.
     offeredId = 'deleg-1';
