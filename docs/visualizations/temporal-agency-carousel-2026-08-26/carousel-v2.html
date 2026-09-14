@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nolan → Odyssey → Argus — LinkedIn carousel v4</title>
+  <style>
+    @font-face {
+      font-family: "Gowun Batang";
+      src: url("../fonts/GowunBatang-Regular.full.ttf") format("truetype");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Gowun Batang";
+      src: url("../fonts/GowunBatang-Bold.full.ttf") format("truetype");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Noto Sans KR";
+      src: url("../fonts/NotoSansKR-Variable.full.ttf") format("truetype");
+      font-weight: 100 900;
+    }
+
+    :root {
+      --night: #090c12;
+      --ink: #f1ebdf;
+      --ink-dim: #c8c2b6;
+      --muted: #8d919a;
+      --gold: #d9a45f;
+      --gold-bright: #eec488;
+      --memory: #7d8b9c;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      display: grid;
+      justify-content: center;
+      gap: 56px;
+      padding: 56px 0;
+      background: #05070b;
+      font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    h1, h2, p, figure { margin: 0; }
+    .serif { font-family: "Gowun Batang", "Noto Sans KR", serif; }
+
+    .slide {
+      position: relative;
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      background: var(--night);
+      isolation: isolate;
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+      opacity: .055;
+      mix-blend-mode: overlay;
+    }
+
+    .vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 12;
+      pointer-events: none;
+      background: radial-gradient(130% 90% at 50% 40%, transparent 55%, rgba(2, 3, 6, .55) 100%);
+    }
+
+    .frame-line {
+      position: absolute;
+      inset: 26px;
+      z-index: 30;
+      border: 1px solid rgba(217, 164, 95, .20);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      font-size: 15px;
+      font-weight: 640;
+      letter-spacing: .34em;
+      color: var(--gold);
+      text-transform: uppercase;
+    }
+
+    .footer {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      bottom: 44px;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13.5px;
+      font-weight: 560;
+      letter-spacing: .26em;
+      color: rgba(200, 194, 182, .62);
+    }
+
+    .footer .path b { color: var(--gold); font-weight: 740; }
+    .footer .page { display: flex; align-items: center; gap: 14px; }
+    .ticks { display: flex; gap: 7px; }
+    .ticks i { width: 26px; height: 2px; background: rgba(200, 194, 182, .28); }
+    .ticks i.on { background: var(--gold); }
+
+    /* ============ SLIDE 1 ============ */
+
+    .s1-head {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 84px;
+      z-index: 20;
+    }
+
+    .s1-lead {
+      margin-top: 26px;
+      font-size: 23px;
+      font-weight: 480;
+      letter-spacing: .01em;
+      color: var(--ink-dim);
+      word-break: keep-all;
+    }
+
+    .s1-title {
+      margin-top: 14px;
+      font-size: 68px;
+      line-height: 1.18;
+      font-weight: 700;
+      letter-spacing: -.014em;
+      color: var(--ink);
+    }
+
+    .s1-title em { font-style: normal; color: var(--gold-bright); }
+
+    .reel {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 322px;
+      z-index: 10;
+      display: grid;
+      grid-auto-rows: 152px;
+      row-gap: 9px;
+    }
+
+    .cell {
+      position: relative;
+      overflow: hidden;
+      background: #05070b;
+    }
+
+    .cell img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(.92) contrast(1.02) brightness(.92);
+    }
+
+    .cell.memento img { object-position: 48% 72%; }
+    .cell.inception img { object-position: 58% 74%; }
+    .cell.interstellar img { object-position: 68% 40%; }
+    .cell.tenet img { object-position: 52% 44%; }
+    .cell.odyssey img { object-position: 58% 54%; filter: saturate(.86) contrast(1.0) brightness(.9); }
+
+    .cell .scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background:
+        linear-gradient(90deg, rgba(5, 7, 11, .88) 0%, rgba(5, 7, 11, .42) 30%, rgba(5, 7, 11, .06) 50%, rgba(5, 7, 11, .34) 76%, rgba(5, 7, 11, .84) 100%),
+        linear-gradient(0deg, rgba(5, 7, 11, .30), transparent 40%);
+    }
+
+    .cell .meta {
+      position: absolute;
+      left: 64px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+    }
+
+    .cell .year {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: .24em;
+      color: var(--gold);
+    }
+
+    .cell .name {
+      margin-top: 8px;
+      font-size: 17px;
+      font-weight: 760;
+      letter-spacing: .17em;
+      color: var(--ink-dim);
+    }
+
+    .cell .cond {
+      position: absolute;
+      right: 64px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      font-size: 29px;
+      font-weight: 700;
+      letter-spacing: -.005em;
+      color: var(--ink);
+      text-shadow: 0 2px 18px rgba(0, 0, 0, .78);
+      word-break: keep-all;
+    }
+
+    .s1-bridge {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 1172px;
+      z-index: 20;
+      text-align: center;
+      font-size: 30px;
+      line-height: 1.4;
+      font-weight: 700;
+      color: var(--ink-dim);
+    }
+
+    .s1-bridge b { color: var(--gold-bright); font-weight: 700; }
+
+    /* ============ SLIDE 2 ============ */
+
+    .s2-head {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 66px;
+      z-index: 20;
+    }
+
+    .s2-title {
+      margin-top: 22px;
+      font-size: 50px;
+      line-height: 1.32;
+      font-weight: 700;
+      letter-spacing: -.012em;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+
+    .s2-title em { font-style: normal; color: var(--gold-bright); }
+
+    .s2-scene {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 296px;
+      height: 600px;
+      z-index: 10;
+      overflow: hidden;
+      background: #0b0e14;
+      border-top: 1px solid rgba(217, 164, 95, .26);
+      border-bottom: 1px solid rgba(217, 164, 95, .26);
+    }
+
+    .s2-scene img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 40%;
+      filter: saturate(.94) contrast(1.01);
+    }
+
+    .s2-scene .edge {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: linear-gradient(0deg, rgba(6, 8, 13, .5) 0%, transparent 28%);
+    }
+
+    .scene-tag {
+      position: absolute;
+      bottom: 28px;
+      z-index: 3;
+      font-size: 16px;
+      font-weight: 720;
+      color: #fff;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, .85);
+    }
+
+    .scene-tag.start { left: 64px; }
+    .scene-tag.end { right: 64px; text-align: right; }
+
+    .scene-tag small {
+      display: block;
+      margin-top: 3px;
+      font-size: 13.5px;
+      font-weight: 500;
+      letter-spacing: .05em;
+      color: rgba(255, 255, 255, .72);
+    }
+
+    .s2-note {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 934px;
+      z-index: 20;
+      font-size: 17px;
+      font-weight: 640;
+      letter-spacing: .1em;
+      color: var(--gold);
+    }
+
+    .s2-verse {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 986px;
+      z-index: 20;
+    }
+
+    .s2-verse p {
+      font-size: 27px;
+      line-height: 1.5;
+      font-weight: 400;
+      color: var(--ink-dim);
+      word-break: keep-all;
+    }
+
+    .s2-verse p + p { margin-top: 26px; }
+    .s2-verse p b { font-weight: 700; color: var(--gold-bright); }
+    .s2-verse p.last { color: var(--ink); }
+
+    /* ============ SLIDE 3 ============ */
+
+    .s3-bg {
+      position: absolute;
+      inset: -40px;
+      z-index: 1;
+    }
+
+    .s3-bg img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 86% 70%;
+      transform: scale(1.5);
+      filter: blur(10px) brightness(.5) saturate(1.05);
+    }
+
+    .s3-scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background:
+        radial-gradient(70% 45% at 50% 108%, rgba(217, 148, 66, .16), transparent 65%),
+        linear-gradient(180deg, rgba(6, 8, 13, .88) 0%, rgba(6, 8, 13, .74) 30%, rgba(6, 8, 13, .8) 62%, rgba(6, 8, 13, .88) 100%);
+    }
+
+    .s3-head {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 84px;
+      z-index: 20;
+    }
+
+    .s3-open {
+      margin-top: 24px;
+      font-size: 22px;
+      font-weight: 480;
+      letter-spacing: .01em;
+      color: var(--ink-dim);
+    }
+
+    .s3-title {
+      margin-top: 14px;
+      font-size: 55px;
+      line-height: 1.3;
+      font-weight: 700;
+      letter-spacing: -.012em;
+      color: var(--ink);
+    }
+
+    .s3-twist {
+      margin-top: 22px;
+      font-size: 40px;
+      line-height: 1.3;
+      font-weight: 700;
+      color: var(--gold-bright);
+    }
+
+    .arrivals {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 470px;
+      height: 470px;
+      z-index: 15;
+    }
+
+    .arrivals svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .arr-head {
+      position: absolute;
+      left: 640px;
+      top: 0;
+      width: 260px;
+      text-align: left;
+      font-size: 18.5px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .arr-item {
+      position: absolute;
+      left: 758px;
+      font-size: 19px;
+      font-weight: 560;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .arr-item.i1 { top: 96px; }
+    .arr-item.i2 { top: 171px; }
+    .arr-item.i3 { top: 246px; }
+    .arr-item.i4 { top: 331px; font-weight: 700; color: var(--ink); }
+
+    .origin-lb {
+      position: absolute;
+      left: 44px;
+      top: 288px;
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .record-lb {
+      position: absolute;
+      left: 296px;
+      top: 408px;
+      font-size: 17px;
+      font-weight: 560;
+      color: rgba(241, 235, 223, .85);
+    }
+
+    .arr-cap {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 972px;
+      z-index: 15;
+      text-align: center;
+      font-size: 25px;
+      font-weight: 560;
+      color: var(--ink-dim);
+      word-break: keep-all;
+    }
+
+    .arr-cap b { color: var(--gold-bright); font-weight: 700; }
+
+    .s3-close {
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      top: 1102px;
+      z-index: 20;
+      text-align: center;
+    }
+
+    .s3-close .line {
+      display: block;
+      margin: 0 auto 20px;
+      width: 44px;
+      height: 2px;
+      background: var(--gold);
+    }
+
+    .s3-close .big {
+      font-size: 32px;
+      line-height: 1.4;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .s3-sign {
+      position: absolute;
+      left: 110px;
+      right: 110px;
+      top: 1206px;
+      z-index: 20;
+      text-align: center;
+      font-size: 18px;
+      line-height: 1.6;
+      font-weight: 460;
+      color: var(--muted);
+    }
+
+    .s3-sign b { color: var(--gold); font-weight: 700; letter-spacing: .06em; }
+  </style>
+</head>
+<body>
+  <!-- v4: 워딩을 깎는다. 1장 명사구 제목, 2장 세 줄, 3장 제목+도착 그림+한 줄. -->
+
+  <!-- ============ SLIDE 1 ============ -->
+  <article class="slide slide-1" id="slide-1" aria-label="너무 늦게 아는 사람들 — 놀란의 다섯 영화">
+    <header class="s1-head">
+      <div class="eyebrow">Christopher Nolan · 2000 – 2026</div>
+      <p class="s1-lead">오디세이를 보고 와서, 놀란을 처음부터 다시 봤다.</p>
+      <h1 class="s1-title serif">전부 <em>같은 이야기</em>였다.</h1>
+    </header>
+
+    <section class="reel" aria-label="다섯 영화">
+      <div class="cell memento">
+        <img src="assets/memento.png" alt="Memento — 불타는 즉석사진과 문신한 팔" />
+        <div class="scrim"></div>
+        <div class="meta"><div class="year">2000</div><div class="name">MEMENTO</div></div>
+        <div class="cond">기억이 10분마다 지워진다</div>
+      </div>
+      <div class="cell inception">
+        <img src="assets/inception.png" alt="Inception — 중첩된 공간과 팽이" />
+        <div class="scrim"></div>
+        <div class="meta"><div class="year">2010</div><div class="name">INCEPTION</div></div>
+        <div class="cond">이 생각의 주인을 모른다</div>
+      </div>
+      <div class="cell interstellar">
+        <img src="assets/interstellar.png" alt="Interstellar — 블랙홀과 두 개의 시계" />
+        <div class="scrim"></div>
+        <div class="meta"><div class="year">2014</div><div class="name">INTERSTELLAR</div></div>
+        <div class="cond">그의 1시간이 딸의 7년이다</div>
+      </div>
+      <div class="cell tenet">
+        <img src="assets/tenet.png" alt="Tenet — 역행하는 탄환과 붉고 푸른 시간" />
+        <div class="scrim"></div>
+        <div class="meta"><div class="year">2020</div><div class="name">TENET</div></div>
+        <div class="cond">설계자는 미래의 자신이었다</div>
+      </div>
+      <div class="cell odyssey">
+        <img src="assets/odyssey-return-bright-v2.png" alt="The Odyssey — 떠나는 사람과 돌아온 사람" />
+        <div class="scrim"></div>
+        <div class="meta"><div class="year">2026</div><div class="name">THE ODYSSEY</div></div>
+        <div class="cond">집까지 20년이 걸렸다</div>
+      </div>
+    </section>
+
+    <p class="s1-bridge serif">모두 자기가 한 선택과, <b>너무 늦게</b> 만난다.</p>
+
+    <div class="vignette"></div>
+    <div class="frame-line"></div>
+    <footer class="footer">
+      <div class="path"><b>NOLAN</b> · ODYSSEY · ARGUS</div>
+      <div class="page"><div class="ticks"><i class="on"></i><i></i><i></i></div>1 / 3</div>
+    </footer>
+  </article>
+
+  <!-- ============ SLIDE 2 ============ -->
+  <article class="slide slide-2" id="slide-2" aria-label="이야기가 사람보다 먼저 도착했다">
+    <header class="s2-head">
+      <div class="eyebrow">The Odyssey · 2026</div>
+      <h2 class="s2-title serif">그가 도착하기 전에,<br />그의 이야기는 이미 <em>노래</em>가 되어 있었다.</h2>
+    </header>
+
+    <figure class="s2-scene" aria-label="떠나는 오디세우스와 20년 뒤 돌아온 오디세우스">
+      <img src="assets/odyssey-return-bright-v2.png" alt="이타카 해변 — 떠나는 젊은 오디세우스와 20년 뒤 돌아온 노인, 그리고 개" />
+      <div class="edge"></div>
+      <div class="scene-tag start">떠나는 날<small>트로이 전쟁으로</small></div>
+      <div class="scene-tag end">20년 뒤<small>거지 행색의 귀환</small></div>
+    </figure>
+
+    <div class="s2-note">이 장면에서 한참을 멈춰 있었다 —</div>
+    <section class="s2-verse">
+      <p class="serif">어느 연회에서는, 남이 부르는 자기 이야기를 들으며 울었다.</p>
+      <p class="serif">고향에서는 아무도 그를 알아보지 못했다.</p>
+      <p class="serif last">늙은 개 <b>아르고스</b>만 꼬리를 흔들고, 숨을 거뒀다.</p>
+    </section>
+
+    <div class="vignette"></div>
+    <div class="frame-line"></div>
+    <footer class="footer">
+      <div class="path">NOLAN · <b>ODYSSEY</b> · ARGUS</div>
+      <div class="page"><div class="ticks"><i></i><i class="on"></i><i></i></div>2 / 3</div>
+    </footer>
+  </article>
+
+  <!-- ============ SLIDE 3 ============ -->
+  <article class="slide slide-3" id="slide-3" aria-label="우리의 결정에도 이야기가 먼저 도착한다">
+    <div class="s3-bg"><img src="assets/odyssey.png" alt="" /></div>
+    <div class="s3-scrim"></div>
+
+    <header class="s3-head">
+      <div class="eyebrow">Temporal Agency · 시간적 주체성</div>
+      <p class="s3-open">극장을 나와, 내 결정들을 생각했다.</p>
+      <h2 class="s3-title serif">내 결정에도,<br />이야기가 먼저 와 있었다.</h2>
+      <p class="s3-twist serif">그날의 생각만 없었다.</p>
+    </header>
+
+    <section class="arrivals" aria-label="다시 보는 날 도착해 있는 것들 — 결과, 남들의 평가, 결과를 아는 기억. 그날의 생각은 남긴 기록으로만 도착한다">
+      <svg viewBox="0 0 952 470">
+        <defs>
+          <linearGradient id="fadeIn1" gradientUnits="userSpaceOnUse" x1="320" y1="0" x2="700" y2="0">
+            <stop offset="0" stop-color="#7d8b9c" stop-opacity="0" />
+            <stop offset=".45" stop-color="#7d8b9c" stop-opacity=".5" />
+            <stop offset="1" stop-color="#7d8b9c" stop-opacity=".7" />
+          </linearGradient>
+          <filter id="aGlow" x="-120%" y="-120%" width="340%" height="340%">
+            <feGaussianBlur stdDeviation="5" result="b" />
+            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+
+        <!-- arrival line -->
+        <line x1="716" y1="66" x2="716" y2="386" stroke="rgba(200,194,182,.3)" stroke-width="1.5" />
+
+        <!-- things that formed along the way -->
+        <path d="M336 132 C 480 124, 600 116, 710 108" stroke="url(#fadeIn1)" stroke-width="2.4" fill="none" />
+        <path d="M300 200 C 460 194, 600 188, 710 183" stroke="url(#fadeIn1)" stroke-width="2.4" fill="none" />
+        <path d="M258 268 C 440 264, 600 261, 710 258" stroke="url(#fadeIn1)" stroke-width="2.4" fill="none" />
+
+        <!-- the one line that departs from the day itself -->
+        <path d="M92 262 C 300 400, 520 400, 710 343" stroke="rgba(241,235,223,.85)" stroke-width="2.8" fill="none" stroke-linecap="round" />
+
+        <!-- origin node -->
+        <circle cx="88" cy="256" r="9" fill="#0d1119" stroke="#eec488" stroke-width="3" filter="url(#aGlow)" />
+        <circle cx="88" cy="256" r="3" fill="#eec488" />
+
+        <!-- slots -->
+        <circle cx="716" cy="108" r="7" fill="#0d1119" stroke="rgba(217,164,95,.75)" stroke-width="2.6" />
+        <circle cx="716" cy="183" r="7" fill="#0d1119" stroke="rgba(217,164,95,.75)" stroke-width="2.6" />
+        <circle cx="716" cy="258" r="7" fill="#0d1119" stroke="rgba(217,164,95,.75)" stroke-width="2.6" />
+        <circle cx="716" cy="343" r="8" fill="#0d1119" stroke="#f1ebdf" stroke-width="2.8" filter="url(#aGlow)" />
+        <circle cx="716" cy="343" r="2.8" fill="#f1ebdf" />
+      </svg>
+
+      <div class="arr-head">다시 보는 날, 와 있는 것</div>
+      <div class="arr-item i1">결과</div>
+      <div class="arr-item i2">남들의 평가</div>
+      <div class="arr-item i3">결과를 아는 기억</div>
+      <div class="arr-item i4">그날의 생각</div>
+
+      <div class="origin-lb">결정한 날</div>
+      <div class="record-lb">그날 남긴 기록</div>
+    </section>
+
+    <p class="arr-cap">그날에서 출발한 것은, <b>기록</b>뿐이다.</p>
+
+    <div class="s3-close">
+      <span class="line"></span>
+      <p class="big serif">나에게도, 아르고스가 필요했다.</p>
+    </div>
+
+    <p class="s3-sign">그래서 그 개의 이름으로, 결정을 기록하는 도구를 만드는 중이다 — <b>ARGUS</b></p>
+
+    <div class="vignette"></div>
+    <div class="frame-line"></div>
+    <footer class="footer">
+      <div class="path">NOLAN · ODYSSEY · <b>ARGUS</b></div>
+      <div class="page"><div class="ticks"><i></i><i></i><i class="on"></i></div>3 / 3</div>
+    </footer>
+  </article>
+</body>
+</html>
