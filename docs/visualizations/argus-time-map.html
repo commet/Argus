@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Argus — 판단의 시간 구조</title>
+  <meta
+    name="description"
+    content="과거의 판단, 미래의 약속, 현실의 관찰을 한 흐름으로 연결한 Argus의 시간 구조"
+  />
+  <style>
+    @font-face {
+      font-family: "Argus Batang";
+      src: url("./fonts/GowunBatang-Regular.subset.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Argus Batang";
+      src: url("./fonts/GowunBatang-Bold.subset.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 700;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Argus Sans";
+      src: url("./fonts/NotoSansKR-Variable.subset.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 100 900;
+      font-display: swap;
+    }
+
+    :root {
+      --ink: #181713;
+      --ink-soft: #514c43;
+      --paper: #f5f1e8;
+      --paper-deep: #e9e1d2;
+      --paper-light: #fffdf8;
+      --brass: #7d5c16;
+      --brass-light: #b99642;
+      --sea: #1e5961;
+      --sea-light: #8fb5b2;
+      --rust: #925039;
+      --line: #cfc5b3;
+      --line-strong: #9f9481;
+      --shadow: 0 20px 60px rgba(46, 36, 20, 0.12);
+      --display: "Argus Batang", "Noto Serif KR", Georgia, serif;
+      --body: "Argus Sans", "Noto Sans KR", system-ui, sans-serif;
+      --utility: "Argus Sans", "Noto Sans KR", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: #d9d0c1; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.75), transparent 48%),
+        var(--paper);
+      font-family: var(--body);
+      line-height: 1.55;
+      text-rendering: optimizeLegibility;
+    }
+
+    body::selection { color: var(--paper-light); background: var(--sea); }
+
+    button, a { font: inherit; }
+
+    button:focus-visible, a:focus-visible {
+      outline: 3px solid var(--sea);
+      outline-offset: 4px;
+    }
+
+    .sheet {
+      width: min(1600px, calc(100% - 40px));
+      min-height: calc(100vh - 40px);
+      margin: 20px auto;
+      padding: clamp(28px, 4.8vw, 78px);
+      overflow: hidden;
+      background: var(--paper-light);
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .sheet::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: url("../../public/images/voyage/argus-sea-chart-v1.jpg");
+      background-size: cover;
+      background-position: 50% 50%;
+      opacity: .035;
+      mix-blend-mode: multiply;
+    }
+
+    .sheet > * { position: relative; z-index: 1; }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 32px;
+      align-items: start;
+      padding-bottom: clamp(22px, 3vw, 36px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      max-width: 1120px;
+      margin: 0;
+      font-family: var(--display);
+      font-size: clamp(42px, 5.1vw, 76px);
+      line-height: 1.04;
+      letter-spacing: -.035em;
+      text-wrap: balance;
+    }
+
+    h1 em {
+      color: var(--brass);
+      font-style: normal;
+    }
+
+    .thesis {
+      max-width: 880px;
+      margin: 16px 0 0;
+      color: var(--ink-soft);
+      font-size: clamp(17px, 1.45vw, 23px);
+      line-height: 1.7;
+      text-wrap: pretty;
+    }
+
+    .replay {
+      min-height: 44px;
+      padding: 10px 14px;
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 180ms ease, border-color 180ms ease;
+    }
+
+    .replay:hover { background: var(--paper-deep); border-color: var(--ink-soft); }
+
+    .origin-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 22px;
+      margin-top: 18px;
+      color: var(--ink-soft);
+      font-size: 13px;
+    }
+
+    .origin-line strong { color: var(--ink); font-weight: 700; }
+
+    .origin-line span + span::before {
+      content: "·";
+      margin-right: 22px;
+      color: var(--brass);
+    }
+
+    .time-map {
+      position: relative;
+      min-height: 515px;
+      margin-top: 16px;
+    }
+
+    .currents {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .rail {
+      position: absolute;
+      top: 124px;
+      width: 24%;
+      max-width: 300px;
+    }
+
+    .rail h2 {
+      margin: 0 0 14px;
+      font-family: var(--display);
+      font-size: clamp(25px, 2.4vw, 38px);
+      line-height: 1.2;
+      letter-spacing: -.025em;
+    }
+
+    .rail p {
+      position: relative;
+      z-index: 2;
+      margin: 0;
+      color: var(--ink-soft);
+      background: var(--paper-light);
+      box-shadow: 0 0 0 6px var(--paper-light);
+      font-size: 15px;
+    }
+
+    .rail .timecode {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--brass);
+      font-family: var(--utility);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+    }
+
+    .past { left: 1.5%; }
+    .now { left: 35.5%; }
+    .future { left: 67%; }
+
+    .return {
+      top: 278px;
+      right: 1.5%;
+      width: 28%;
+      max-width: 360px;
+      padding-left: 80px;
+    }
+
+    .return::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: -10px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background:
+        linear-gradient(rgba(255,253,248,.12), rgba(255,253,248,.12)),
+        url("../../public/images/brand/argus-v2/argus-returning.jpg") center 23% / 150% auto;
+      border: 1px solid var(--brass);
+      box-shadow: 0 10px 28px rgba(24, 23, 19, .15);
+    }
+
+    .principle {
+      position: absolute;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .principle strong { display: block; margin-bottom: 3px; font-size: 15px; }
+
+    .backward {
+      top: 8px;
+      left: 41%;
+      width: 32%;
+      color: #6d5114;
+    }
+
+    .forward {
+      top: 248px;
+      left: 46%;
+      width: 30%;
+      color: var(--sea);
+    }
+
+    .vintage {
+      top: 328px;
+      left: 4.5%;
+      width: 30%;
+      color: var(--ink-soft);
+    }
+
+    .next-rule {
+      position: absolute;
+      left: 34%;
+      bottom: 0;
+      width: 43%;
+      padding: 16px 22px 18px;
+      color: var(--paper-light);
+      background: var(--ink);
+      border-radius: 4px;
+    }
+
+    .next-rule strong {
+      display: block;
+      margin-bottom: 6px;
+      font-family: var(--display);
+      font-size: clamp(23px, 2.2vw, 34px);
+      letter-spacing: -.025em;
+    }
+
+    .next-rule span { color: #d8d0c3; font-size: 14px; }
+
+    .three-losses {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .loss {
+      min-height: 188px;
+      padding: 28px clamp(20px, 2.5vw, 38px) 32px;
+    }
+
+    .loss + .loss { border-left: 1px solid var(--line); }
+
+    .loss h3 {
+      margin: 0 0 12px;
+      font-family: var(--display);
+      font-size: clamp(21px, 1.8vw, 29px);
+      letter-spacing: -.02em;
+    }
+
+    .loss p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+
+    .loss b {
+      display: inline-block;
+      margin-top: 14px;
+      color: var(--sea);
+      font-size: 13px;
+    }
+
+    .closing {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 36%);
+      gap: clamp(28px, 5vw, 72px);
+      align-items: end;
+      padding-top: clamp(34px, 5vw, 68px);
+    }
+
+    .master-line {
+      margin: 0;
+      font-family: var(--display);
+      font-size: clamp(30px, 3.8vw, 58px);
+      line-height: 1.22;
+      letter-spacing: -.03em;
+      text-wrap: balance;
+    }
+
+    .master-line span { color: var(--brass); }
+
+    .myth-note {
+      margin: 0;
+      padding-top: 18px;
+      color: var(--ink-soft);
+      border-top: 1px solid var(--line-strong);
+      font-size: 14px;
+      text-wrap: pretty;
+    }
+
+    .myth-note strong { color: var(--ink); }
+
+    .legend {
+      margin-top: 30px;
+      color: #746c60;
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    .legend b { color: var(--ink-soft); }
+
+    .mobile-overview { display: none; }
+
+    @media (max-width: 920px) {
+      .sheet { width: 100%; min-height: 100vh; margin: 0; padding: 28px 22px 40px; }
+      .masthead { grid-template-columns: 1fr; }
+      .replay { justify-self: start; }
+      .origin-line { display: none; }
+      .mobile-overview {
+        display: block;
+        min-height: 248px;
+        margin: 18px 0 32px;
+        padding: 4px 0 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .mobile-overview svg { display: block; width: 100%; height: 196px; overflow: visible; }
+      .mobile-overview text {
+        fill: var(--ink);
+        font-family: var(--body);
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .mobile-overview .overview-note {
+        margin: 4px 0 0;
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .time-map {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 0 20px;
+        min-height: auto;
+        margin: 0 0 50px;
+        padding-left: 0;
+      }
+      .currents { width: 24px; height: 100%; }
+      .currents .desktop-paths { display: none; }
+      .currents .mobile-paths { display: block; }
+      .rail, .return, .principle, .next-rule {
+        position: relative;
+        inset: auto;
+        width: auto;
+        max-width: none;
+        grid-column: 2;
+      }
+      .rail, .return { padding: 0 0 34px 0; }
+      .rail p { background: transparent; box-shadow: none; }
+      .rail h2 { font-size: 29px; }
+      .principle { margin: -18px 0 34px; padding: 12px 0 0; border-top: 1px solid var(--line); }
+      .backward { grid-row: 3; }
+      .past { grid-row: 1; }
+      .now { grid-row: 2; }
+      .future { grid-row: 4; }
+      .forward { grid-row: 5; }
+      .return { grid-row: 6; padding-left: 72px; }
+      .return::before { width: 54px; height: 54px; }
+      .vintage { grid-row: 7; }
+      .next-rule { grid-row: 8; margin-top: 4px; padding: 20px; }
+      .three-losses { grid-template-columns: 1fr; }
+      .loss { min-height: 0; padding: 24px 0; }
+      .loss + .loss { border-left: 0; border-top: 1px solid var(--line); }
+      .closing { grid-template-columns: 1fr; align-items: start; }
+    }
+
+    @media (min-width: 921px) {
+      .mobile-paths { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+      .replay { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!--
+    THESIS: Argus is a temporal junction where preserved past, precommitted future, and arriving reality meet; it refuses the usual left-to-right feature pipeline.
+    OWN-WORLD: warm field paper, ink, sea-teal and earned brass; one nautical chronograph rather than cards or a dashboard.
+    STORY: understand that Argus preserves the starting judgment, pulls future criteria backward, sends a chosen move forward, and returns with reality before carrying one rule onward.
+    FIRST VIEWPORT: a large Korean thesis above one braided time map; past, present, promised future, and return share a single field, with the replay control secondary at the edge.
+    FORM: code-led single-sheet temporal chart; seed key ARGUS-TIME-JUNCTION.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+  -->
+  <main class="sheet">
+    <header class="masthead">
+      <div>
+        <h1>Argus는 판단의 <em>시간을 분리해</em>, 다시 만나게 한다.</h1>
+        <p class="thesis">
+          과거의 나는 그대로 보존하고, 미래의 판정 기준은 결과보다 먼저 적는다.
+          그리고 현실이 답한 날, 둘을 같은 자리에서 다시 대면시킨다.
+        </p>
+        <div class="origin-line" aria-label="이 구조의 세 학문적 뿌리">
+          <span><strong>구조 변화</strong> — 언제 다시 볼지 미리 정한다</span>
+          <span><strong>개념 드리프트</strong> — 변화가 오면 다시 연다</span>
+          <span><strong>사전 결박</strong> — 결과를 본 손이 기준을 못 바꾼다</span>
+        </div>
+      </div>
+      <button class="replay" type="button" id="replay">시간 흐름 재생</button>
+    </header>
+
+    <section class="mobile-overview" aria-label="Argus 시간 구조의 축약도">
+      <svg viewBox="0 0 340 196" role="img" aria-label="과거의 기록, 지금의 결정, 약속한 미래, 현실의 귀환, 다음 규칙이 세 흐름으로 이어진다">
+        <defs>
+          <marker id="m-arrow-brass" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#7d5c16" />
+          </marker>
+          <marker id="m-arrow-sea" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#1e5961" />
+          </marker>
+          <marker id="m-arrow-ink" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#514c43" />
+          </marker>
+        </defs>
+
+        <path d="M24 105 C105 140 220 156 286 146" fill="none" stroke="#514c43" stroke-width="2" marker-end="url(#m-arrow-ink)" />
+        <path d="M205 55 C184 24 135 24 108 55" fill="none" stroke="#7d5c16" stroke-width="3" marker-end="url(#m-arrow-brass)" />
+        <path d="M108 106 C150 106 170 106 205 100 S267 111 286 146" fill="none" stroke="#1e5961" stroke-width="4" marker-end="url(#m-arrow-sea)" />
+        <path d="M286 146 C317 151 318 176 292 184" fill="none" stroke="#7d5c16" stroke-width="3" marker-end="url(#m-arrow-brass)" />
+
+        <circle cx="24" cy="105" r="7" fill="#fffdf8" stroke="#514c43" stroke-width="2" />
+        <circle cx="108" cy="105" r="9" fill="#7d5c16" stroke="#fffdf8" stroke-width="4" />
+        <circle cx="205" cy="100" r="7" fill="#fffdf8" stroke="#7d5c16" stroke-width="2" />
+        <circle cx="286" cy="146" r="9" fill="#1e5961" stroke="#fffdf8" stroke-width="4" />
+        <circle cx="292" cy="184" r="6" fill="#7d5c16" />
+
+        <text x="10" y="88">과거</text>
+        <text x="92" y="88">지금</text>
+        <text x="184" y="84">약속</text>
+        <text x="262" y="126">현실</text>
+        <text x="245" y="192">다음 판단</text>
+        <text x="126" y="18" fill="#7d5c16">미래에서 현재로</text>
+
+        <circle r="6" fill="#b99642" opacity="0">
+          <animateMotion
+            id="mobileJourneyMotion"
+            dur="5.5s"
+            begin="indefinite"
+            fill="freeze"
+            path="M24 105 C105 140 220 156 286 146 C317 151 318 176 292 184"
+          />
+          <animate attributeName="opacity" values="0;1;1;1;0" keyTimes="0;.05;.84;.96;1" dur="5.5s" begin="mobileJourneyMotion.begin" />
+        </circle>
+      </svg>
+      <p class="overview-note">끝의 조건은 현재로 당겨 쓰고, 지금의 수는 미래로 보낸다. 과거의 기록은 둘이 현실과 만날 때까지 그대로 운반된다.</p>
+    </section>
+
+    <section class="time-map" aria-label="Argus의 시간 구조: 과거의 판단을 보존하고 미래 조건을 미리 정한 뒤 현실과 정산한다">
+      <svg class="currents" viewBox="0 0 1200 650" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <marker id="arrow-brass" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#7d5c16" />
+          </marker>
+          <marker id="arrow-sea" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#1e5961" />
+          </marker>
+          <marker id="arrow-ink" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#514c43" />
+          </marker>
+        </defs>
+
+        <g class="desktop-paths" fill="none">
+          <path d="M35 288 H1145" stroke="#cfc5b3" stroke-width="1.5" />
+          <path d="M176 288 C440 288 760 288 1085 488" stroke="#514c43" stroke-width="2" marker-end="url(#arrow-ink)" />
+          <path d="M854 126 C760 62 610 62 488 126" stroke="#7d5c16" stroke-width="3" marker-end="url(#arrow-brass)" />
+          <path d="M488 342 C670 342 765 342 856 288 S1040 288 1085 430" stroke="#1e5961" stroke-width="4" marker-end="url(#arrow-sea)" />
+          <path d="M1085 488 C1020 590 830 602 724 575" stroke="#7d5c16" stroke-width="3" marker-end="url(#arrow-brass)" />
+
+          <circle cx="176" cy="288" r="10" fill="#fffdf8" stroke="#514c43" stroke-width="2" />
+          <circle cx="488" cy="288" r="13" fill="#7d5c16" stroke="#fffdf8" stroke-width="5" />
+          <circle cx="856" cy="288" r="10" fill="#fffdf8" stroke="#7d5c16" stroke-width="3" />
+          <circle cx="1085" cy="488" r="15" fill="#1e5961" stroke="#fffdf8" stroke-width="6" />
+
+          <circle r="7" fill="#b99642" opacity="0">
+            <animateMotion
+              id="journeyMotion"
+              dur="6.5s"
+              begin="indefinite"
+              fill="freeze"
+              path="M176 288 C440 288 760 288 1085 488 C1020 590 830 602 724 575"
+            />
+            <animate attributeName="opacity" values="0;1;1;1;0" keyTimes="0;.05;.85;.96;1" dur="6.5s" begin="journeyMotion.begin" />
+          </circle>
+        </g>
+
+        <g class="mobile-paths" fill="none">
+          <path d="M12 10 V620" stroke="#cfc5b3" stroke-width="2" />
+          <path d="M12 45 V590" stroke="#1e5961" stroke-width="4" marker-end="url(#arrow-sea)" />
+          <circle cx="12" cy="48" r="7" fill="#fffdf8" stroke="#514c43" stroke-width="2" />
+          <circle cx="12" cy="175" r="8" fill="#7d5c16" stroke="#fffdf8" stroke-width="3" />
+          <circle cx="12" cy="352" r="7" fill="#fffdf8" stroke="#7d5c16" stroke-width="2" />
+          <circle cx="12" cy="514" r="9" fill="#1e5961" stroke="#fffdf8" stroke-width="3" />
+        </g>
+      </svg>
+
+      <article class="rail past">
+        <span class="timecode">PAST / BASELINE</span>
+        <h2>과거의 나</h2>
+        <p>처음 생각 · 믿었던 전제 · AI 이전의 기울기를 출처와 함께 그대로 남긴다.</p>
+      </article>
+
+      <article class="rail now">
+        <span class="timecode">NOW / ADOPTION</span>
+        <h2>지금의 결정</h2>
+        <p>도구는 한 가지를 보탠다. 다음 수와 그 이유는 사람이 직접 채택한다.</p>
+      </article>
+
+      <article class="rail future">
+        <span class="timecode">FUTURE / CONTRACT</span>
+        <h2>약속한 미래</h2>
+        <p>잘 됐다는 신호 · 틀렸다면 보일 것 · 다시 볼 날짜를 결과보다 먼저 적는다.</p>
+      </article>
+
+      <div class="principle backward">
+        <strong>Backward · 미래에서 현재로</strong>
+        끝의 조건을 먼저 정해 지금의 선택을 시험한다.
+      </div>
+
+      <div class="principle forward">
+        <strong>Forward · 현재에서 미래로</strong>
+        지금 가능한 다음 수를 현실에 보내고, 선택한 신호만 기다린다.
+      </div>
+
+      <div class="principle vintage">
+        <strong>Vintage · 과거를 미래까지 운반</strong>
+        기억도 AI도 과거 기록을 고쳐 쓰지 못한다. 나중 관찰은 덧붙여질 뿐이다.
+      </div>
+
+      <article class="rail return">
+        <span class="timecode">RETURN / REALITY</span>
+        <h2>현실이 답한 날</h2>
+        <p>옛 기록을 열기 전에 관찰부터 받는다. 모델이 아니라 현실이 답하고, 사람은 그 뜻을 정산한다.</p>
+      </article>
+
+      <div class="next-rule">
+        <strong>규칙 한 줄이 다음 판단으로 간다.</strong>
+        <span>사용자가 승인한 것만 · 범위를 붙여서 · 언제든 고치거나 철회할 수 있게</span>
+      </div>
+    </section>
+
+    <section class="three-losses" aria-label="Argus가 시간 속에서 막는 세 가지 손실">
+      <article class="loss">
+        <h3>세계가 변한다.</h3>
+        <p>전제와 신호는 낡고 흔들린다. 그래서 날짜만 기다리지 않고, 사용자가 고른 현실 접점을 함께 본다.</p>
+        <b>Argus는 변화를 알아차릴 조건을 보존한다.</b>
+      </article>
+      <article class="loss">
+        <h3>판단이 세계를 바꾼다.</h3>
+        <p>지표를 목표로 삼는 순간 지표가 오염되고, 미래의 나는 기준을 바꾸고 싶어진다.</p>
+        <b>Argus는 유혹보다 앞선 시점에 기준을 둔다.</b>
+      </article>
+      <article class="loss">
+        <h3>판정자도 변한다.</h3>
+        <p>결과를 본 기억은 과거의 이유를 다시 쓰고, AI의 문장은 내 생각처럼 스며든다.</p>
+        <b>Argus는 원문 · 저자 · 시점을 분리해 지킨다.</b>
+      </article>
+    </section>
+
+    <section class="closing">
+      <p class="master-line">
+        결정은 내리는 날이 아니라,<br />
+        <span>돌아오는 날 완성됩니다.</span>
+      </p>
+      <p class="myth-note">
+        <strong>이름의 단서.</strong> 20년 뒤 돌아온 오디세우스를 외양이 아니라 기억으로 알아본 충견 Argus처럼,
+        이 시스템은 결과로 과거를 재작성하지 않고 그때의 당신을 알아본다. 그리고 약속한 날 먼저 찾아온다.
+      </p>
+    </section>
+
+    <p class="legend">
+      <b>구조의 근거</b> · 발표자료의 오디세이 / 세 분야 / Forward–Backward 구조 ·
+      Argus 정본의 Decision Loop / Return Contract / Observation / Lesson ·
+      최근 인지 구조 엔진의 세 문제층과 두 세계(in-frame ↔ reality-contact)를 한 시간축으로 통합했다.
+    </p>
+  </main>
+
+  <script>
+    const replayButton = document.getElementById('replay');
+    const journeyMotion = document.getElementById('journeyMotion');
+    const mobileJourneyMotion = document.getElementById('mobileJourneyMotion');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function replayJourney() {
+      if (!reduceMotion.matches && journeyMotion && typeof journeyMotion.beginElement === 'function') {
+        journeyMotion.beginElement();
+      }
+      if (!reduceMotion.matches && mobileJourneyMotion && typeof mobileJourneyMotion.beginElement === 'function') {
+        mobileJourneyMotion.beginElement();
+      }
+    }
+
+    replayButton?.addEventListener('click', replayJourney);
+    window.addEventListener('load', () => window.setTimeout(replayJourney, 450), { once: true });
+  </script>
+</body>
+</html>
