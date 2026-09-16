@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>기억과 회개 — LinkedIn 3 images</title>
+<style>
+@font-face { font-family:"Gowun Batang"; src:url("../fonts/GowunBatang-Regular.full.ttf") format("truetype"); font-weight:400; }
+@font-face { font-family:"Gowun Batang"; src:url("../fonts/GowunBatang-Bold.full.ttf") format("truetype"); font-weight:700; }
+@font-face { font-family:"Noto Sans KR"; src:url("../fonts/NotoSansKR-Variable.full.ttf") format("truetype"); font-weight:100 900; }
+:root{ --night:#090c12; --ink:#f3eee4; --dim:#cfc8bb; --muted:#9a9ea6; --gold:#d9a45f; --gold2:#eec488; }
+*{box-sizing:border-box} html,body{margin:0}
+body{ display:grid; justify-content:center; gap:56px; padding:56px 0; background:#05070b; font-family:"Noto Sans KR","Apple SD Gothic Neo",sans-serif; color:var(--ink); }
+.serif{ font-family:"Gowun Batang","Noto Sans KR",serif; }
+.card{ position:relative; width:1080px; height:1350px; overflow:hidden; background:var(--night); isolation:isolate; }
+.card::after{ content:""; position:absolute; inset:0; z-index:40; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>"); }
+.frame{ position:absolute; inset:26px; z-index:30; border:1px solid rgba(217,164,95,.22); pointer-events:none; }
+.eyebrow{ font-size:17px; font-weight:660; letter-spacing:.32em; color:var(--gold); text-transform:uppercase; }
+.foot{ position:absolute; left:64px; right:64px; bottom:44px; z-index:25; display:flex; justify-content:space-between; font-size:14px; font-weight:560; letter-spacing:.24em; color:rgba(207,200,187,.6); }
+.foot b{ color:var(--gold); font-weight:740; }
+
+/* ---------- IMAGE 1 : MEMENTO ---------- */
+#img-1 .bg{ position:absolute; inset:0; z-index:1; }
+#img-1 .bg img{ width:100%; height:100%; object-fit:cover; object-position:52% 62%; filter:brightness(.5) saturate(.85) contrast(1.02); }
+#img-1 .scrim{ position:absolute; inset:0; z-index:2; background:
+  linear-gradient(180deg, rgba(6,8,13,.82) 0%, rgba(6,8,13,.72) 42%, rgba(6,8,13,.35) 70%, rgba(6,8,13,.86) 100%); }
+#img-1 .head{ position:absolute; left:64px; right:64px; top:72px; z-index:20; }
+#img-1 .quote{ position:absolute; left:64px; right:64px; top:180px; z-index:20; font-size:46px; line-height:1.52; font-weight:700; color:var(--ink); word-break:keep-all; text-shadow:0 2px 24px rgba(0,0,0,.8); }
+#img-1 .who{ position:absolute; left:64px; right:64px; top:640px; z-index:20; font-size:22px; font-weight:520; letter-spacing:.02em; color:var(--dim); }
+#img-1 .who b{ color:var(--gold2); font-weight:700; }
+#img-1 .bottom{ position:absolute; left:64px; right:64px; top:980px; z-index:20; }
+#img-1 .bottom .rule{ width:48px; height:2px; background:var(--gold); margin-bottom:26px; }
+#img-1 .bottom .big{ font-size:36px; line-height:1.48; font-weight:700; color:var(--gold2); word-break:keep-all; text-shadow:0 2px 20px rgba(0,0,0,.85); }
+#img-1 .bottom .sub{ margin-top:18px; font-size:26px; line-height:1.5; font-weight:460; color:var(--ink); word-break:keep-all; text-shadow:0 2px 16px rgba(0,0,0,.85); }
+
+/* ---------- IMAGE 2 : ARGOS ---------- */
+#img-2 .scene{ position:absolute; left:0; right:0; top:0; height:680px; z-index:5; overflow:hidden; }
+#img-2 .scene img{ width:100%; height:100%; object-fit:cover; object-position:50% 46%; filter:saturate(.95) contrast(1.02) brightness(.98); }
+#img-2 .scene .edge{ position:absolute; inset:0; background:linear-gradient(180deg, rgba(9,12,18,.55) 0%, transparent 22%, transparent 70%, rgba(9,12,18,.96) 100%); }
+#img-2 .head{ position:absolute; left:64px; right:64px; top:68px; z-index:20; }
+#img-2 .text{ position:absolute; left:64px; right:64px; top:660px; z-index:20; }
+#img-2 .lead{ font-size:24px; font-weight:640; letter-spacing:.03em; color:var(--gold); }
+#img-2 .quote{ margin-top:22px; font-size:40px; line-height:1.55; font-weight:700; color:var(--ink); word-break:keep-all; }
+#img-2 .quote em{ font-style:normal; color:var(--gold2); }
+#img-2 .support{ margin-top:30px; font-size:25px; line-height:1.6; font-weight:460; color:var(--dim); word-break:keep-all; }
+#img-2 .last{ position:absolute; left:64px; right:64px; bottom:110px; z-index:20; font-size:36px; line-height:1.4; font-weight:700; color:var(--gold2); }
+
+/* ---------- IMAGE 3 : THE FOUR ROADS ---------- */
+#img-3{ background:
+  radial-gradient(80% 40% at 50% 112%, rgba(217,164,95,.12), transparent 60%),
+  radial-gradient(60% 30% at 20% -4%, rgba(111,139,161,.09), transparent 60%), var(--night); }
+#img-3 .inner{ position:absolute; left:64px; right:64px; top:64px; bottom:96px; z-index:15; display:flex; flex-direction:column; }
+#img-3 .title{ margin-top:14px; font-size:38px; line-height:1.3; font-weight:700; color:var(--ink); word-break:keep-all; }
+#img-3 .thesis{ margin-top:8px; font-size:25px; line-height:1.4; font-weight:700; color:var(--gold2); word-break:keep-all; }
+.tree{ margin-top:18px; }
+.root{ display:inline-flex; align-items:center; gap:12px; padding:9px 18px; border:1px solid rgba(217,164,95,.55); border-radius:999px; font-size:19px; font-weight:680; letter-spacing:.02em; color:var(--gold2); background:rgba(217,164,95,.07); margin-left:14px; }
+.root i{ width:8px; height:8px; border-radius:50%; background:var(--gold2); }
+.trunk{ margin-left:26px; margin-top:10px; border-left:2px solid rgba(217,164,95,.42); }
+.branch{ margin-left:44px; border-left:2px solid rgba(217,164,95,.3); }
+.row{ position:relative; padding:11px 18px 11px 44px; border-top:1px solid rgba(207,200,187,.14); }
+.row::before{ content:""; position:absolute; left:0; top:50%; width:30px; height:2px; background:rgba(217,164,95,.42); }
+.branch .row::before{ background:rgba(217,164,95,.3); }
+.grp{ position:relative; padding:12px 18px 8px 44px; border-top:1px solid rgba(207,200,187,.14); }
+.grp::before{ content:""; position:absolute; left:0; top:36px; width:30px; height:2px; background:rgba(217,164,95,.42); }
+.grp .g-num{ font-size:16px; font-weight:700; letter-spacing:.12em; color:var(--gold); }
+.grp .g-title{ margin-top:4px; font-size:28px; font-weight:740; color:var(--ink); word-break:keep-all; }
+.grp .g-sub{ margin-top:4px; font-size:19px; color:var(--muted); }
+.row .num{ font-size:15px; font-weight:700; letter-spacing:.12em; color:var(--gold); }
+.row .act{ margin-top:4px; font-size:28px; line-height:1.3; font-weight:740; color:var(--ink); word-break:keep-all; }
+.row .who{ margin-top:5px; font-size:18px; line-height:1.45; font-weight:460; color:var(--muted); word-break:keep-all; }
+.row .fate{ margin-top:7px; font-size:22px; font-weight:700; color:var(--dim); word-break:keep-all; }
+.row .fate b{ color:var(--gold2); }
+.row.win{ margin-top:10px; border:1px solid rgba(217,164,95,.6); border-radius:8px; background:linear-gradient(90deg, rgba(217,164,95,.12), rgba(217,164,95,.03)); }
+.row.win .act{ color:var(--gold2); }
+.row.win .fate{ color:var(--ink); }
+.close{ margin-top:auto; padding-top:10px; }
+.close .rule{ width:48px; height:2px; background:var(--gold); margin-bottom:12px; }
+.close .big{ font-size:27px; line-height:1.45; font-weight:700; color:var(--ink); word-break:keep-all; }
+.close .big b{ color:var(--gold2); }
+</style>
+</head>
+<body>
+
+<!-- ============ IMAGE 1 : MEMENTO ============ -->
+<section class="card" id="img-1">
+  <div class="bg"><img src="assets/memento.png" alt="" /></div>
+  <div class="scrim"></div>
+  <div class="head"><div class="eyebrow">Memento · 2000</div></div>
+  <p class="quote serif">“기억은 방의 모양을 바꾸고,<br>차의 색을 바꾼다.<br>기억은 왜곡된다.<br>그건 해석일 뿐, 기록이 아니다.”</p>
+  <p class="who">— <b>레너드 셸비</b>, 10분마다 기억이 지워지는 남자</p>
+  <div class="bottom">
+    <div class="rule"></div>
+    <p class="big serif">기억하지 못하는 남자가, 기억하는 사람들이 잊고 사는 것을 정확히 압니다.</p>
+    <p class="sub">기억은 기록이 아니라는 것.</p>
+  </div>
+  <div class="frame"></div>
+  <div class="foot"><span>기억과 회개</span><span><b>1</b> / 3</span></div>
+</section>
+
+<!-- ============ IMAGE 2 : ARGOS ============ -->
+<section class="card" id="img-2">
+  <div class="scene"><img src="assets/odyssey-return-bright-v2.png" alt="" /><div class="edge"></div></div>
+  <div class="head"><div class="eyebrow">The Odyssey · 2026</div></div>
+  <div class="text">
+    <p class="lead">아르고스가 꼬리를 흔드는 순간 —</p>
+    <p class="quote serif">“당신이 옳았다”는 판결도, “당신은 용서받았다”는 사면도 아닙니다.<br><em>“당신은 같은 사람이고, 나는 당신을 안다”</em>는 확인입니다.</p>
+    <p class="support">개는 노래를 들을 수 없습니다. 결과를 알지 못하고, 기억을 고쳐 쓰지 못합니다. 세상이 무슨 노래를 부르든, 개의 기억만은 오염되지 않았습니다.</p>
+  </div>
+  <p class="last serif">우리의 결정에는 아르고스가 없습니다.</p>
+  <div class="frame"></div>
+  <div class="foot"><span>기억과 회개</span><span><b>2</b> / 3</span></div>
+</section>
+
+<!-- ============ IMAGE 3 : THE FOUR ROADS ============ -->
+<section class="card" id="img-3">
+  <div class="inner">
+    <div class="eyebrow">기억과 회개 · 놀란의 세 영화로 그린 지도</div>
+    <h2 class="title serif">결과를 알고 난 뒤, 그날의 결정 앞에서<br>사람은 네 길 중 하나로 갑니다.</h2>
+    <p class="thesis serif">돌아오는 길은 마지막 하나입니다.</p>
+
+    <div class="tree">
+      <div class="root"><i></i>결과를 아는 나</div>
+      <div class="trunk">
+        <div class="row">
+          <div class="num">01</div>
+          <div class="act">잊는다.</div>
+          <div class="who">칼립소의 섬에서 로토스를 먹으며 몇 년을 머무는 오디세우스</div>
+          <div class="fate">→ 돌아갈 사람이 없다</div>
+        </div>
+        <div class="grp">
+          <div class="g-num">02</div>
+          <div class="g-title">기억한다 — 결과의 편에 선 기억으로.</div>
+          <div class="g-sub">그날 몰랐던 것을 아는 채로 그날을 본다. 둘 중 하나로 미끄러진다.</div>
+        </div>
+        <div class="branch">
+          <div class="row">
+            <div class="num">02 · A</div>
+            <div class="act">그날 알 수 없었던 것으로 자신을 벌한다.</div>
+            <div class="who">약속의 노래에 묶인 채 절규하는 돛대의 오디세우스</div>
+            <div class="fate">→ <b>거짓 죄책감</b> · 마비</div>
+          </div>
+          <div class="row">
+            <div class="num">02 · B</div>
+            <div class="act">그날의 이유를 편한 대로 고쳐 쓴다.</div>
+            <div class="who">자기 몸에 거짓 사실을 새기는 레너드</div>
+            <div class="fate">→ <b>거짓 무죄</b> · 반복</div>
+          </div>
+        </div>
+        <div class="row win">
+          <div class="num">03</div>
+          <div class="act">기억한다 — 그날 그대로의 증인과 함께.</div>
+          <div class="who">아르고스가 알아본 오디세우스 · 죄책감의 환영을 놓아주는 코브</div>
+          <div class="fate">→ <b>메타노이아</b> · 지우지 않고 달라진다</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="close">
+      <div class="rule"></div>
+      <p class="big serif">02와 03을 가르는 것은 기억의 양이 아니라, <b>결과가 오기 전에 붙잡아 둔 증인</b>입니다.</p>
+    </div>
+  </div>
+  <div class="frame"></div>
+  <div class="foot"><span>기억과 회개</span><span><b>3</b> / 3</span></div>
+</section>
+</body>
+</html>

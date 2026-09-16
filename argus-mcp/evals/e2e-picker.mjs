@@ -122,6 +122,11 @@ check('check_in data.server_version == package.json (배선이 자기 버전을 
 // `elicitCount === 0` 이 되고, 게이트는 엉뚱하게 "픽커 실발사 실패"라고 말했다
 // (2026-09-10 실측, 18일 만에 발견). 교훈을 적는 것으로는 부족하고 **쓰는
 // 자리를 하나로 모아야** 반쪽 적용이 안 난다.
+// **얼마나 컸나 (main 의 #406 이 같은 것을 독립으로 고치며 적어 둔 사실):**
+// 이 E2E 는 `today_override` 없이 **실제 시계**로 돈다 — `validateSeal` 이
+// `check_by <= today` 를 `BAD_CHECK_BY` 로 막으므로, 날짜를 박아 두면 그날이
+// 지나는 순간 픽커가 안 뜬다. 2026-09-14 에 `'2026-09-01'` 이 지나면서
+// **main 으로 가는 모든 PR 의 CI 가 막혔다.** 내 브랜치만의 일이 아니었다.
 const inDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 
 // 3. 예측 픽커: ai_surfaced → elicitation 실발사 → keep → sealed, owner=user

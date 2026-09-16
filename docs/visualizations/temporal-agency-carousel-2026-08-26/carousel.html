@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nolan, Time, and Argus — Temporal Agency</title>
+  <style>
+    @font-face {
+      font-family: "Noto Sans KR";
+      src: url("../fonts/NotoSansKR-Variable.subset.ttf") format("truetype");
+      font-weight: 100 900;
+      font-style: normal;
+    }
+
+    :root {
+      --fog: #e9edeb;
+      --paper: #f7f8f6;
+      --carbon: #161a1c;
+      --graphite: #555e61;
+      --hairline: #b7bfbd;
+      --carmine: #a04435;
+      --carmine-dark: #7d3128;
+      --aegean: #35576a;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      display: grid;
+      justify-content: center;
+      gap: 48px;
+      padding: 48px 0;
+      background: #cfd4d2;
+      color: var(--carbon);
+      font-family: "Noto Sans KR", sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+
+    ::selection { background: var(--carmine); color: var(--white); }
+
+    .slide {
+      position: relative;
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      background: var(--fog);
+      isolation: isolate;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 22px;
+      border: 1px solid rgba(63, 72, 74, .16);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .page-mark {
+      position: absolute;
+      top: 57px;
+      right: 65px;
+      z-index: 18;
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 780;
+      letter-spacing: .08em;
+      color: var(--graphite);
+    }
+
+    .series-mark {
+      position: absolute;
+      left: 65px;
+      bottom: 40px;
+      z-index: 18;
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 760;
+      letter-spacing: .06em;
+      color: var(--graphite);
+    }
+
+    .series-mark b { color: var(--carmine-dark); }
+
+    .registration {
+      position: absolute;
+      right: 65px;
+      bottom: 38px;
+      width: 174px;
+      height: 3px;
+      background: var(--carmine);
+      z-index: 18;
+    }
+
+    h1, h2, p, figure { margin: 0; }
+
+    /* Slide 1 — one question becoming harder through five films */
+    .slide-1 {
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.32) 0 19%, transparent 19%),
+        var(--fog);
+    }
+
+    .s1-header {
+      position: absolute;
+      left: 65px;
+      top: 55px;
+      right: 65px;
+      z-index: 5;
+    }
+
+    .s1-title {
+      max-width: 870px;
+      font-size: 57px;
+      line-height: 1.13;
+      font-weight: 840;
+      letter-spacing: -.028em;
+      text-wrap: balance;
+    }
+
+    .s1-title em { color: var(--carmine-dark); font-style: normal; }
+
+    .s1-deck {
+      margin-top: 15px;
+      max-width: 870px;
+      font-size: 20px;
+      line-height: 1.55;
+      font-weight: 520;
+      letter-spacing: -.012em;
+      color: var(--graphite);
+    }
+
+    .film-timeline {
+      position: absolute;
+      left: 65px;
+      right: 65px;
+      top: 280px;
+      height: 770px;
+      z-index: 4;
+    }
+
+    .film-timeline::before {
+      content: "";
+      position: absolute;
+      left: 54px;
+      top: 0;
+      bottom: -40px;
+      width: 3px;
+      background: var(--carmine);
+    }
+
+    .film-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 110px 272px 1fr;
+      align-items: center;
+      height: 154px;
+      border-top: 1px solid var(--hairline);
+    }
+
+    .film-row:last-child { border-bottom: 1px solid var(--hairline); }
+
+    .film-year {
+      position: relative;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 780;
+      letter-spacing: .05em;
+      color: var(--carmine-dark);
+    }
+
+    .film-year::after {
+      content: "";
+      position: absolute;
+      left: 48px;
+      top: 70px;
+      width: 15px;
+      height: 15px;
+      border: 3px solid var(--carmine);
+      border-radius: 50%;
+      background: var(--fog);
+    }
+
+    .film-frame {
+      position: relative;
+      width: 248px;
+      height: 126px;
+      overflow: hidden;
+      background: #111618;
+      box-shadow: 0 8px 22px rgba(26, 31, 32, .14);
+    }
+
+    .film-frame::before,
+    .film-frame::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 8px;
+      z-index: 3;
+      background: repeating-linear-gradient(90deg, #eff2ef 0 12px, transparent 12px 22px);
+      opacity: .86;
+    }
+
+    .film-frame::before { top: 0; }
+    .film-frame::after { bottom: 0; }
+
+    .film-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(.82) contrast(1.04) brightness(1.08);
+    }
+
+    .memento img { object-position: 48% 58%; }
+    .inception img { object-position: 66% 65%; }
+    .interstellar img { object-position: 68% 46%; }
+    .tenet img { object-position: 52% 48%; }
+    .odyssey img { object-position: 62% 43%; }
+
+    .film-copy { padding-left: 22px; min-width: 0; }
+
+    .film-name {
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 820;
+      letter-spacing: .075em;
+      color: var(--aegean);
+    }
+
+    .film-condition {
+      margin-top: 10px;
+      font-size: 26px;
+      line-height: 1.29;
+      font-weight: 690;
+      letter-spacing: -.022em;
+      color: var(--carbon);
+      word-break: keep-all;
+    }
+
+    .s1-question {
+      position: absolute;
+      left: 65px;
+      right: 65px;
+      top: 1082px;
+      height: 190px;
+      display: flex;
+      align-items: center;
+      padding: 0 44px 0 72px;
+      background: var(--paper);
+      box-shadow: 0 14px 36px rgba(26, 31, 32, .10);
+      z-index: 5;
+    }
+
+    .s1-question::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 8px;
+      background: var(--carmine);
+    }
+
+    .s1-question p {
+      font-size: 45px;
+      line-height: 1.2;
+      font-weight: 850;
+      letter-spacing: -.03em;
+      text-wrap: balance;
+    }
+
+    /* Slide 2 — recognition as continuity, not acquittal */
+    .slide-2 { background: var(--paper); }
+
+    .s2-header {
+      position: absolute;
+      left: 65px;
+      top: 55px;
+      right: 65px;
+      z-index: 6;
+    }
+
+    .s2-title {
+      max-width: 880px;
+      font-size: 58px;
+      line-height: 1.12;
+      font-weight: 850;
+      letter-spacing: -.03em;
+      text-wrap: balance;
+    }
+
+    .s2-title em { color: var(--carmine-dark); font-style: normal; }
+
+    .s2-deck {
+      margin-top: 15px;
+      max-width: 900px;
+      font-size: 21px;
+      line-height: 1.48;
+      font-weight: 540;
+      letter-spacing: -.013em;
+      color: var(--graphite);
+      word-break: keep-all;
+    }
+
+    .odyssey-scene {
+      position: absolute;
+      left: 65px;
+      right: 65px;
+      top: 292px;
+      height: 500px;
+      overflow: hidden;
+      background: #d9dedb;
+      box-shadow: 0 18px 40px rgba(35, 43, 45, .14);
+      z-index: 4;
+    }
+
+    .odyssey-scene img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 53%;
+      filter: saturate(.86) contrast(.99) brightness(1.04);
+    }
+
+    .odyssey-scene::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 112px;
+      background: linear-gradient(180deg, transparent, rgba(13, 20, 22, .73));
+      pointer-events: none;
+    }
+
+    .journey-axis {
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1.4fr 1fr;
+      align-items: end;
+      z-index: 3;
+      color: var(--white);
+    }
+
+    .journey-axis::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 36px;
+      height: 2px;
+      background: rgba(255,255,255,.82);
+    }
+
+    .journey-point {
+      position: relative;
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 740;
+      letter-spacing: -.01em;
+      text-shadow: 0 2px 8px rgba(0,0,0,.55);
+    }
+
+    .journey-point::before {
+      content: "";
+      position: absolute;
+      bottom: 30px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(160,68,53,.82);
+    }
+
+    .journey-point strong {
+      display: block;
+      margin-bottom: 45px;
+      font-size: 20px;
+      font-weight: 820;
+    }
+
+    .journey-point.mid { text-align: center; }
+    .journey-point.end { text-align: right; }
+    .journey-point.mid::before { left: calc(50% - 6px); }
+    .journey-point.end::before { right: 0; }
+
+    .s2-argument {
+      position: absolute;
+      left: 65px;
+      right: 65px;
+      top: 836px;
+      z-index: 5;
+    }
+
+    .s2-argument .lead {
+      max-width: 920px;
+      font-size: 36px;
+      line-height: 1.32;
+      font-weight: 820;
+      letter-spacing: -.028em;
+      word-break: keep-all;
+    }
+
+    .s2-argument .lead em { color: var(--carmine-dark); font-style: normal; }
+
+    .s2-argument .explain {
+      margin-top: 18px;
+      max-width: 900px;
+      font-size: 21px;
+      line-height: 1.58;
+      font-weight: 500;
+      letter-spacing: -.015em;
+      color: var(--graphite);
+      word-break: keep-all;
+    }
+
+    .s2-bridge {
+      position: absolute;
+      left: 65px;
+      right: 65px;
+      bottom: 79px;
+      min-height: 122px;
+      display: flex;
+      align-items: center;
+      padding: 23px 38px;
+      background: var(--aegean);
+      color: var(--white);
+      z-index: 5;
+    }
+
+    .s2-bridge p {
+      max-width: 850px;
+      font-size: 29px;
+      line-height: 1.38;
+      font-weight: 760;
+      letter-spacing: -.022em;
+      word-break: keep-all;
+    }
+
+    /* Slide 3 — the temporal agency timeline and its repeated loops */
+    .slide-3 {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.50), transparent 36%),
+        var(--fog);
+    }
+
+    .s3-header {
+      position: absolute;
+      left: 65px;
+      top: 55px;
+      right: 65px;
+      z-index: 5;
+    }
+
+    .s3-title {
+      font-size: 64px;
+      line-height: 1;
+      font-weight: 870;
+      letter-spacing: -.035em;
+      color: var(--carbon);
+    }
+
+    .s3-korean {
+      margin-top: 12px;
+      font-size: 26px;
+      line-height: 1;
+      font-weight: 760;
+      letter-spacing: -.018em;
+      color: var(--carmine-dark);
+    }
+
+    .s3-definition {
+      margin-top: 23px;
+      max-width: 910px;
+      font-size: 32px;
+      line-height: 1.35;
+      font-weight: 760;
+      letter-spacing: -.026em;
+      word-break: keep-all;
+    }
+
+    .s3-definition span { color: var(--carmine-dark); }
+
+    .time-map {
+      position: absolute;
+      left: 65px;
+      right: 65px;
+      top: 310px;
+      height: 570px;
+      background: var(--paper);
+      box-shadow: 0 16px 38px rgba(32, 40, 41, .10);
+      z-index: 4;
+    }
+
+    .time-map-head {
+      display: grid;
+      grid-template-columns: 1fr 1.16fr 1fr;
+      min-height: 94px;
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .time-head-cell {
+      padding: 19px 22px 16px;
+      border-right: 1px solid var(--hairline);
+    }
+
+    .time-head-cell:last-child { border-right: 0; }
+    .time-head-cell:nth-child(2) { text-align: center; }
+    .time-head-cell:nth-child(3) { text-align: right; }
+
+    .time-code {
+      display: block;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      color: var(--carmine-dark);
+    }
+
+    .time-name {
+      display: block;
+      margin-top: 5px;
+      font-size: 27px;
+      line-height: 1.1;
+      font-weight: 830;
+      letter-spacing: -.025em;
+    }
+
+    .primary-axis {
+      position: relative;
+      height: 218px;
+      display: grid;
+      grid-template-columns: 1fr 1.16fr 1fr;
+    }
+
+    .primary-axis::before {
+      content: "";
+      position: absolute;
+      left: 44px;
+      right: 44px;
+      top: 71px;
+      height: 4px;
+      background: var(--carmine);
+    }
+
+    .primary-axis::after {
+      content: "";
+      position: absolute;
+      right: 38px;
+      top: 64px;
+      width: 14px;
+      height: 14px;
+      border-top: 4px solid var(--carmine);
+      border-right: 4px solid var(--carmine);
+      transform: rotate(45deg);
+    }
+
+    .axis-cell {
+      position: relative;
+      padding: 105px 22px 0;
+      font-size: 18px;
+      line-height: 1.52;
+      font-weight: 540;
+      letter-spacing: -.012em;
+      color: var(--graphite);
+      word-break: keep-all;
+    }
+
+    .axis-cell::before {
+      content: "";
+      position: absolute;
+      left: 38px;
+      top: 62px;
+      width: 21px;
+      height: 21px;
+      border: 5px solid var(--carmine);
+      border-radius: 50%;
+      background: var(--paper);
+    }
+
+    .axis-cell.mid { text-align: center; }
+    .axis-cell.mid::before { left: calc(50% - 10px); }
+    .axis-cell.end { text-align: right; }
+    .axis-cell.end::before { left: auto; right: 38px; }
+
+    .axis-cell b { color: var(--carbon); font-weight: 760; }
+
+    .argus-ribbon {
+      margin: 0 22px;
+      padding: 18px 22px 20px;
+      border-top: 1px solid var(--hairline);
+      border-bottom: 1px solid var(--hairline);
+      background: #e4e8e5;
+    }
+
+    .argus-ribbon-title {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      font-size: 17px;
+      font-weight: 810;
+      color: var(--aegean);
+    }
+
+    .argus-ribbon-title::after {
+      content: "";
+      flex: 1;
+      height: 2px;
+      background: var(--aegean);
+    }
+
+    .argus-ribbon p {
+      margin-top: 9px;
+      font-size: 19px;
+      line-height: 1.4;
+      font-weight: 620;
+      letter-spacing: -.015em;
+      color: var(--carbon);
+    }
+
+    .return-choice {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      align-items: center;
+      min-height: 120px;
+      padding: 16px 22px;
+    }
+
+    .return-choice strong {
+      font-size: 17px;
+      font-weight: 820;
+      color: var(--graphite);
+    }
+
+    .choice-words {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -.018em;
+    }
+
+    .choice-words span { border-left: 1px solid var(--hairline); }
+
+    .loop-block {
+      position: absolute;
+      left: 65px;
+      right: 65px;
+      top: 913px;
+      height: 250px;
+      z-index: 5;
+    }
+
+    .loop-label {
+      font-size: 20px;
+      line-height: 1.35;
+      font-weight: 750;
+      color: var(--carbon);
+    }
+
+    .loop-label span { color: var(--carmine-dark); }
+
+    .loop-track {
+      position: relative;
+      margin-top: 34px;
+      height: 126px;
+    }
+
+    .loop-track svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .loop-node {
+      position: absolute;
+      top: 54px;
+      transform: translate(-50%, -50%);
+      width: 17px;
+      height: 17px;
+      border: 4px solid var(--carmine);
+      border-radius: 50%;
+      background: var(--fog);
+    }
+
+    .loop-node b {
+      position: absolute;
+      left: 50%;
+      top: -35px;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 780;
+      color: var(--carbon);
+    }
+
+    .loop-node small {
+      position: absolute;
+      left: 50%;
+      top: 26px;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 690;
+      color: var(--graphite);
+    }
+
+    .loop-node.n1 { left: 5%; }
+    .loop-node.n2 { left: 20%; }
+    .loop-node.n3 { left: 35%; }
+    .loop-node.n4 { left: 50%; }
+    .loop-node.n5 { left: 65%; }
+    .loop-node.n6 { left: 80%; }
+    .loop-node.n7 { left: 95%; }
+
+    .s3-close {
+      position: absolute;
+      left: 65px;
+      right: 65px;
+      bottom: 76px;
+      padding-top: 22px;
+      border-top: 3px solid var(--carmine);
+      z-index: 5;
+    }
+
+    .s3-close p {
+      font-size: 39px;
+      line-height: 1.18;
+      font-weight: 850;
+      letter-spacing: -.03em;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    THESIS: 시간은 선택의 내용을 바꾸기 전에 선택의 주인이 누구인지 흔든다.
+    OWN-WORLD: The Luminous Time Contact Sheet — 차가운 은백색 바탕, 카본 잉크, 카민 등록선, 실제 장면을 담은 시간 프레임.
+    STORY: 다섯 영화가 하나의 저자성 질문을 심화하고, 오디세우스의 귀환이 연속성과 책임을 드러내며, Argus의 반복 타임라인이 Temporal Agency의 구조에 도착한다.
+    FIRST VIEWPORT: 영화 이미지가 하나의 고정된 시간 레일에 매달리고 마지막 질문으로 수렴한다.
+    FORM: direction seed 5d24420e. Chronophotography의 연속 프레임에 cutting bench의 고정 레일과 provenance ribbon의 증거 연속성을 결합한다.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+  -->
+
+  <article class="slide slide-1" id="slide-1" aria-label="Nolan의 다섯 영화가 하나의 시간적 주체성 질문으로 수렴하는 첫 장">
+    <div class="page-mark">1 / 3</div>
+    <header class="s1-header">
+      <h1 class="s1-title">Nolan의 시간은 ‘언제’보다 <em>‘누가’</em>를 묻는다.</h1>
+      <p class="s1-deck">시간이 선택과 선택한 사람 사이를 벌릴수록, 같은 질문이 더 선명해진다.</p>
+    </header>
+
+    <section class="film-timeline" aria-label="Christopher Nolan 영화 시간축">
+      <div class="film-row">
+        <div class="film-year">2000</div>
+        <div class="film-frame memento"><img src="assets/memento.png" alt="문신한 팔과 사라지는 즉석사진으로 표현한 Memento" /></div>
+        <div class="film-copy"><div class="film-name">MEMENTO</div><div class="film-condition">과거를 기억할 수 없을 때</div></div>
+      </div>
+      <div class="film-row">
+        <div class="film-year">2010</div>
+        <div class="film-frame inception"><img src="assets/inception.png" alt="팽이와 중첩된 공간으로 표현한 Inception" /></div>
+        <div class="film-copy"><div class="film-name">INCEPTION</div><div class="film-condition">생각이 어디서 시작됐는지 알 수 없을 때</div></div>
+      </div>
+      <div class="film-row">
+        <div class="film-year">2014</div>
+        <div class="film-frame interstellar"><img src="assets/interstellar.png" alt="블랙홀과 서로 다른 시계로 표현한 Interstellar" /></div>
+        <div class="film-copy"><div class="film-name">INTERSTELLAR</div><div class="film-condition">같은 관계가 서로 다른 시간을 살아갈 때</div></div>
+      </div>
+      <div class="film-row">
+        <div class="film-year">2020</div>
+        <div class="film-frame tenet"><img src="assets/tenet.png" alt="역행하는 탄환과 붉고 푸른 시간으로 표현한 Tenet" /></div>
+        <div class="film-copy"><div class="film-name">TENET</div><div class="film-condition">결과가 원인보다 먼저 도착할 때</div></div>
+      </div>
+      <div class="film-row">
+        <div class="film-year">2026</div>
+        <div class="film-frame odyssey"><img src="assets/odyssey-return-bright-v2.png" alt="떠나는 사람과 돌아오는 사람으로 표현한 The Odyssey" /></div>
+        <div class="film-copy"><div class="film-name">THE ODYSSEY</div><div class="film-condition">돌아온 내가 떠났던 나와 달라졌을 때</div></div>
+      </div>
+    </section>
+
+    <div class="s1-question"><p>그때에도 나는 내 선택의 주인인가?</p></div>
+    <div class="series-mark">NOLAN · TIME · <b>ARGUS</b></div>
+    <div class="registration"></div>
+  </article>
+
+  <article class="slide slide-2" id="slide-2" aria-label="오디세우스의 귀환과 Argus의 알아봄을 다루는 두 번째 장">
+    <div class="page-mark">2 / 3</div>
+    <header class="s2-header">
+      <h2 class="s2-title">귀환은 장소가 아니라 <em>책임</em>의 문제다.</h2>
+      <p class="s2-deck">돌아온 사람은, 떠난 사람이 시작한 일을 자기 것으로 받아들여야 한다.</p>
+    </header>
+
+    <figure class="odyssey-scene" aria-label="떠난 오디세우스와 돌아온 오디세우스, 그리고 그를 알아보는 Argus">
+      <img src="assets/odyssey-return-bright-v2.png" alt="젊은 여행자가 바다로 떠나고 늙은 여행자가 Argus에게 알아보이는 이타카의 밝은 귀환 장면" />
+      <figcaption class="journey-axis">
+        <div class="journey-point"><strong>T₀ · 떠난 사람</strong>결과를 모르는 선택</div>
+        <div class="journey-point mid"><strong>20년</strong>집 · 가족 · 자신이 달라진 시간</div>
+        <div class="journey-point end"><strong>T₁ · 돌아온 사람</strong>결과 앞에 선 선택자</div>
+      </figcaption>
+    </figure>
+
+    <section class="s2-argument">
+      <p class="lead"><em>Argus는 그가 옳았다고 말하지 않는다.</em><br />떠난 사람과 돌아온 사람이 같은 역사에 속한다고 증언할 뿐이다.</p>
+      <p class="explain">알아봄은 판결이 아니다. 과거의 행위를 현재의 사람에게 다시 건네고, 책임이 다시 시작될 자리를 만든다.</p>
+    </section>
+
+    <div class="s2-bridge"><p>이 연속성을 지키면서도, 현재의 판단을 바꿀 수 있을까?</p></div>
+    <div class="series-mark">THE ODYSSEY · <b>ARGUS</b></div>
+    <div class="registration"></div>
+  </article>
+
+  <article class="slide slide-3" id="slide-3" aria-label="시간적 주체성의 반복 타임라인 구조를 보여주는 세 번째 장">
+    <div class="page-mark">3 / 3</div>
+    <header class="s3-header">
+      <h2 class="s3-title">Temporal Agency</h2>
+      <p class="s3-korean">시간적 주체성</p>
+      <p class="s3-definition">같은 판단을 유지하는 능력이 아니다.<br /><span>과거를 바꾸지 않고, 현재의 판단을 바꿀 수 있는 능력이다.</span></p>
+    </header>
+
+    <section class="time-map" aria-label="결정에서 현실을 지나 귀환하는 시간 구조">
+      <div class="time-map-head">
+        <div class="time-head-cell"><span class="time-code">T₀</span><span class="time-name">결정</span></div>
+        <div class="time-head-cell"><span class="time-code">Δ</span><span class="time-name">현실</span></div>
+        <div class="time-head-cell"><span class="time-code">T₁</span><span class="time-name">귀환</span></div>
+      </div>
+
+      <div class="primary-axis">
+        <div class="axis-cell"><b>선명한 것</b> · 당시의 생각과 전제<br /><b>아직 없는 것</b> · 결과</div>
+        <div class="axis-cell mid">세계가 변하고<br />행동이 세계를 바꾸고<br />나도 변한다</div>
+        <div class="axis-cell end"><b>선명한 것</b> · 현실의 결과<br /><b>흐려지기 쉬운 것</b> · 당시 생각</div>
+      </div>
+
+      <div class="argus-ribbon">
+        <div class="argus-ribbon-title">ARGUS가 보존하는 선</div>
+        <p>당시의 말 · 전제 · 인간/AI 출처 · 명시적 채택 · 돌아올 조건</p>
+      </div>
+
+      <div class="return-choice">
+        <strong>귀환 뒤의 판단</strong>
+        <div class="choice-words" aria-label="유지, 수정, 해제, 아직 모름"><span>유지</span><span>수정</span><span>해제</span><span>아직 모름</span></div>
+      </div>
+    </section>
+
+    <section class="loop-block" aria-label="판단과 귀환이 계속 이어지는 반복 루프">
+      <p class="loop-label">한 번의 회고가 아니라, <span>귀환이 다음 결정을 여는 반복 구조</span></p>
+      <div class="loop-track">
+        <svg viewBox="0 0 950 126" role="img" aria-label="결정, 현실, 귀환이 다음 결정로 이어지는 시간선">
+          <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#a04435"></path></marker></defs>
+          <path d="M48 54 H900" fill="none" stroke="#a04435" stroke-width="3" marker-end="url(#arrow)" />
+          <path d="M333 54 C375 112 431 112 475 54" fill="none" stroke="#35576a" stroke-width="2.5" marker-end="url(#arrow)" />
+          <path d="M618 54 C660 112 716 112 760 54" fill="none" stroke="#35576a" stroke-width="2.5" marker-end="url(#arrow)" />
+        </svg>
+        <div class="loop-node n1"><b>결정₁</b><small>T₀₁</small></div>
+        <div class="loop-node n2"><b>현실₁</b><small>Δ₁</small></div>
+        <div class="loop-node n3"><b>귀환₁</b><small>T₁₁</small></div>
+        <div class="loop-node n4"><b>결정₂</b><small>T₀₂</small></div>
+        <div class="loop-node n5"><b>현실₂</b><small>Δ₂</small></div>
+        <div class="loop-node n6"><b>귀환₂</b><small>T₁₂</small></div>
+        <div class="loop-node n7"><b>결정₃ ···</b><small>T₀₃</small></div>
+      </div>
+    </section>
+
+    <div class="s3-close"><p>과거를 지우지 않고, 달라질 수 있게.</p></div>
+    <div class="series-mark">TEMPORAL AGENCY · <b>ARGUS</b></div>
+    <div class="registration"></div>
+  </article>
+</body>
+</html>
