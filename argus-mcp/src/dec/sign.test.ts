@@ -178,3 +178,21 @@ describe('범위가 나쁘면 법이 되지 않는다 (다른 프로젝트 규�
       '2026-08-02T00:00:00.000Z')).rejects.toThrow(/BAD_SCOPE/);
   });
 });
+
+describe('다시 볼 날은 날짜로만 남는다', () => {
+  const signWith = (review: string): Promise<void> => runDecSignCli([
+    '--argus-dir', argusDir, '--repo', repo, '--author', '창업자',
+    '--decision', '웹 화면은 나중에 만든다', '--review', review, '--today', '2026-10-20',
+  ]);
+
+  it('지평(+14d)은 서명한 날 기준의 날짜가 된다 — 글자 그대로 남아 다음 날 "다시 볼 날"로 뜨지 않는다', async () => {
+    await signWith('+14d');
+    expect(foldDecisions(argusDir).records[0]!.review).toBe('2026-11-03');
+  });
+
+  it('날짜로 못 읽는 값은 조용히 저장하지 않고 거절한다', async () => {
+    await expect(signWith('다음 달쯤')).rejects.toThrow(/YYYY-MM-DD/);
+    await expect(signWith('2026-02-30')).rejects.toThrow(/YYYY-MM-DD/);
+    expect(foldDecisions(argusDir).records).toHaveLength(0);
+  });
+});

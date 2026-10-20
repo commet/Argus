@@ -1,5 +1,6 @@
 import { scopeSay } from '../scope.js';
 import type { InjectionPlan } from './select.js';
+import { ENGINE_COMMAND } from '../types.js';
 
 /**
  * 세션이 열릴 때 에이전트에게 가는 글.
@@ -55,7 +56,7 @@ export function sayInjection(plan: InjectionPlan): string[] {
   }
   const due = plan.picks.filter((p) => p.slot === 'due').length;
   if (due > 0) {
-    lines.push(`다시 볼 때가 된 것이 ${due}건이다. 사람이 보게 \`dec-due\` 를 띄워 주고, 답은 사람이 한다.`);
+    lines.push(`다시 볼 때가 된 것이 ${due}건이다. 사람이 보게 \`${ENGINE_COMMAND} dec-due\` 를 저장소 안에서 띄워 주고, 답은 사람이 한다.`);
   }
   lines.push('서로 어긋나 보이면 **네가 고르지 마라.** 사람에게 물어라.');
   lines.push('여기 없는 일은 모르는 일이다. 모르면 하지 마라 — 지어내지 마라.');
@@ -64,6 +65,6 @@ export function sayInjection(plan: InjectionPlan): string[] {
   // 첫 사용자가 정확히 그 경우다. 기획서가 이 동사를 만든 이유가 *"인터페이스가
   // 전부 push 라 pull 이 0이었다"* 인데, 안 알리면 pull 은 다시 0 이다.
   // 바로 윗줄이 "모르면 하지 마라"로 끝나는 것도 반쪽이었다 — 막다른 길 대신 문을 준다.
-  lines.push('걸릴 것 같은데 여기 없으면 `dec-check --plan "<하려는 일>"` 으로 물어라.');
+  lines.push(`걸릴 것 같은데 여기 없으면 \`${ENGINE_COMMAND} dec-check --plan "<하려는 일>"\` 으로 물어라.`);
   return lines;
 }

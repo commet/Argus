@@ -1,5 +1,6 @@
 import type { DueItem } from './due.js';
 import { asSigned, wasAmended } from '../vintage.js';
+import { ENGINE_COMMAND } from '../types.js';
 
 /**
  * 다시 물을 때 화면에 나가는 글.
@@ -20,7 +21,7 @@ const REASON_SAY: Record<DueItem['reason'], (days: number) => string> = {
 };
 
 /** 화면에 적히는 명령은 **그대로 쳐서 도는 것**이어야 한다 (index.ts 가 받는 이름). */
-export const DEC_BIN = 'argus-decision-mcp';
+export const DEC_BIN = ENGINE_COMMAND;
 
 export function sayAsk(item: DueItem, argusDir?: string): string[] {
   const { record } = item;

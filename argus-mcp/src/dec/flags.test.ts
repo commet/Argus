@@ -39,6 +39,8 @@ function flagsRead(body: string): string[] {
     // `dec-amend` 는 `put('decision', '--decision')` 처럼 헬퍼를 거쳐 읽는다.
     // 이걸 안 보면 멀쩡한 깃발 여섯을 "아무도 안 읽는다"고 신고한다 (실측).
     ...[...body.matchAll(/put\('[a-z_]+',\s*'(--[a-z-]+)'\)/g)].map((m) => m[1]!),
+    // 날짜 깃발은 `dateFlag` 가 읽고 지평(+14d)을 날짜로 바꾼다.
+    ...[...body.matchAll(/dateFlag\(args,\s*'(--[a-z-]+)'/g)].map((m) => m[1]!),
     // `argusDirOf` 가 대신 읽는다.
     ...(/argusDirOf\(args/.test(body) ? ['--argus-dir'] : []),
   ])];
@@ -155,5 +157,22 @@ describe('화면이 가르치는 명령은 플러그인만 깐 기기에서도 �
     };
     walk(HERE);
     expect(bare, `맨 엔진 이름으로 가르치는 자리: ${bare.join(' · ')}`).toEqual([]);
+  });
+});
+
+describe('엔진 이름을 상수로 감춰서 맨몸으로 가르치지도 않는다', () => {
+  it("'argus-decision-mcp' 를 명령 머리로 상수에 담지 않는다 (ENGINE_COMMAND 만)", () => {
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) { walk(full); continue; }
+        if (!/\.ts$/.test(e.name) || /\.test\.ts$/.test(e.name)) continue;
+        const text = fs.readFileSync(full, 'utf8');
+        if (/=\s*'argus-decision-mcp'\s*;/.test(text)) offenders.push(path.relative(HERE, full));
+      }
+    };
+    walk(HERE);
+    expect(offenders).toEqual([]);
   });
 });

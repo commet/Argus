@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { resolveHorizon } from '../lib/resolve-today.js';
 
 /**
  * **저자성 판정(`ai_surfaced`)을 여기서 다시 만들지 않는다.** 같은 뜻의 판정이
@@ -36,6 +37,31 @@ import { markShown, readShown } from './inject/state.js';
 function flag(args: readonly string[], name: string): string | null {
   const index = args.indexOf(name);
   return index >= 0 && typeof args[index + 1] === 'string' ? args[index + 1]! : null;
+}
+
+/**
+ * 날짜 깃발은 **날짜로 읽힐 때만** 받는다. `--review +14d` 가 글자 그대로
+ * 저장됐고, `'+' < '2'` 라서 서명한 다음 날 바로 "다시 볼 날"로 올라왔다
+ * (2026-10-20 실측). MCP 도구가 이미 받는 지평(+7d/+2w/+3m)은 그 자리에서
+ * 날짜로 바꾸고, 그 밖의 글자는 조용히 저장하지 않고 거절한다.
+ */
+function dateFlag(args: readonly string[], name: string, today: string): string | null {
+  const raw = flag(args, name);
+  if (raw === null) return null;
+  const value = raw.trim();
+  const horizon = resolveHorizon(value, today);
+  if (horizon) return horizon;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const parsed = new Date(`${value}T12:00:00Z`);
+    if (!Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value) return value;
+  }
+  throw new Error(`${name} 는 YYYY-MM-DD 날짜이거나 +7d / +2w / +3m 같은 지평이어야 한다 — 받은 값: ${raw}`);
+}
+
+function localToday(): string {
+  const d = new Date();
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 /**
@@ -339,11 +365,11 @@ export async function runDecSignCli(args: readonly string[]): Promise<void> {
   // 문이 안 열리면 조용히 초안으로 돌아간다 — 모델이 못 냈다고 서명이 막히면
   // 안 되고, 못 낸 사실은 나가는 값에 적힌다.
   const chosen = chooseWatch(draft, flag(args, '--compiled'));
-  const review = flag(args, '--review');
   const reviewOnEvent = flag(args, '--review-on-event');
   const unattended = (flag(args, '--unattended') ?? 'park') as Unattended;
   const scope = flag(args, '--scope') ?? 'repo';
   const today = flag(args, '--today') ?? new Date().toISOString().slice(0, 10);
+  const review = dateFlag(args, '--review', today);
   const because = flag(args, '--because');
 
   const payload: DecSignedPayload = {
@@ -587,8 +613,8 @@ export async function runDecCloseCli(args: readonly string[]): Promise<void> {
     return;
   }
 
-  const nextReview = flag(args, '--next-review');
-  if (!nextReview) throw new Error('dec-close requires --next-review <YYYY-MM-DD>');
+  const nextReview = dateFlag(args, '--next-review', localToday());
+  if (!nextReview) throw new Error('dec-close requires --next-review <YYYY-MM-DD | +4w>');
   if (args.includes('--later') && args.includes('--keep')) {
     throw new Error('dec-close 는 --keep 과 --later 를 함께 받지 않는다 — 둘 중 하나다');
   }
@@ -636,7 +662,8 @@ export async function runDecAmendCli(args: readonly string[]): Promise<void> {
   put('decision', '--decision');
   put('scope', '--scope');
   put('binds', '--binds');
-  put('review', '--next-review');
+  const nextReview = dateFlag(args, '--next-review', localToday());
+  if (nextReview !== null) payload.review = nextReview;
   put('review_on_event', '--review-on-event');
   put('because', '--because');
   const unattended = flag(args, '--unattended');
