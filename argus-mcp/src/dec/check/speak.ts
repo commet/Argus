@@ -1,4 +1,5 @@
 import type { CheckResult, Match } from './match.js';
+import { ENGINE_COMMAND } from '../types.js';
 
 /**
  * **말할지 말지가 형태보다 먼저다.**
@@ -53,6 +54,6 @@ export function decideSpeak(input: SpeakInput): SpeakDecision {
   if (match.blind_spots.length > 0) {
     lines.push(`  이 규칙이 못 잡는 것: ${match.blind_spots.join(' / ')}`);
   }
-  lines.push(`  잘못 잡았으면: argus-decision-mcp dec-misfire --id ${match.id} --matched "${match.matched}"`);
+  lines.push(`  잘못 잡았으면: ${ENGINE_COMMAND} dec-misfire --id ${match.id} --matched "${match.matched}"`);
   return { speak: true, match, lines };
 }

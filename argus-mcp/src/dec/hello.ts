@@ -6,6 +6,7 @@ import { foldDecisions } from './fold.js';
 import { collectPast } from './rehearse/collect.js';
 import { rehearse, TOO_BROAD } from './rehearse/engine.js';
 import { clauseSentence } from './rules/split.js';
+import { ENGINE_COMMAND } from './types.js';
 
 /**
  * 첫 인사 — **한 번만 하는 말.**
@@ -135,7 +136,7 @@ export function sayHello(repo: string, days = 30, argusDir?: string): HelloResul
   // 원장은 안 읽는다. 여기에 붙여 두면 화면이 **죽는 명령을 가르친다.** 실제로
   // 그랬다: 2026-09-10 에 그 깃발을 rehearse 의 목록에서 빼면서 **찍는 자리를
   // 안 봤고**, 한 바퀴 돌려 화면을 읽다가 잡았다.
-  say.push(`  전부 보기:  argus-decision-mcp dec-rehearse --repo ${repo}`);
+  say.push(`  전부 보기:  ${ENGINE_COMMAND} dec-rehearse --repo ${repo}`);
   say.push('  이 말은 이 저장소에서 한 번만 한다.');
 
   return { greet: true, files: found.files.map((f) => f.rel), clause_count: clauses.length, collided, gaps: past.gaps, say };

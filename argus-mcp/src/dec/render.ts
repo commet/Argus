@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { scopeSay } from './scope.js';
 import { MISFIRE_LIMIT } from './check/speak.js';
 import type { DecisionRecord } from './types.js';
+import { ENGINE_COMMAND } from './types.js';
 
 /**
  * 결정 파일 그리기 — 원장에서 나온 상태 하나를 사람이 읽는 마크다운 한 장으로.
@@ -229,7 +230,7 @@ export function renderDecisionBody(record: DecisionRecord): string {
   out.push('---', '');
   out.push(`${AUTO_FOOTER_LEAD} 여기를 고쳐도 규칙은 안 바뀐다 —`);
   out.push('고친 게 보이면 다음에 "이대로 바꿀까요?" 하고 묻는다.');
-  out.push(`바꾸려면: argus-decision-mcp dec-amend --id ${record.id} --decision "<새 문장>" --why "<왜 바꾸나>"`);
+  out.push(`바꾸려면: ${ENGINE_COMMAND} dec-amend --id ${record.id} --decision "<새 문장>" --why "<왜 바꾸나>"`);
 
   return out.join('\n') + '\n';
 }

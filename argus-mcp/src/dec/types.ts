@@ -39,6 +39,13 @@ export type DecisionType = 'pin' | 'ban' | 'open' | 'pred';
 /** 사람 없는 시간의 충돌 처분 — 서명 시점에 사람이 정한다 (대리가 아니라 사전 확장). */
 export type Unattended = 'park' | 'log' | 'deny';
 
+/**
+ * 화면이 사람에게 가르치는 명령의 머리. **그대로 쳐서 돌아야 한다.**
+ * 플러그인은 엔진을 전역 설치하지 않으므로 맨 `argus-decision-mcp` 는 대부분의
+ * 기기에서 "command not found" 다 (2026-10-20 실측). npx 형은 어디서나 돈다.
+ */
+export const ENGINE_COMMAND = 'npx -y argus-decision-mcp';
+
 /** 3채널 컴파일이 되나. 안 되면 정직하게 "기계는 못 잡는다"고 파일에 적는다. */
 export type WatchMode = 'machine' | 'inject_only';
 

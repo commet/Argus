@@ -26,6 +26,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
+const { resolveFastEngine } = require("./engine");
 
 const STATE_FILE = "capture-sweep-state.json";
 
@@ -104,6 +105,9 @@ function resolveEngine() {
   }
   const direct = onPath("argus-decision-mcp");
   if (direct) return { cmd: direct, prefix: [], ok: true };
+  // MCP 서버가 이미 내려받아 둔 사본 — 찬 npx 보다 빠르고 오프라인에서도 뜬다.
+  const fast = resolveFastEngine();
+  if (fast.ok) return { cmd: fast.cmd, prefix: fast.prefix, ok: true };
   const npx = onPath("npx");
   if (npx) return { cmd: npx, prefix: ["-y", "argus-decision-mcp"], ok: true };
   return { cmd: "npx", prefix: ["-y", "argus-decision-mcp"], ok: false, why: "엔진도 npx 도 PATH 에서 못 찾았다" };

@@ -17,6 +17,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { resolveFastEngine } = require("./engine");
 
 const STATE_FILE = "dec-brief-state.json";
 const BUDGET_MS = 4000;
@@ -34,28 +35,9 @@ function findProjectRoot(from) {
   return null;
 }
 
-function onPath(name) {
-  const exts = process.platform === "win32" ? [".cmd", ".exe", ".bat", ""] : [""];
-  for (const dir of (process.env.PATH || "").split(path.delimiter)) {
-    if (!dir) continue;
-    for (const ext of exts) {
-      const candidate = path.join(dir, `${name}${ext}`);
-      try { if (fs.statSync(candidate).isFile()) return candidate; } catch { /* 다음 후보 */ }
-    }
-  }
-  return null;
-}
-
-/** 세션 시작은 기다릴 수 없는 자리라 **찬 npx 로는 부르지 않는다.** */
+/** 세션 시작은 기다릴 수 없는 자리라 **찬 npx 로는 부르지 않는다** — 찾는 법은 `engine.js` 한 곳에. */
 function resolveEngine() {
-  const explicit = process.env.ARGUS_MCP_BIN;
-  if (explicit && explicit.trim() !== "") {
-    try { if (fs.statSync(explicit).isFile()) return { cmd: explicit, ok: true }; } catch { /* 아래로 */ }
-    return { cmd: explicit, ok: false, why: `ARGUS_MCP_BIN 이 가리키는 실행 파일이 없다: ${explicit}` };
-  }
-  const direct = onPath("argus-decision-mcp");
-  if (direct) return { cmd: direct, ok: true };
-  return { cmd: null, ok: false, why: "엔진이 아직 안 깔려 있다 (세션 시작은 npx 를 기다릴 수 없다)" };
+  return resolveFastEngine();
 }
 
 function writeState(argusDir, state) {
@@ -89,7 +71,7 @@ function firstHello(root) {
 
   let raw;
   try {
-    raw = execFileSync(engine.cmd, ["dec-hello", "--repo", root, "--data-dir", dataDir], {
+    raw = execFileSync(engine.cmd, [...engine.prefix, "dec-hello", "--repo", root, "--data-dir", dataDir], {
       cwd: root, encoding: "utf8", timeout: BUDGET_MS, maxBuffer: 4 * 1024 * 1024,
     });
   } catch { return null; }                      // 인사 못 한 것이 세션을 막지 않는다
@@ -122,7 +104,7 @@ function main(stdinText) {
   let raw;
   try {
     raw = execFileSync(engine.cmd, [
-      "dec-brief", "--argus-dir", argusDir, "--cwd", cwd, "--today", localToday(),
+      ...engine.prefix, "dec-brief", "--argus-dir", argusDir, "--cwd", cwd, "--today", localToday(),
     ], { cwd: root, encoding: "utf8", timeout: BUDGET_MS, maxBuffer: 4 * 1024 * 1024 });
   } catch (error) {
     writeState(argusDir, {

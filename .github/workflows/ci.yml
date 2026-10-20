@@ -313,6 +313,12 @@ jobs:
       - name: Argus decision block hook
         run: node argus-plugin-v2/hooks/dec-block.test.mjs
 
+      # The plugin brings the engine with npx and never installs it globally,
+      # so the decision hooks must find the copy the MCP server already
+      # downloaded — otherwise a plugin-only install leaves them silent forever.
+      - name: Argus hook engine resolver
+        run: node argus-plugin-v2/hooks/engine.test.mjs
+
       # Enforcement is a HARD BLOCK, not advisory (CLI exits non-zero on a violation).
       - name: Argus enforcement hard-block
         run: node argus-plugin-v2/scripts/enforcement-hardblock.test.mjs

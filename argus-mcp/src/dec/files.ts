@@ -3,6 +3,7 @@ import path from 'node:path';
 import { foldDecisions, type DecFoldResult } from './fold.js';
 import { decisionFileName, fingerprintOf, renderDecisionBody, renderDecisionFile, splitDecisionFile } from './render.js';
 import type { DecisionRecord } from './types.js';
+import { ENGINE_COMMAND } from './types.js';
 
 /**
  * 결정 파일을 디스크에 두는 자리 — 판정 10(B+) 의 몸통.
@@ -146,7 +147,7 @@ export function sayHandEdited(ids: readonly string[]): string[] {
   return [
     `${which} 의 파일을 손으로 고쳤다. 덮어쓰지 않았다 — 고친 그대로 있다.`,
     '이대로 결정을 바꿀까? 그러면: ' +
-      ids.map((id) => `argus-decision-mcp dec-amend --id ${id} --decision "<파일에 쓴 문장>" --why "<왜 바꾸나>"`).join(' / '),
+      ids.map((id) => `${ENGINE_COMMAND} dec-amend --id ${id} --decision "<파일에 쓴 문장>" --why "<왜 바꾸나>"`).join(' / '),
     '아니면 파일을 지우고 다시 그리면 원래대로 돌아온다.',
   ];
 }

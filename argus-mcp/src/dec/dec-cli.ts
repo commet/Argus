@@ -54,10 +54,34 @@ function rejectUnknownFlags(args: readonly string[], command: string, known: rea
   }
 }
 
+/**
+ * `--argus-dir` 가 없으면 **지금 서 있는 프로젝트의 장부**를 쓴다 — 단, 장부가
+ * 이미 있을 때만. 화면이 사람에게 가르치는 명령(`dec-amend`·`dec-misfire`)은
+ * 이 깃발 없이 적혀 있었고, 그대로 치면 죽었다 (2026-10-20 실측). 없는 장부를
+ * 여기서 새로 만들지는 않는다 — 엉뚱한 자리에서 친 명령이 새 장부를 낳으면
+ * 결정이 두 곳으로 갈라진다.
+ */
+export function nearestLedgerDir(from: string): string | null {
+  let dir = path.resolve(from);
+  for (;;) {
+    const candidate = path.join(dir, '.argus');
+    if (fs.existsSync(path.join(candidate, 'ledger', 'ledger.jsonl'))) return candidate;
+    if (fs.existsSync(path.join(dir, '.git'))) return null;   // 프로젝트 경계 — 위로 새지 않는다
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
 function argusDirOf(args: readonly string[], command: string): string {
   const dir = flag(args, '--argus-dir');
-  if (!dir || !path.isAbsolute(dir)) throw new Error(`${command} requires an absolute --argus-dir`);
-  return dir;
+  if (dir) {
+    if (!path.isAbsolute(dir)) throw new Error(`${command} requires an absolute --argus-dir`);
+    return dir;
+  }
+  const found = nearestLedgerDir(process.cwd());
+  if (found) return found;
+  throw new Error(`${command} requires an absolute --argus-dir (or run it inside a project that already has .argus/ledger)`);
 }
 
 /** 원장에서 결정 파일을 다시 그린다. 사람이 고친 파일은 손대지 않는다. */

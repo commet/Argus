@@ -49,6 +49,8 @@ function world({ withLedger = true } = {}) {
 function runHook(repo, payload, bin) {
   const env = { ...process.env };
   if (bin) env.ARGUS_MCP_BIN = bin; else delete env.ARGUS_MCP_BIN;
+  // 개발자 기기의 진짜 npx 캐시가 "엔진 없음" 상황에 새지 않게 빈 캐시를 준다.
+  env.npm_config_cache = mkdtempSync(join(tmpdir(), 'argus-no-npx-'));
   return spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify({ session_id: 's1', cwd: repo, ...payload }),
     encoding: 'utf8', env,

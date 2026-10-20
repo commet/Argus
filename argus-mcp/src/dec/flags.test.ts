@@ -134,3 +134,26 @@ describe('화면이 가르치는 명령은 그대로 쳐서 돈다', () => {
     expect(broken, `화면이 안 받는 깃발을 가르친다: ${broken.join(' · ')}`).toEqual([]);
   });
 });
+
+describe('화면이 가르치는 명령은 플러그인만 깐 기기에서도 돈다', () => {
+  it('엔진 이름을 맨몸으로 가르치지 않는다 — ENGINE_COMMAND 를 거친다', () => {
+    // 플러그인은 엔진을 npx 로 데려오고 전역 설치하지 않는다. 맨 이름은 그 기기에서
+    // "command not found" 다 (2026-10-20 실측: 화면 네 곳이 그랬다).
+    const bare: string[] = [];
+    const walk = (dir: string): void => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) { walk(full); continue; }
+        if (!/\.ts$/.test(e.name) || /\.test\.ts$/.test(e.name)) continue;
+        const text = fs.readFileSync(full, 'utf8')
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/^\s*\/\/.*$/gm, '');
+        text.split('\n').forEach((line, i) => {
+          if (/argus-decision-mcp\s+(dec|capture)-/.test(line)) bare.push(`${path.relative(HERE, full)}:${i + 1}`);
+        });
+      }
+    };
+    walk(HERE);
+    expect(bare, `맨 엔진 이름으로 가르치는 자리: ${bare.join(' · ')}`).toEqual([]);
+  });
+});

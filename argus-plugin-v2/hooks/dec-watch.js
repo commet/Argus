@@ -20,6 +20,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { resolveFastEngine } = require("./engine");
 
 const BUDGET_MS = 4000;
 const DAILY_LIMIT = 3;
@@ -36,25 +37,10 @@ function findProjectRoot(from) {
   return null;
 }
 
-function onPath(name) {
-  const exts = process.platform === "win32" ? [".cmd", ".exe", ".bat", ""] : [""];
-  for (const dir of (process.env.PATH || "").split(path.delimiter)) {
-    if (!dir) continue;
-    for (const ext of exts) {
-      const candidate = path.join(dir, `${name}${ext}`);
-      try { if (fs.statSync(candidate).isFile()) return candidate; } catch { /* 다음 후보 */ }
-    }
-  }
-  return null;
-}
-
+/** 매 편집마다 오는 훅이라 찬 npx 를 기다릴 수 없다 — 찾는 법은 `engine.js` 한 곳에. */
 function resolveEngine() {
-  const explicit = process.env.ARGUS_MCP_BIN;
-  if (explicit && explicit.trim() !== "") {
-    try { if (fs.statSync(explicit).isFile()) return explicit; } catch { return null; }
-    return null;
-  }
-  return onPath("argus-decision-mcp");   // 찬 npx 를 매 편집마다 기다릴 수는 없다
+  const engine = resolveFastEngine();
+  return engine.ok ? engine : null;
 }
 
 function localToday() {
@@ -94,8 +80,8 @@ function main(stdinText) {
 
   let raw;
   try {
-    raw = execFileSync(engine, [
-      "dec-check", "--argus-dir", argusDir, "--today", today,
+    raw = execFileSync(engine.cmd, [
+      ...engine.prefix, "dec-check", "--argus-dir", argusDir, "--today", today,
       "--session-id", typeof payload.session_id === "string" ? payload.session_id : "unknown",
       ...subject,
     ], { cwd: root, encoding: "utf8", timeout: BUDGET_MS, maxBuffer: 2 * 1024 * 1024 });
