@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.1.0 - 2026-10-20
+
+- **The decision book works from one install.** The four decision hooks
+  (`dec-brief`, `dec-watch`, `dec-block`, `capture-sweep`) looked for the engine
+  only on `PATH`, but the plugin brings it with `npx` and never installs it
+  globally — so on a plugin-only machine they stayed silent forever. They now
+  share one resolver (`hooks/engine.js`) that also finds the copy the MCP server
+  already downloaded, and refuses a pre-2.1.0 copy instead of hanging on it.
+- **`/argus:history rules`** — the in-conversation door to the decision book:
+  list what is signed here, rehearse the rules already written against past
+  work, sign one sentence after an explicit yes, and answer what is due.
+- Requires `argus-decision-mcp` 2.1.0 (the plugin fetches it automatically).
+
 ## 3.0.22 - 2026-08-10
 
 - **One portable product loop.** A new host-neutral `loop` skill explains the

@@ -57,7 +57,7 @@ if (manifest) {
 // so they are loaded only after a public router selects them; they do not tax
 // every model turn or create undocumented slash commands.
 const SKILLS = ["loop", "review", "check", "history", "settings", "help"];
-const WORKFLOWS = ["configure", "connect", "doctor", "journal", "preapprove", "predict", "premises", "principles", "pull", "push", "resolve", "scan", "sync", "versions"];
+const WORKFLOWS = ["configure", "connect", "doctor", "journal", "preapprove", "predict", "premises", "principles", "pull", "push", "resolve", "rules", "scan", "sync", "versions"];
 const REVIEW_STEPS = ["pipeline", "clarify", "team", "verify", "boss", "revise"];
 const discoveredSkills = fs.readdirSync(path.join(root, "skills"), { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_")
