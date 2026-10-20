@@ -4,13 +4,7 @@
   },
   "permissions": {
     "allow": [
-      "mcp__Supabase__execute_sql",
-      "mcp__Supabase__apply_migration",
-      "mcp__Supabase__list_tables",
-      "mcp__Supabase__list_migrations",
-      "mcp__Supabase__list_projects",
-      "mcp__Supabase__get_advisors",
-      "mcp__Supabase__generate_typescript_types"
+      "mcp__Supabase"
     ]
   },
   "hooks": {
