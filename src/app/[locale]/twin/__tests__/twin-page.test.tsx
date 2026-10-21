@@ -16,6 +16,12 @@ import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+
+/** 미래 날짜를 글자로 박지 않는다 — 그 날이 지나면 코드를 안 고쳐도 빨간불이 된다
+ *  (2026-09 에 실제로 겪었다. `no-future-date-literals.test.ts` 가 지킨다). */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const authUser: { current: { id: string } | null } = { current: { id: 'u1' } };
@@ -226,7 +232,7 @@ describe('분신의 집', () => {
         policy: '3만원 이하 환불은 즉시 승인',
         scope_domain: 'refund',
         user_words: '소액은 그냥 해줘',
-        expires_at: '2026-12-01T00:00:00Z',
+        expires_at: daysFromNow(90),
         status: 'suspended',
         applications: 9,
         supported: 3,

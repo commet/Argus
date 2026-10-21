@@ -31,6 +31,8 @@
     "gates": "node argus-plugin-v2/scripts/validate-gates.mjs",
     "gates:test": "node argus-plugin-v2/scripts/validate-gates.test.mjs",
     "gates:capability": "node scripts/check-capability-duplication.mjs",
+    "gates:reach": "node scripts/check-reachability.mjs",
+    "gates:cycles": "node scripts/check-cycles.mjs",
     "signals:test": "node argus-plugin-v2/scripts/test-decision-signals.mjs",
     "validate:progressive": "tsx --env-file=.env.local scripts/validate-progressive.ts",
     "probe:boss": "tsx --env-file=.env.local scripts/probe-boss-store.ts",
@@ -39,7 +41,8 @@
     "card:preview": "node scripts/preview-judgment-card.mjs",
     "e2e:surfaces": "node scripts/e2e/public-surfaces.mjs",
     "e2e:loop": "node scripts/e2e/decision-loop.mjs",
-    "e2e:loop:signed-in": "node -e \"process.env.E2E_MODE='signed-in';import('./scripts/e2e/decision-loop.mjs')\""
+    "e2e:loop:signed-in": "node -e \"process.env.E2E_MODE='signed-in';import('./scripts/e2e/decision-loop.mjs')\"",
+    "test:future": "node scripts/test-future.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

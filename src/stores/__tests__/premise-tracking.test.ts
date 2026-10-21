@@ -18,6 +18,12 @@ import {
 } from '@/lib/review';
 import { isMonitored, isDueForRecheck, isReconsiderable, addDays, DEFAULT_RECHECK_CADENCE_DAYS } from '@/lib/premises-core';
 
+
+/** 미래 날짜를 글자로 박지 않는다 — 그 날이 지나면 코드를 안 고쳐도 빨간불이 된다
+ *  (2026-09 에 실제로 겪었다. `no-future-date-literals.test.ts` 가 지킨다). */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+
 function mock(artifact: CanonicalArtifact): ReviewLLM {
   const uid = artifact.units[0]?.unit_id ?? 'u0';
   return {
@@ -36,7 +42,7 @@ function mock(artifact: CanonicalArtifact): ReviewLLM {
       if (args.system.includes('"종합"')) {
         return {
           core_question: '핵심 질문', current_heading: '확인 뒤 정하세요', judgment_obligations: [],
-          followups: [{ predicate: '2주 내 지표 상승', pass_condition: '+5%', fail_condition: '변화없음', check_by: '2027-01-01' }],
+          followups: [{ predicate: '2주 내 지표 상승', pass_condition: '+5%', fail_condition: '변화없음', check_by: daysFromNow(120).slice(0, 10) }],
         } as T;
       }
       return {} as T;
@@ -59,7 +65,7 @@ describe('premise tracking — promote, re-check, caps', () => {
     S().saveReceipt(r);
     // seal the follow-up so premises are armed
     const fid = r.falsifiable_followups[0].followup_id;
-    S().sealFollowup(r.receipt_id, fid, { predicate: 'p', predicate_owner: 'user', pass_condition: 'a', fail_condition: 'b', check_by: '2027-01-01' });
+    S().sealFollowup(r.receipt_id, fid, { predicate: 'p', predicate_owner: 'user', pass_condition: 'a', fail_condition: 'b', check_by: daysFromNow(120).slice(0, 10) });
 
     S().promotePremise(r.receipt_id, { text: '금리가 3.5% 근처에 머문다', load_bearing: true, external: true });
     let rec = S().getReceipt(r.receipt_id)!;

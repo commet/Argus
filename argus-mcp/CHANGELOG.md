@@ -1,5 +1,42 @@
 # Changelog
 
+## 2.1.0 - The decision book, and the return loop closed end to end
+
+First release since 2.0.23 (2026-08-12). Two months of work that was merged but
+never reached `npx`.
+
+**The decision book (`dec-*` commands).** A decision you make while working with
+AI becomes a rule agents in that repository read and keep — only after you sign
+it. The plugin's hooks call these; you rarely type them.
+
+- `dec-hello` / `dec-scan-rules` / `dec-rehearse` read the rules you already wrote
+  (CLAUDE.md, AGENTS.md, .cursorrules …) and show where each would have asked
+  over the last N days of git history and session transcripts. Nothing binds
+  until signed.
+- `dec-sign` — one sentence, one author, one review date. Provenance is
+  recorded (`user` vs `ai_surfaced`); a clause from a rule file keeps its
+  byte-checked quote. Writes `decisions/D-000N.md` and refreshes the signed
+  block in `AGENTS.md`.
+- `dec-brief` (session start), `dec-check` (on edit/prompt), `dec-block`
+  (stops an edit only for a signed ban, after three days of watching only), `dec-due` / `dec-close` / `dec-amend` / `dec-pause` /
+  `dec-misfire` / `dec-leave` / `dec-export` / `dec-verify`.
+- Commands the screens teach now run as printed on a plugin-only machine:
+  they start with `npx -y argus-decision-mcp`, and `--argus-dir` defaults to the
+  ledger of the project you are standing in (never creating a new one).
+- `--review` / `--next-review` accept `+14d`-style horizons and real dates only.
+  A horizon used to be stored as text and came back due the next day.
+
+**The return loop, closed.** Plans with dated steps (`action: plan`,
+`plan_check`) come back on their date; at most three are scheduled at once.
+A missed settlement can leave one rule in your own words (Lesson), asked only
+when reality differed from the prediction. `if_false_changes` now reaches the
+premise recheck instead of being dropped; text premises can come back
+`uncertain`; `source` defaults to `host_reported` instead of claiming the user
+said it.
+
+**Input depth.** The belief-confirmation window takes your own typed sentence
+(`elicited: true`), and the confidence you give is used again at settlement.
+
 ## 2.0.23 - The refusal hands back what the server already knew
 
 Six repairs, all in the response rather than the tool surface, so the served

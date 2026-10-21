@@ -8,14 +8,14 @@
   },
   "metadata": {
     "description": "Argus — turns stuck decisions into observable moves and returns with reality.",
-    "version": "3.0.22"
+    "version": "3.1.0"
   },
   "plugins": [
     {
       "name": "argus",
       "source": "./argus-plugin-v2",
       "description": "Turns a stuck decision into one observable next move, preserves the user-adopted record, and returns when reality can shape the next judgment.",
-      "version": "3.0.22",
+      "version": "3.1.0",
       "license": "MIT",
       "category": "productivity",
       "keywords": [

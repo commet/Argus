@@ -97,11 +97,18 @@ function grant(overrides: Partial<InfluenceGrant> = {}): InfluenceGrant {
     surfaces: ['web'],
     scope: { domain: 'product_launch', project_id: 'p1' },
     starts_at: '2026-07-01T00:00:00.000Z',
-    // Derived from NOW, never a wall-clock literal: one path in the live
-    // context builder reads the real clock, so a fixed date silently turned
-    // this suite red the morning it passed (2026-08-01). A fixture that
-    // expires is a test that measures the calendar.
-    expires_at: new Date(Date.parse(NOW) + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    // Anchored to the REAL clock, not to NOW.
+    //
+    // One path (`buildEnhancedSystemPrompt`) has no `now` injection point and
+    // reads the wall clock, so this window has to be valid in real time. The
+    // 2026-08-01 fix derived it from NOW instead — which is itself a fixed
+    // literal, so it only bought 365 days and would have gone red again on
+    // 2027-07-17. Measured on 2026-09-10 by running this suite against a
+    // shifted calendar (`argus-mcp: npm run test:future`); the same run showed
+    // a text scan for date literals both misses this and flags fixtures that
+    // are fine. NOW (2026-07-17) sits inside this window, so the `now: NOW`
+    // callers are unaffected.
+    expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
     authorized_by: 'user',
     status: 'active',
     ...overrides,

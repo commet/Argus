@@ -4,6 +4,14 @@ import { emptyClaimAuthorityState, type AccountContinuityPolicy, type ClaimAutho
 import { buildE3BAuthorityCommand, parseE3BReviewAction, resolveCardSources } from '@/lib/epistemic/server-review';
 import type { ClaimReviewCardProjection, CanonicalSourceEventProjection } from '@/lib/epistemic/patterns-projection';
 
+
+/** 미래 날짜를 글자로 박지 않는다 — 그 날이 지나면 코드를 안 고쳐도 빨간불이 된다
+ *  (2026-09 에 실제로 겪었다. `no-future-date-literals.test.ts` 가 지킨다). */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+/** **한 번만 계산한다** — 입력과 단언에서 각각 부르면 밀리초가 어긋난다. */
+const EXPIRES_AT = daysFromNow(30);
+
 const NOW = '2026-07-18T03:00:00.000Z';
 const state: ClaimAuthorityState = {
   ...emptyClaimAuthorityState('claim:j9-action'), aggregate_version: 4, authority_epoch: 2,
@@ -53,12 +61,12 @@ describe('JCR J9 surface actions', () => {
       action: {
         kind: 'grant', action_id: 'action:grant', claim_id: state.claim_id,
         effect: 'ask_once', surfaces: ['web'], scope: { domain: 'product' },
-        expires_at: '2026-10-18T03:00:00.000Z',
+        expires_at: EXPIRES_AT,
       },
     });
     expect(grant).toMatchObject({
       type: 'GrantInfluence', grant_id: 'grant:e3b:action:grant', effect: 'ask_once',
-      starts_at: NOW, expires_at: '2026-10-18T03:00:00.000Z',
+      starts_at: NOW, expires_at: EXPIRES_AT,
     });
     expect(grant && 'action' in grant).toBe(false);
     expect(endorsement?.semantic_fingerprint).toBe(commandSemanticFingerprint(endorsement!));

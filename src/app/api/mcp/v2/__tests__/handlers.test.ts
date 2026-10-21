@@ -84,12 +84,26 @@ vi.mock('../store', () => ({
 // 이 둘은 실제로는 service role DB 와 LLM 을 탄다. mock 하지 않으면 try/catch 가
 // 삼켜서 **조용히 아무 일도 없는 것처럼** 통과하고, 배선이 맞는지 아무것도
 // 증명하지 못한다 (이 파일이 존재하는 이유와 정확히 같은 함정).
+/**
+ * **미래 날짜를 글자로 박지 않는다.**
+ *
+ * 이 파일은 2026-08 에 `2026-09-01` 을 "미래"라고 적었다. 09-02 부터 그것은
+ * 과거가 됐고, 기한을 미래로만 받는 핸들러가 거절하기 시작해 테스트 둘이
+ * 조용히 빨간불이 됐다 — **코드는 그대로인데 달력이 지나서** 깨진 것이다
+ * (2026-09-09 발견, 18일 만에). 상대 날짜로 적으면 다시 안 터진다.
+ *
+ * 일부러 과거인 것(`2020-01-01`)은 그대로 둔다 — 그건 "지난 약속"이라는
+ * 뜻이지 실수가 아니다.
+ */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+
 const sealed: Array<{ lean?: string }> = [];
 let delegationMatch: { delegation: { id: string; policy: string }; text: string } | null = null;
 let delegationCreate: { ok: true; id: string; expiresAt: string } | { ok: false; reason: string } = {
   ok: true,
   id: 'deleg-1',
-  expiresAt: '2026-09-05T00:00:00Z',
+  expiresAt: daysFromNow(30),
 };
 const marked: Array<{ caseId: string; delegationId: string }> = [];
 // 열 때 꺼내진 위임의 서버 기록 (결정론 백스톱) — 모델의 에코와 무관하게 남는다.
@@ -175,7 +189,7 @@ beforeEach(() => {
   delegationMatch = null;
   cruxText = '';
   cruxCalls = 0;
-  delegationCreate = { ok: true, id: 'deleg-1', expiresAt: '2026-09-05T00:00:00Z' };
+  delegationCreate = { ok: true, id: 'deleg-1', expiresAt: daysFromNow(30) };
 });
 
 async function openCase(utterance = '가격을 올릴까 말까 고민이야') {
@@ -188,9 +202,12 @@ async function openCase(utterance = '가격을 올릴까 말까 고민이야') {
 // ── fire-gate 가 장식이 아니어야 한다 ────────────────────────────────────
 // 기한은 실제 시계 기준으로 늘 미래여야 한다. 날짜를 박아 두면 그날이 지나는 순간
 // 계획·정산 경로가 거절돼 테스트가 빨개진다(2026-09-14에 '2026-09-01'이 지나 실제로 일어남).
-const daysFromNow = (days: number) => `${new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`;
-const DUE_SOON = daysFromNow(30);
-const DUE_LATER = daysFromNow(44);
+// 머지 주의: `daysFromNow` 는 이 파일 위쪽에 이미 있다(풀 ISO 를 낸다). main 의
+// #407 이 같은 이름으로 하나 더 들여왔는데 최상위 중복 선언이라 컴파일이 안 됐다.
+// **이름을 갈라** 둘 다 살린다 — 기한은 자정으로 맞춘 모양이 필요하다.
+const dueOn = (days: number): string => `${daysFromNow(days).slice(0, 10)}T00:00:00Z`;
+const DUE_SOON = dueOn(30);
+const DUE_LATER = dueOn(44);
 
 describe('argus_open — 발동 관문', () => {
   it('평평한 말에는 결정을 열지 않는다 (모델이 불렀다는 사실만으로 통과하지 않는다)', async () => {

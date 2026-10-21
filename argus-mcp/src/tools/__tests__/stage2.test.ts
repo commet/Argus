@@ -1,12 +1,12 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { tmpArgusDir, body, isError } from '../../test-helpers.js';
+import { inDays, tmpArgusDir, body, isError } from '../../test-helpers.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
 import { openDecision } from '../open-decision.js';
 import { amend, dismiss } from '../amend-dismiss.js';
 import { readResource } from '../../resources.js';
 
-const FUTURE = '2027-01-01';
+const FUTURE = inDays(120);
 
 afterEach(() => { delete process.env['ARGUS_DIR']; });
 

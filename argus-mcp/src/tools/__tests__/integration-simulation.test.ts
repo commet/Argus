@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
-import { tmpArgusDir, body, isError } from '../../test-helpers.js';
+import { inDays, tmpArgusDir, body, isError } from '../../test-helpers.js';
 
 const ORIG = process.env.ARGUS_TOKEN;
 beforeEach(() => { delete process.env.ARGUS_TOKEN; vi.restoreAllMocks(); });
@@ -15,7 +15,7 @@ describe('MCP simulation — full loop with account sync', () => {
     const id = 'sim-decision';
 
     const sealed = await seal.handler({
-      argus_dir: dir, id, predicate: 'cutover 다운타임 5분 미만', check_by: '2027-01-01',
+      argus_dir: dir, id, predicate: 'cutover 다운타임 5분 미만', check_by: inDays(120),
       predicate_owner: 'user', human_judgment: '내가 책임진다',
     });
     expect(isError(sealed)).toBe(false);
@@ -36,7 +36,7 @@ describe('MCP simulation — full loop with account sync', () => {
   it('stays local-only (no network) when no token is set', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const dir = tmpArgusDir();
-    const res = await seal.handler({ argus_dir: dir, id: 'local1', predicate: '무언가 참이 된다 반드시', check_by: '2027-01-01', predicate_owner: 'user' });
+    const res = await seal.handler({ argus_dir: dir, id: 'local1', predicate: '무언가 참이 된다 반드시', check_by: inDays(120), predicate_owner: 'user' });
     expect((body(res).data as Record<string, unknown>).account_synced).toBe(false);
     expect(fetchSpy).not.toHaveBeenCalled();
     // no_token is the chosen default, not a failure — the surface stays silent.
@@ -50,7 +50,7 @@ describe('MCP simulation — full loop with account sync', () => {
     const id = 'sync-fail';
 
     const sealed = await seal.handler({
-      argus_dir: dir, id, predicate: 'cutover 다운타임 5분 미만', check_by: '2027-01-01', predicate_owner: 'user',
+      argus_dir: dir, id, predicate: 'cutover 다운타임 5분 미만', check_by: inDays(120), predicate_owner: 'user',
     });
     expect(isError(sealed)).toBe(false); // the local seal stands
     const sealData = body(sealed).data as Record<string, unknown>;
@@ -81,7 +81,7 @@ describe('MCP simulation — full loop with account sync', () => {
       argus_dir: dir,
       id: 'expired-token',
       predicate: 'cutover downtime stays under five minutes',
-      check_by: '2027-01-01',
+      check_by: inDays(120),
       predicate_owner: 'user',
     });
 
@@ -102,7 +102,7 @@ describe('MCP simulation — settle outcome is required, never inferred', () => 
   it('with no outcome and no elicitation support, refuses (does not guess)', async () => {
     const dir = tmpArgusDir();
     const id = 'needs-outcome';
-    await seal.handler({ argus_dir: dir, id, predicate: '무언가 참이 된다 반드시', check_by: '2027-01-01', predicate_owner: 'user' });
+    await seal.handler({ argus_dir: dir, id, predicate: '무언가 참이 된다 반드시', check_by: inDays(120), predicate_owner: 'user' });
     const res = await settle.handler({ argus_dir: dir, id, outcome_source: 'user_stated', what_happened: '어떻게 됐다' });
     expect(isError(res)).toBe(true);
     expect(body(res).error_code).toBe('OUTCOME_REQUIRED');

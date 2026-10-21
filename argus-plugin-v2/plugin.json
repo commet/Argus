@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "argus",
-  "version": "3.0.22",
+  "version": "3.1.0",
   "description": "Turns a stuck decision into one observable next move, preserves the user-adopted record, and returns when reality can shape the next judgment.",
   "author": {
     "name": "Argus",

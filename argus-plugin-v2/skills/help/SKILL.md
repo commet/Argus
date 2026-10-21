@@ -32,7 +32,8 @@ Commands (6):
                    re-check premises (/argus:check premises)
   /argus:history   decision log across sessions · one decision's version tree
                    (/argus:history versions) · your record chronology · ratify a
-                   recurring principle · scan past chats (/argus:history scan)
+                   recurring principle · scan past chats (/argus:history scan) ·
+                   sign a rule agents here will keep (/argus:history rules)
   /argus:settings  language & boss persona · webapp connect/push/pull/sync
   /argus:help      this screen
 
@@ -57,6 +58,7 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 - wants to seal one candidate or seed for later → `/argus:check <id>`
 - "is that fact still true?" / premises may have shifted → `/argus:check premises`
 - asks "what have I decided here" / "show my past records" → `/argus:history`
+- "앞으로 이렇게 하자" / wants agents in this repo to keep a rule / which rules here were broken lately → `/argus:history rules`
 - lost mid-decision / wants the version tree / resume → `/argus:history versions`
 - wants to keep a repeated lesson as their own rule → `/argus:history principles`
 - wants to recover decisions from past chats → `/argus:history scan`

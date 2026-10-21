@@ -9,6 +9,12 @@
 import assert from 'node:assert/strict';
 import { MockLedger, attachRider, executeTool, runConvo, settlementSummary } from './convo-sim.mjs';
 
+
+// 앞으로의 날짜는 **언제나 오늘로부터 센다.** 글자로 박으면 그 날이 지날 때
+// 코드를 안 고쳐도 빨간불이 된다 — 2026-09 에 `e2e-picker` 가 그렇게 무너졌고
+// 게이트는 엉뚱하게 "픽커 실발사 실패"라고 말했다 (18일 만에 발견).
+const inDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
 
@@ -38,7 +44,7 @@ test('MockLedger._openList: check_by 정렬 + 상위 10 컷 + predicate 140자 �
 // ── 라이더: 실제 서버 attachOpenPredictions 미러 ────────────────────────────
 test('attachRider: 비-checkin 결과엔 open_predictions + standing_sense 동봉', () => {
   const l = new MockLedger();
-  l.predict({ predicate: 'churn under 3% by Q3', check_by: '2026-09-30' });
+  l.predict({ predicate: 'churn under 3% by Q3', check_by: inDays(20) });
   const out = executeTool(l, 'argus_capture', { load_bearing_assumption: 'price is the buy driver' }, 'SENSE-LINE');
   assert.ok(Array.isArray(out.open_predictions) && out.open_predictions.length === 1, 'capture 결과에 열린 예측 동봉');
   assert.equal(out.standing_sense, 'SENSE-LINE', 'standing_sense 한 줄 동봉');

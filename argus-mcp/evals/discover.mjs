@@ -10,6 +10,12 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
 
+
+// 앞으로의 날짜는 **언제나 오늘로부터 센다.** 글자로 박으면 그 날이 지날 때
+// 코드를 안 고쳐도 빨간불이 된다 — 2026-09 에 `e2e-picker` 가 그렇게 무너졌고
+// 게이트는 엉뚱하게 "픽커 실발사 실패"라고 말했다 (18일 만에 발견).
+const inDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+
 const [cmd, ...args] = process.argv.slice(2);
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-disc-'));
 
@@ -46,7 +52,7 @@ const showElicit = (label) => {
 hr('1. 예측 픽커 (한국어) — keep 응답 시 페이로드 + 결과');
 respond = () => ({ action: 'accept', content: { choice: 'keep' } });
 elicits = [];
-let r = await call('argus_predict', { id: 'ko-pred', predicate: '무료 티어 폐지 3개월 뒤, 유료 MRR이 폐지 직전 달 대비 늘어 있다', check_by: '2026-11-30', predicate_owner: 'ai_surfaced' });
+let r = await call('argus_predict', { id: 'ko-pred', predicate: '무료 티어 폐지 3개월 뒤, 유료 MRR이 폐지 직전 달 대비 늘어 있다', check_by: inDays(80), predicate_owner: 'ai_surfaced' });
 showElicit('예측 확인 픽커 (KO)');
 console.log(`    → 결과: status=${r?.data?.status} owner=${r?.data?.predicate_owner}`);
 
@@ -82,13 +88,13 @@ const e1 = await call('argus_predict', { id: 'bad-date', predicate: 'this ships 
 console.log(`  code=${e1?.error_code}\n  message=${JSON.stringify(e1?.message)}\n  recovery=${JSON.stringify(e1?.recovery)}`);
 
 hr('7. 에러 회복 품질 — 검증불가(vibe) 예측');
-const e2 = await call('argus_predict', { id: 'vibe', predicate: '느낌이 좋다', check_by: '2026-12-01', predicate_owner: 'user' });
+const e2 = await call('argus_predict', { id: 'vibe', predicate: '느낌이 좋다', check_by: inDays(82), predicate_owner: 'user' });
 console.log(`  code=${e2?.error_code}\n  message=${JSON.stringify(e2?.message)}\n  recovery=${JSON.stringify(e2?.recovery)}`);
 
 hr('8. reword 왕복 — 폼에 쓴 문장이 그대로 저장되나 (KO)');
 respond = () => ({ action: 'accept', content: { choice: 'reword', your_wording: '무료 폐지 뒤 3개월 안에 유료 전환율이 두 배가 된다' } });
 elicits = [];
-const rw = await call('argus_predict', { id: 'rw-pred', predicate: 'conversion doubles', check_by: '2026-12-31', predicate_owner: 'ai_surfaced' });
+const rw = await call('argus_predict', { id: 'rw-pred', predicate: 'conversion doubles', check_by: inDays(112), predicate_owner: 'ai_surfaced' });
 console.log(`  → predicate="${rw?.data?.predicate}" owner=${rw?.data?.predicate_owner} status=${rw?.data?.status}`);
 
 await client.close();

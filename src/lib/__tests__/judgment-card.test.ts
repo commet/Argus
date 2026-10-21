@@ -4,6 +4,14 @@ import { join } from 'node:path';
 import { buildJudgmentCard, readAuthorship, CARD_STRINGS } from '../judgment-card';
 import type { DecisionContract, Predicate } from '@/stores/types';
 
+
+/** 미래 날짜를 글자로 박지 않는다 — 그 날이 지나면 코드를 안 고쳐도 빨간불이 된다
+ *  (2026-09 에 실제로 겪었다. `no-future-date-literals.test.ts` 가 지킨다). */
+const daysFromNow = (n: number): string =>
+  new Date(Date.now() + n * 86_400_000).toISOString();
+/** 두 자리가 같은 날을 가리켜야 한다 — 하나만 고치면 조용히 어긋난다. */
+const CHECK_IN_AT = daysFromNow(60);
+
 /**
  * 판단 카드가 **지어내지 못하게** 막는 가드 (2026-07-29 신설).
  *
@@ -25,7 +33,7 @@ const BASE: DecisionContract = {
   predicates: [],
   created_at: '2026-07-29T04:00:00.000Z',
   sealed_statement: '다음 분기 매출이 지금 수준을 유지한다.',
-  check_in_at: '2026-10-27T00:00:00.000Z',
+  check_in_at: CHECK_IN_AT,
 };
 
 function bet(over: Partial<Predicate>): Predicate {
@@ -146,7 +154,7 @@ describe('정상 경로', () => {
     expect(card).toEqual({
       statement: '다음 분기 매출이 지금 수준을 유지한다.',
       sealedOn: '2026-07-29',
-      checkOn: '2026-10-27',
+      checkOn: CHECK_IN_AT.slice(0, 10),
       authorship: 'user',
       context: '다음 분기에 신규 채용을 2명 더 할지 정해야 한다.',
       premises: ['온보딩 기간은 3~6개월로 잡는다.'],

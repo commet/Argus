@@ -29,6 +29,12 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
+
+// 앞으로의 날짜는 **언제나 오늘로부터 센다.** 글자로 박으면 그 날이 지날 때
+// 코드를 안 고쳐도 빨간불이 된다 — 2026-09 에 `e2e-picker` 가 그렇게 무너졌고
+// 게이트는 엉뚱하게 "픽커 실발사 실패"라고 말했다 (18일 만에 발견).
+const inDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+
 /**
  * What THIS release is supposed to contain, as symbols that survive bundling.
  * Keep it short and keep it current: each line is a fix someone was blocked by.
@@ -194,7 +200,7 @@ const res = await client.callTool({
   arguments: {
     argus_dir: dir, id: 'pub-1',
     predicate: 'the published build records with a single keypress',
-    check_by: '2026-12-31', predicate_owner: 'ai_surfaced', confirm_draft: true,
+    check_by: inDays(112), predicate_owner: 'ai_surfaced', confirm_draft: true,
   },
 }, undefined, { timeout: 60_000 });
 
