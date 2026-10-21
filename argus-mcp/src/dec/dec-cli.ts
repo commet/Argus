@@ -86,6 +86,10 @@ function rejectUnknownFlags(args: readonly string[], command: string, known: rea
  * 이 깃발 없이 적혀 있었고, 그대로 치면 죽었다 (2026-10-20 실측). 없는 장부를
  * 여기서 새로 만들지는 않는다 — 엉뚱한 자리에서 친 명령이 새 장부를 낳으면
  * 결정이 두 곳으로 갈라진다.
+ *
+ * (`ledger.jsonl` 은 결정 장부의 원장 파일이다 — 대화 기록을 읽는 자리가 아니다.
+ * 대화 기록은 `v2/candidate-capture.ts` 와 `rehearse/collect.ts` 가 읽고, 이 함수는
+ * 장부가 있는지만 본다.)
  */
 export function nearestLedgerDir(from: string): string | null {
   let dir = path.resolve(from);
